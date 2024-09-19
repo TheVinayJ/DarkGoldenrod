@@ -6,6 +6,7 @@ Tiana Huynh,
 Vinu Aravindh Ramesh,
 Vinay Joshi,
 Son Tran,
+Duy Bui Nguyen Khuong
 
 CMPUT404-project-socialdistribution
 
