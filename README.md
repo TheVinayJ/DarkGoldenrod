@@ -17,6 +17,7 @@ Make a distributed social network!
 ## License
 
 * Choose an OSI approved license, name it here, and copy the license text to a file called `LICENSE`.
+
 GNU General Public License version 3
 
 ## Copyright
