@@ -2,10 +2,10 @@
 CMPUT404-project-socialdistribution
 ===================================
 Team Members:
-Tiana Huynh
-Vinu Aravindh Ramesh
-Vinay Joshi
-Son Tran
+Tiana Huynh,
+Vinu Aravindh Ramesh,
+Vinay Joshi,
+Son Tran,
 
 CMPUT404-project-socialdistribution
 
