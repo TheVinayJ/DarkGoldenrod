@@ -5,6 +5,7 @@ Team Members:
 Tiana Huynh
 Vinu Aravindh Ramesh
 Vinay Joshi
+Son Tran
 
 CMPUT404-project-socialdistribution
 
