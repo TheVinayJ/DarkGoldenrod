@@ -4,6 +4,7 @@ CMPUT404-project-socialdistribution
 Team Members:
 Tiana Huynh
 Vinu Aravindh Ramesh
+Vinay Joshi
 
 CMPUT404-project-socialdistribution
 
