@@ -13,7 +13,7 @@ class Author(models.Model):
     github = models.CharField(max_length=50) # URL of author's Github
     profile_image = models.CharField(max_length=100) # Link to profile picture
     page = models.CharField(max_length=100) # URL of user's HTML profile page
-    friends = models.OneToManyField('Author', related_name='friends')
+    friends = models.ManyToManyField('Author')
 
 class Like(models.Model):
     # Generic Foreign key taken from django documentation
@@ -23,16 +23,16 @@ class Like(models.Model):
 
 class Post(models.Model):
     id = models.AutoField(primary_key=True)
-    author = models.ForeignKey(Author)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     description = models.TextField() # Posts need a short description
     text_content = models.TextField() # Text post content (optional)
-    image_content = models.CharField() # Link to image
-    likes = GenericRelation(Like, related_query_name='likes')
+    image_content = models.TextField() # Link to image
+    likes = GenericRelation(Like)
 
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    author = models.ForeignKey(Author)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
     text = models.TextField()
-    likes = GenericRelation(Like, related_query_name='likes')
+    likes = GenericRelation(Like)
