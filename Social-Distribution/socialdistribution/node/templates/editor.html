@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New Post</title>
+</head>
+<body>
+    <h1>Create a new post:</h1>
+
+    <div>
+        <h3>Markdown Editor</h3>
+        <textarea id="markdown-editor" rows="10" cols="50" placeholder="Write in Markdown..."></textarea>
+        <button id="convert-btn">Convert to HTML</button>
+    </div>
+
+    <h3>Output</h3>
+    <div id="markdown-output"></div> <!-- Rendered HTML output -->
+
+    <script src="{% static 'markdown-editor.min.js' %}"></script> <!-- Load bundled JS -->
+</body>
+</html>
