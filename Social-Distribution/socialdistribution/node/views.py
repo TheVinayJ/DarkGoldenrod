@@ -1,19 +1,25 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from.models import Post
+from .models import Post
 
-# Index taken from Lab 2
-# Needs to be changed, just using for testing purposes
 def index(request):
     posts = []
 
     post_objects = Post.objects.all()
     for post in post_objects:
         posts.append({
+            "id": post.id,
             "title": post.title,
-            "url": reverse("view", kwargs={ "id": post.id })
+            "description": post.description,
+            "author": post.author,
+            "text_content": post.text_content,
+            "likes": post.likes,
+            "url": reverse("view_post", kwargs={"post_id": post.id})
         })
-    return render(request, "index.html", { "posts": posts })
+    return render(request, "index.html", {"posts": posts})
 
-def editor(request):
-    return render(request, "editor.html")
+def view_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    return render(request, "post.html", {
+        "post": post,
+    })

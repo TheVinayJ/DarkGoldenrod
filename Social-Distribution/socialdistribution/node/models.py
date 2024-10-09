@@ -29,6 +29,7 @@ class Post(models.Model):
     text_content = models.TextField() # Text post content (optional)
     image_content = models.TextField() # Link to image
     likes = GenericRelation(Like)
+    published = models.DateTimeField(auto_now_add=True)
 
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+    <h1>{{ post.title }}</h1>
+    <p>{{ post.description }}</p>
+    <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
+    <div class="post-content">
+        {{ post.text_content|linebreaks }}
+    </div>
+
+    <!-- Display Likes -->
+    <p>Likes: {{ post.likes.count }}</p>
+
+    <!-- <form action="{ POST a like}" method="post">
+        {% csrf_token %}
+        <button type="submit">Like</button>
+    </form> -->
+
+    <!-- Comments Section -->
+    <h2>Comments</h2>
+    {% if comments %}
+        <ul class="comment-list">
+            {% for comment in comments %}
+                <li>
+                    <p>{{ comment.author.display_name }} said on {{ comment.published|date:"F j, Y, g:i a" }}</p>
+                    <p>{{ comment.text }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No comments yet.</p>
+    {% endif %}
+
+    <!-- Comment Form -->
+    <!-- <h3>Add a Comment</h3>
+    <form action="{ POST a comment }" method="post">
+        {% csrf_token %}
+        <textarea name="comment_text" rows="4" cols="50" required></textarea><br>
+        <button type="submit">Submit</button>
+    </form> -->
+{% endblock %}
