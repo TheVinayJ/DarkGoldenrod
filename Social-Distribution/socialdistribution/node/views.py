@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from .models import Post
+from .models import Post, Author
+import datetime
 
 def index(request):
     posts = []
@@ -17,6 +18,18 @@ def index(request):
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
     return render(request, "index.html", {"posts": posts})
+
+def editor(request):
+    return render(request, "editor.html")
+
+def save(request):
+    post = Post(title=request.POST["title"],
+                description=request.POST["body-text"],
+                published=datetime.datetime.now(),
+                # Needs author field!
+    )
+    post.save()
+    return(redirect('/node/'))
 
 def view_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
