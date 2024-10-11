@@ -63,7 +63,7 @@ def index(request):
             "description": post.description,
             "author": post.author,
             "text_content": post.text_content,
-            # "likes": post.likes,
+            "likes": post.likes,
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
     return render(request, "index.html", {"posts": posts})
@@ -75,7 +75,6 @@ def save(request):
     post = Post(title=request.POST["title"],
                 description=request.POST["body-text"],
                 published=datetime.datetime.now(),
-                # Needs author field!
     )
     post.save()
     return(redirect('/node/'))
