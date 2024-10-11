@@ -6,4 +6,5 @@ urlpatterns = [
     path("add/", views.editor, name="add"),
     path("save/", views.save, name="save"),
     path("posts/<int:post_id>/", views.view_post, name="view_post"),
+    path('authors/', views.AuthorListView.as_view(), name='authors'),
 ]
