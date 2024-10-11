@@ -88,3 +88,6 @@ def view_post(request, post_id):
 def profile(request, user_id):
     user = get_object_or_404(Author, id=user_id)
     return render(request, "profile.html", {'user': user})
+
+def get_author(request):
+    return get_object_or_404(Author, id=request.COOKIES.get('ID', None))
