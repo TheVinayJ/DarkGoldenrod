@@ -1,7 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.views.generic import ListView
 from .models import Post, Author
 import datetime
+
+class AuthorListView(ListView):
+    model = Author
+    template_name = 'authors.html'  # Specify the template to use
+    context_object_name = 'authors'  # Name of the context object to access in the template
 
 def index(request):
     posts = []
