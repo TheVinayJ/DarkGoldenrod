@@ -7,4 +7,5 @@ urlpatterns = [
     path("save/", views.save, name="save"),
     path("posts/<int:post_id>/", views.view_post, name="view_post"),
     path('authors/', views.AuthorListView.as_view(), name='authors'),
+    path('<int:user_id>/profile/', views.profile, name='profile'),
 ]
