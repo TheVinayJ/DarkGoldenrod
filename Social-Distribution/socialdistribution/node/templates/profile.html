@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Username's Profile</title>
+        <meta charset="UTF-8">
+        <style>
+            a {
+            color: darkgoldenrod;
+            text-decoration: none;
+            }
+            .profile-image {
+                width: 100px; /* Adjust size as needed */
+                height: 100px; /* Adjust size as needed */
+                border-radius: 50%; /* Make it circular */
+            }
+            .section {
+                display: none;
+                margin-bottom: 30px;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+            .active {
+                display: block; /* Show the active section */
+            }
+        </style>
+    </head>
+    <body>
+        <a href="/node/">&lt; Go Back</a>
+        <h1>{{ user.display_name }}</h1>
+        <img src="{{ user.profile_image }}" alt="Profile Picture" class="profile-image">
+        <h2>{{ user.description }}</h2>
+        <a href="followers/">Followers</a><br>
+        <a href="following/">Following</a><br>
+
+        <nav>
+            <a href="#" onclick="showSection('feed')" style="margin-right: 15px;" >All Content</a>
+            <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
+            <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
+        </nav>
+
+        <div id="feed" class="section active">
+            <h3>Feed</h3>
+            <p>Posts, Github activity, ?? what else</p>
+        </div>
+
+        <div id="posts" class="section">
+            <h3>Posts</h3>
+            <ul>
+                {% for post in posts %}
+                    <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+                {% empty %}
+                    <p>No posts available.</p>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div id="github" class="section">
+            <h3>GitHub Activity</h3>
+            {% if github_activity %}
+                <ul>
+                    {% for activity in github_activity %}
+                        <li>{{ activity }}</li>
+                    {% empty %}
+                        <li>No recent activity.</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No GitHub activity to display.</p>
+            {% endif %}
+        </div>
+
+        <script>
+            function showSection(sectionId) {
+                // Hide all sections
+                const sections = document.querySelectorAll('.section');
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                });
+
+                // Show the selected section
+                const activeSection = document.getElementById(sectionId);
+                if (activeSection) {
+                    activeSection.classList.add('active');
+                }
+            }
+        </script>
+    </body>
+</html>

@@ -20,7 +20,7 @@ def index(request):
             "description": post.description,
             "author": post.author,
             "text_content": post.text_content,
-            "likes": post.likes,
+            # "likes": post.likes,
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
     return render(request, "index.html", {"posts": posts})
@@ -42,3 +42,7 @@ def view_post(request, post_id):
     return render(request, "post.html", {
         "post": post,
     })
+
+def profile(request, user_id):
+    user = get_object_or_404(Author, id=user_id)
+    return render(request, "profile.html", {'user': user})
