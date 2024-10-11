@@ -18,7 +18,7 @@
                         Likes: {{ post.likes.count }} | Comments: {{ post.comments.count }}
                     </p>
                     <!-- Like and Comment buttons -->
-                    <a href="{% url 'like_post' post.id %}">Like</a>
+
                     <a href="{% url 'view_post' post.id %}#comments">Comment</a>
                 </li>
             {% endfor %}
