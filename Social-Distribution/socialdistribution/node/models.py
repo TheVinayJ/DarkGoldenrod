@@ -36,7 +36,7 @@ class Post(models.Model):
 
 
 class Repost(Post):
-    shared_by = models.ForeignKey(Author)
+    shared_by = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True)
 
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
