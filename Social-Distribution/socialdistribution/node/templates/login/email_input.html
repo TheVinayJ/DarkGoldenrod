@@ -5,7 +5,7 @@
 </head>
 <body>
     <h2>Enter Your Email</h2>
-    <form method="post">
+    <form method="POST">
         {% csrf_token %}
         <input type="email" name="email" required placeholder="Email Address">
         <button type="submit">Submit</button>

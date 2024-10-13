@@ -14,7 +14,8 @@ def email_input_view(request):
         except Author.DoesNotExist:
             # Email doesn't exist, redirect to sign-up page
             return redirect('signup')
-    return render(request, 'email_input.html')
+    return render(request, 'login/email_input.html')
+
 
 def login_with_display_name_view(request):
     display_name = request.GET.get('display_name', '')
@@ -32,7 +33,7 @@ def login_with_display_name_view(request):
                 error = 'Invalid password'
         except Author.DoesNotExist:
             error = 'User does not exist'
-    return render(request, 'login_page.html', {'display_name': display_name, 'error': error})
+    return render(request, 'login/login_page.html', {'display_name': display_name, 'error': error})
 
 
 def signup_view(request):
@@ -48,7 +49,7 @@ def signup_view(request):
             return render(request, 'signup_page.html', {'error': error})
         if Author.objects.filter(email=email).exists():
             error = 'Email already registered'
-            return render(request, 'signup_page.html', {'error': error})
+            return render(request, 'login/signup_page.html', {'error': error})
         
         # Hash the password
         hashed_password = make_password(password)
@@ -65,4 +66,4 @@ def signup_view(request):
         request.session['author_id'] = author.id
         request.session['display_name'] = author.display_name
         return HttpResponse(f"Account created for {author.display_name}!")
-    return render(request, 'signup_page.html')
+    return render(request, 'login/signup_page.html')

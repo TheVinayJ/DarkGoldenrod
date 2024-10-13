@@ -15,8 +15,8 @@ class Author(models.Model):
     profile_image = models.CharField(max_length=100) # Link to profile picture
     page = models.CharField(max_length=100) # URL of user's HTML profile page
     friends = models.ManyToManyField('Author', blank=True)
-    password = models.CharField(max_length=50)
-    email = models.EmailField(max_length=50)
+    password = models.CharField(max_length=50, default="")
+    email = models.EmailField(max_length=50, default='example@example.com')
 
 class Like(models.Model):
     object_id = models.PositiveIntegerField()
