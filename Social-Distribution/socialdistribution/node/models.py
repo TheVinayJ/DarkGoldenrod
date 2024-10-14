@@ -1,11 +1,8 @@
 from email._header_value_parser import ContentType
-
 from django.db import models
 import django
 import datetime
 
-
-# Create your models here.
 class Author(models.Model):
     id = models.AutoField(primary_key=True)
     display_name = models.CharField(max_length=50)
@@ -17,6 +14,7 @@ class Author(models.Model):
     friends = models.ManyToManyField('Author', blank=True)
     password = models.CharField(max_length=50, default="")
     email = models.EmailField(max_length=50, default='example@example.com')
+    
 
 class Like(models.Model):
     object_id = models.PositiveIntegerField()
