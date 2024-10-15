@@ -66,7 +66,7 @@ def index(request):
             "description": post.description,
             "author": post.author,
             "text_content": post.text_content,
-            # "likes": post.likes,
+            "likes": PostLike.objects.filter(owner=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
     return render(request, "index.html", {"posts": posts})
@@ -75,17 +75,28 @@ def editor(request):
     return render(request, "editor.html")
 
 def save(request):
+    # author = get_object_or_404(Author, id = request.COOKIES.get("id"))
+    print(request.POST)
     post = Post(title=request.POST["title"],
                 description=request.POST["body-text"],
+                visibility=request.POST["visibility"],
                 published=datetime.datetime.now(),
+                # author=author,
     )
     post.save()
     return(redirect('/node/'))
+
+def post_like(request, id):
+    new_like = PostLike(owner=get_object_or_404(Post, pk=id), created_at=datetime.datetime.now())
+    new_like.save()
+    return(redirect(f'/node/posts/{id}/'))
 
 def view_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     return render(request, "post.html", {
         "post": post,
+        "id": post_id,
+        'likes': PostLike.objects.filter(owner=post).count(),
     })
 
 def profile(request, user_id):

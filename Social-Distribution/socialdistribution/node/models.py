@@ -17,7 +17,7 @@ class Author(models.Model):
     
 
 class Like(models.Model):
-    object_id = models.PositiveIntegerField()
+    object_id = models.AutoField(primary_key=True)
     created_at = models.DateTimeField(default=django.utils.timezone.now)
 
     class Meta:
@@ -32,7 +32,7 @@ class Post(models.Model):
     text_content = models.TextField(blank=True) # Text post content (optional)
     image_content = models.TextField(blank=True) # Link to image
     published = models.DateTimeField(auto_now_add=True)
-    visibility = models.CharField(choices=(("PUBLIC", "PUBLIC"),("FRIENDS", "FRIENDS"), ("DELETED", "DELETED"), ("UNLISTED", "UNLISTED")), default="PUBLIC", max_length=50)
+    visibility = models.TextField(default="PUBLIC", max_length=50)
 
 
 class Repost(Post):
