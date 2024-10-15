@@ -11,12 +11,12 @@
     </div>
 
     <!-- Display Likes -->
-    <p>Likes: {{ post.likes.count }}</p>
+    <p>Likes: {{ likes }}</p>
 
-    <!-- <form action="{ POST a like}" method="post">
+    <form action="/node/posts/{{ id }}/like/" method="POST">
         {% csrf_token %}
         <button type="submit">Like</button>
-    </form> -->
+    </form>
 
     <!-- Comments Section -->
     <h2>Comments</h2>
