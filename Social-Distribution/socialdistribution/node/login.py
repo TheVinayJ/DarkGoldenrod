@@ -51,7 +51,7 @@ def signup(request):
 
             signed_user_id = signing.dumps(author.id)
             response = redirect('index')
-            response.set_cookie('id', signed_user_id, httponly=True)
+            response.set_cookie('author_id', signed_user_id, httponly=True)
             return response
     else:
         return render(request, 'login/signup.html')

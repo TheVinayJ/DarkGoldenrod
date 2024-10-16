@@ -9,7 +9,12 @@ urlpatterns = [
     path("posts/<int:id>/like/", views.post_like, name="like"),
     path('posts/<int:id>/add_comment/', views.add_comment, name="add_comment"),
     path('authors/', views.AuthorListView.as_view(), name='authors'),
+    path('authors/follow/<int:author_id>/', views.follow_author, name='follow_author'),  # New URL for follow action
+    ### SUGGESTION: Maybe we should change the profile path to authors/<int:user_id>/profile/
     path('<int:user_id>/profile/', views.profile, name='profile'),
     path('login/', login.login, name='login'),
     path('signup/', login.signup, name='signup'),
+    path('authors/unfollow/<int:author_id>/', views.unfollow_author, name='unfollow_author'),
+    path('feed/', views.display_feed, name='following_feed'),
+
 ]
