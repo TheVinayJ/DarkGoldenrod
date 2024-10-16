@@ -1,7 +1,9 @@
+from django.core import signing
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from .models import Post, Author, PostLike
+from .models import Post, Author, PostLike, Comment, Like
 from django.db.models import Q
 import datetime
 
@@ -62,8 +64,10 @@ def index(request):
             "title": post.title,
             "description": post.description,
             "author": post.author,
+            "published": post.published,
             "text_content": post.text_content,
             "likes": PostLike.objects.filter(owner=post).count(),
+            "comments": Comment.objects.filter(post=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
     return render(request, "index.html", {"posts": posts})
@@ -72,20 +76,41 @@ def editor(request):
     return render(request, "editor.html")
 
 def save(request):
-    # author = get_object_or_404(Author, id = request.COOKIES.get("id"))
+    author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
                 description=request.POST["body-text"],
                 visibility=request.POST["visibility"],
                 published=datetime.datetime.now(),
-                # author=author,
+                author=author,
     )
     post.save()
     return(redirect('/node/'))
 
 def post_like(request, id):
-    new_like = PostLike(owner=get_object_or_404(Post, pk=id), created_at=datetime.datetime.now())
+    author = get_author(request)
+    new_like = PostLike(owner=get_object_or_404(Post, pk=id), created_at=datetime.datetime.now(), liker=author)
     new_like.save()
+    return(redirect(f'/node/posts/{id}/'))
+
+def add_comment(request, id):
+    """
+    Add a comment to a question
+    Get question from ID, fill out model details with request,
+    save model, go to results page
+    """
+    if request.method != "POST":
+        return HttpResponse(status=400)
+    post = get_object_or_404(Post, pk=id)
+
+    # Get request contents
+    author = get_author(request)
+    text = request.POST["content"]
+
+
+    new_comment = Comment(post=post, text=text, author=author)
+    new_comment.save()
+    # Return to question
     return(redirect(f'/node/posts/{id}/'))
 
 def view_post(request, post_id):
@@ -94,6 +119,7 @@ def view_post(request, post_id):
         "post": post,
         "id": post_id,
         'likes': PostLike.objects.filter(owner=post).count(),
+        'comments': Comment.objects.filter(post=post),
     })
 
 def profile(request, user_id):
@@ -101,4 +127,6 @@ def profile(request, user_id):
     return render(request, "profile.html", {'user': user})
 
 def get_author(request):
-    return get_object_or_404(Author, id=request.COOKIES.get('id'))
+    signed_id = request.COOKIES.get('id')
+    id = signing.loads(signed_id)
+    return get_object_or_404(Author, id=id)
