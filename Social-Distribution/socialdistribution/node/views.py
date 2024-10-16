@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.core import signing
+from .models import Post, Author, Follow, PostLike
 from .forms import AuthorProfileForm
 import datetime
 import os
