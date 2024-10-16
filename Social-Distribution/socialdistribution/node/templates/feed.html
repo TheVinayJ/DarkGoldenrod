@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Posts from Followings and Friends</h1>
+
+    {% if page_obj %}
+        <ul class="post-list">
+            {% for post in page_obj %}
+                <li class="post-item">
+                    <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
+                    <p>{{ post.description }}</p>
+                    <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
+                    <p>{{ post.text_content|truncatewords:30 }}</p>
+                    <!-- Display likes and comments count -->
+                    <p>
+                        Likes: {{ post.likes.count }} | Comments: {{ post.comments.count }}
+                    </p>
+                    <!-- Like and Comment buttons -->
+
+                    <a href="{% url 'view_post' post.id %}#comments">Comment</a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Pagination controls -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; first</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    {% else %}
+        <p>No posts available.</p>
+    {% endif %}
+{% endblock %}

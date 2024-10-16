@@ -1,11 +1,13 @@
+from django.core import signing
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from .models import Post, Author
+from .models import Post, Author, PostLike, Comment, Like, Follow
+from django.contrib import messages
 from django.db.models import Q
-from django.core import signing
-from .forms import ImageUploadForm
 import datetime
+import os
 
 class AuthorListView(ListView):
     model = Author
@@ -55,8 +57,9 @@ class AuthorListView(ListView):
 
 
 def index(request):
-    posts = []
+    author_id = get_author(request).id
 
+    posts = []
     post_objects = Post.objects.all()
     for post in post_objects:
         posts.append({
@@ -64,48 +67,113 @@ def index(request):
             "title": post.title,
             "description": post.description,
             "author": post.author,
+            "published": post.published,
             "text_content": post.text_content,
-            # "likes": post.likes,
+            "likes": PostLike.objects.filter(owner=post).count(),
+            "comments": Comment.objects.filter(post=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
-    return render(request, "index.html", {"posts": posts})
+    return render(request, "index.html", {
+        "posts": posts,
+        'author_id': author_id,
+    })
+
 
 def editor(request):
     return render(request, "editor.html")
 
+
 def save(request):
+    author = get_object_or_404(Author, get_author(request))
+    print(request.POST)
     post = Post(title=request.POST["title"],
                 description=request.POST["body-text"],
+                visibility=request.POST["visibility"],
                 published=datetime.datetime.now(),
+                author=author,
     )
     post.save()
     return(redirect('/node/'))
 
+
+def post_like(request, id):
+    author = get_author(request)
+    post = get_object_or_404(Post, pk=id)
+    if PostLike.objects.filter(owner=post, liker=author).exists():
+        PostLike.objects.filter(owner=post, liker=author).delete()
+    else:
+        new_like = PostLike(owner=post, created_at=datetime.datetime.now(), liker=author)
+        new_like.save()
+    return(redirect(f'/node/posts/{id}/'))
+
+def add_comment(request, id):
+    """
+    Add a comment to a question
+    Get question from ID, fill out model details with request,
+    save model, go to results page
+    """
+    if request.method != "POST":
+        return HttpResponse(status=400)
+    post = get_object_or_404(Post, pk=id)
+
+    # Get request contents
+    author = get_author(request)
+    text = request.POST["content"]
+
+
+    new_comment = Comment(post=post, text=text, author=author)
+    new_comment.save()
+    # Return to question
+    return(redirect(f'/node/posts/{id}/'))
+
+
 def view_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
+    author = get_author(request)
+    liked = False
+
+    if PostLike.objects.filter(owner=post, liker=author).exists():
+        liked = True
+
     return render(request, "post.html", {
         "post": post,
+        "id": post_id,
+        'likes': PostLike.objects.filter(owner=post),
+        'author': author,
+        'liked' : liked,
+        'author_id': author.id,
+        'comments': Comment.objects.filter(post=post),
     })
 
-def profile(request, user_id):
-    user = get_object_or_404(Author, id=user_id)
-    return render(request, "profile.html", {'user': user})
+
+def profile(request, author_id):
+    user = get_object_or_404(Author, id=author_id)
+    authors_posts = Post.objects.filter(author=user).order_by('-published') # most recent on top
+    if authors_posts:
+        return render(request, "profile.html", {
+            'user': user,
+            'posts': authors_posts,
+        })
+
+
+def edit_profile(request, author_id):
+    user = get_object_or_404(Author, id=author_id)
+
+    if request.method == 'POST':
+        form = AuthorProfileForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()  # Save the form data
+            return redirect('profile', author_id=user.id)  # Redirect to the profile view after saving
+    else:
+        form = AuthorProfileForm(instance=user)
+    return render(request, 'edit_profile.html', {'form': form, 'user': user})
+
+
+def followers(request, author_id):
+    user = get_object_or_404(Author, id=author_id)
+    followers = user.friends.all()
+    return render(request, 'authors.html', {'authors':followers})# come back to latererer
+
 
 def get_author(request):
     return get_object_or_404(Author, id=request.COOKIES.get('ID', None))
-
-def upload_image(request):
-    signed_id = request.COOKIES.get('id')
-    id = signing.loads(signed_id)
-    author = get_object_or_404(Author, id=id)
-
-    if request.method == 'POST':
-        form = ImageUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            image = form.save(commit=False)
-            image.author = author
-            image.save()
-            return redirect('index')
-    else:
-        form = ImageUploadForm()
-    return render(request, 'node_admin/upload_image.html', {'form': form})
