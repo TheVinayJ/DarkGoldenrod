@@ -3,6 +3,8 @@ from django.urls import reverse
 from django.views.generic import ListView
 from .models import Post, Author
 from django.db.models import Q
+from django.core import signing
+from .forms import ImageUploadForm
 import datetime
 
 class AuthorListView(ListView):
@@ -91,3 +93,19 @@ def profile(request, user_id):
 
 def get_author(request):
     return get_object_or_404(Author, id=request.COOKIES.get('ID', None))
+
+def upload_image(request):
+    signed_id = request.COOKIES.get('id')
+    id = signing.loads(signed_id)
+    author = get_object_or_404(Author, id=id)
+
+    if request.method == 'POST':
+        form = ImageUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            image = form.save(commit=False)
+            image.author = author
+            image.save()
+            return redirect('index')
+    else:
+        form = ImageUploadForm()
+    return render(request, 'node_admin/upload_image.html', {'form': form})
