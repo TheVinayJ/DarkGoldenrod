@@ -16,11 +16,12 @@
                 {% endfor %}
             </ul>
         {% endif %}
-        
+
         {% for author in authors %}
         <li>
             <!-- Link to the author's profile page -->
             <strong><a href="{% url 'profile' author.id %}">{{ author.display_name }}</a></strong><br>
+
             Host: {{ author.host }}<br>
             GitHub: <a href="{{ author.github }}">{{ author.github }}</a><br>
     
