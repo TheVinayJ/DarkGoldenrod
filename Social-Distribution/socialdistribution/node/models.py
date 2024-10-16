@@ -49,3 +49,8 @@ class PostLike(Like):
 
 class CommentLike(Like):
     owner = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    
+class Image(models.Model):
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
