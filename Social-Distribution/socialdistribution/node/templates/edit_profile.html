@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Profile</title>
+</head>
+<body>
+    <h1>Edit Profile</h1>
+    <p>This is the edit profile page.</p>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- Renders other form fields -->
+
+        <!-- Profile Image Upload -->
+        <div>
+            <label for="id_profile_image" class="profile-image-container">
+                <img src="{{ user.profile_image }}" alt="Profile Picture" class="profile-image" id="profileImage">
+                <input type="file" name="profile_image" id="id_profile_image" style="display: none;" accept="image/*">
+            </label>
+        </div>
+
+        <button type="submit">Save</button>
+    </form>
+</body>
+</html>
