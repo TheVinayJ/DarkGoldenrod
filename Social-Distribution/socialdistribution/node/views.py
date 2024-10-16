@@ -3,8 +3,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from django.contrib import messages
 from .models import Post, Author, PostLike, Comment, Like
+from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.core import signing
@@ -68,8 +68,10 @@ def index(request):
             "title": post.title,
             "description": post.description,
             "author": post.author,
+            "published": post.published,
             "text_content": post.text_content,
             "likes": PostLike.objects.filter(owner=post).count(),
+            "comments": Comment.objects.filter(post=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
     return render(request, "index.html", {"posts": posts})
@@ -134,7 +136,7 @@ def get_author(request):
 def follow_author(request, author_id):
     # Get the author being followed
     author_to_follow = get_object_or_404(Author, id=author_id).id
-
+    
     # Get the logged-in author (assuming you have a user to author mapping)
     current_author = get_author(request).id # Adjust this line to match your user-author mapping
 
@@ -155,7 +157,7 @@ def follow_author(request, author_id):
 def unfollow_author(request, author_id):
     # Get the author being followed
     author_to_unfollow = get_object_or_404(Author, id=author_id).id
-
+    
     # Get the logged-in author (assuming you have a user to author mapping)
     current_author = get_author(request).id # Adjust this line to match your user-author mapping
 
