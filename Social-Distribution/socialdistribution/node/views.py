@@ -102,10 +102,13 @@ def save(request):
 
 def post_like(request, id):
     author = get_author(request)
-    new_like = PostLike(owner=get_object_or_404(Post, pk=id), created_at=datetime.datetime.now(), liker=author)
-    new_like.save()
+    post = get_object_or_404(Post, pk=id)
+    if PostLike.objects.filter(owner=post, liker=author).exists():
+        PostLike.objects.filter(owner=post, liker=author).delete()
+    else:
+        new_like = PostLike(owner=post, created_at=datetime.datetime.now(), liker=author)
+        new_like.save()
     return(redirect(f'/node/posts/{id}/'))
-
 
 def add_comment(request, id):
     """
@@ -130,12 +133,19 @@ def add_comment(request, id):
 
 def view_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    author_id = get_author(request)
+    author = get_author(request)
+    liked = False
+
+    if PostLike.objects.filter(owner=post, liker=author).exists():
+        liked = True
+
     return render(request, "post.html", {
         "post": post,
         "id": post_id,
-        'likes': PostLike.objects.filter(owner=post).count(),
-        'author_id': author_id,
+        'likes': PostLike.objects.filter(owner=post),
+        'author': author,
+        'liked' : liked,
+        'author_id': author.id,
         'comments': Comment.objects.filter(post=post),
     })
 

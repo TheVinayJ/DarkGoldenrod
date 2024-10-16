@@ -11,11 +11,15 @@
     </div>
 
     <!-- Display Likes -->
-    <p>Likes: {{ likes }}</p>
+    <p>Likes: {{ likes.count }}</p>
 
     <form action="/node/posts/{{ id }}/like/" method="POST">
         {% csrf_token %}
+        {% if liked %}
+        <button type="submit">Unlike</button>
+        {% else %}
         <button type="submit">Like</button>
+        {% endif %}
     </form>
 
     <!-- Comments Section -->
