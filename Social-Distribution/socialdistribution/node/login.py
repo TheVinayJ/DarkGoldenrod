@@ -13,9 +13,9 @@ def login(request):
 
         try:
             author = Author.objects.get(email=email, password=hashed_password)
-            signed_user_id = signing.dumps(author.id)
             response = redirect('index')
-            response.set_cookie('id', signed_user_id, httponly=True)
+            signed_id = signing.dumps(author.id)
+            response.set_cookie('id', signed_id, httponly=True)
             return response
         except Author.DoesNotExist:
             return render(request, 'login/login.html', {'error': 'Invalid login credentials'})
@@ -49,9 +49,9 @@ def signup(request):
             )
             author.save()
 
-            signed_user_id = signing.dumps(author.id)
             response = redirect('index')
-            response.set_cookie('id', signed_user_id, httponly=True)
+            signed_id = signing.dumps(author.id)
+            response.set_cookie('id', signed_id, httponly=True)
             return response
     else:
         return render(request, 'login/signup.html')
