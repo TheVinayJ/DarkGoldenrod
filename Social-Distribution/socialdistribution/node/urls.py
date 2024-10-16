@@ -22,9 +22,9 @@ urlpatterns = [
     path('upload-avatar/', views.edit_profile, name='upload_avatar'),
     path('login/', login.login, name='login'),
     path('signup/', login.signup, name='signup'),
+    path('images/', views.upload_image, name='images'),
     path('feed/', views.display_feed, name='following_feed'),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-

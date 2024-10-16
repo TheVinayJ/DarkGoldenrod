@@ -6,12 +6,9 @@ from django.views.generic import ListView
 from .models import Post, Author, PostLike, Comment, Like, Follow
 from django.contrib import messages
 from django.db.models import Q
-from django.core.paginator import Paginator
-from django.core import signing
-from .models import Post, Author, Follow, PostLike
-from .forms import AuthorProfileForm
 import datetime
 import os
+from .forms import AuthorProfileForm
 
 class AuthorListView(ListView):
     model = Author
@@ -61,7 +58,8 @@ class AuthorListView(ListView):
 
 
 def index(request):
-    author_id = get_author(request).id
+    author = get_author(request)
+    author_id = author.id if author else None
 
     posts = []
     post_objects = Post.objects.all()
@@ -153,11 +151,10 @@ def view_post(request, post_id):
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
     authors_posts = Post.objects.filter(author=user).order_by('-published') # most recent on top
-    if authors_posts:
-        return render(request, "profile.html", {
-            'user': user,
-            'posts': authors_posts,
-        })
+    return render(request, "profile.html", {
+        'user': user,
+        'posts': authors_posts,
+    })
 
 
 def edit_profile(request, author_id):
@@ -180,7 +177,13 @@ def followers(request, author_id):
 
 
 def get_author(request):
-    return get_object_or_404(Author, id=signing.loads(request.COOKIES.get('id', None)))
+    try:
+        author_id_signed = request.COOKIES.get('id')
+        author_id = signing.loads(author_id_signed)
+        author = Author.objects.get(id=author_id)
+        return author
+    except (Author.DoesNotExist, signing.BadSignature, TypeError):
+        return None
 
 
 def follow_author(request, author_id):

@@ -1,5 +1,11 @@
+# app/forms.py
 from django import forms
-from .models import Author  # Adjust based on your model location
+from .models import Image, Author
+
+class ImageUploadForm(forms.ModelForm):
+    class Meta:
+        model = Image
+        fields = ['image']
 
 class AuthorProfileForm(forms.ModelForm):
     class Meta:
