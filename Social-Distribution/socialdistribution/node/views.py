@@ -1,6 +1,9 @@
+from django.core import signing
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
+from .models import Post, Author, PostLike, Comment, Like
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
@@ -68,8 +71,10 @@ def index(request):
             "title": post.title,
             "description": post.description,
             "author": post.author,
+            "published": post.published,
             "text_content": post.text_content,
             "likes": PostLike.objects.filter(owner=post).count(),
+            "comments": Comment.objects.filter(post=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
     return render(request, "index.html", {
@@ -93,8 +98,29 @@ def save(request):
     return(redirect('/node/'))
 
 def post_like(request, id):
-    new_like = PostLike(owner=get_object_or_404(Post, pk=id), created_at=datetime.datetime.now())
+    author = get_author(request)
+    new_like = PostLike(owner=get_object_or_404(Post, pk=id), created_at=datetime.datetime.now(), liker=author)
     new_like.save()
+    return(redirect(f'/node/posts/{id}/'))
+
+def add_comment(request, id):
+    """
+    Add a comment to a question
+    Get question from ID, fill out model details with request,
+    save model, go to results page
+    """
+    if request.method != "POST":
+        return HttpResponse(status=400)
+    post = get_object_or_404(Post, pk=id)
+
+    # Get request contents
+    author = get_author(request)
+    text = request.POST["content"]
+
+
+    new_comment = Comment(post=post, text=text, author=author)
+    new_comment.save()
+    # Return to question
     return(redirect(f'/node/posts/{id}/'))
 
 def view_post(request, post_id):
@@ -105,6 +131,7 @@ def view_post(request, post_id):
         "id": post_id,
         'likes': PostLike.objects.filter(owner=post).count(),
         'author_id': author_id,
+        'comments': Comment.objects.filter(post=post),
     })
 
 def profile(request, author_id):

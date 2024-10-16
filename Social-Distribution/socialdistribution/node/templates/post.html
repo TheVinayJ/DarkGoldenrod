@@ -34,10 +34,11 @@
     {% endif %}
 
     <!-- Comment Form -->
-    <!-- <h3>Add a Comment</h3>
-    <form action="{ POST a comment }" method="post">
+    <h3>Add Comment</h3>
+    <form action="/node/posts/{{ id }}/add_comment/" method="POST">
+        <label style="font-weight: bold;">Text</label><br>
+        <textarea name="content" style="min-width: 400px; max-width: 400px;"></textarea><br><br>
+        <input type="submit" />
         {% csrf_token %}
-        <textarea name="comment_text" rows="4" cols="50" required></textarea><br>
-        <button type="submit">Submit</button>
-    </form> -->
+    </form>
 {% endblock %}

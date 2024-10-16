@@ -14,11 +14,15 @@ class Author(models.Model):
     friends = models.ManyToManyField('Author', blank=True)
     password = models.CharField(max_length=50, default="")
     email = models.EmailField(max_length=50, default='example@example.com')
+
+    def __str__(self):
+        return self.display_name
     
 
 class Like(models.Model):
     object_id = models.AutoField(primary_key=True)
     created_at = models.DateTimeField(default=django.utils.timezone.now)
+    liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
 
     class Meta:
         abstract = True
@@ -42,6 +46,7 @@ class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    published = models.DateTimeField(auto_now_add=True, null=True)
     text = models.TextField()
 
 class PostLike(Like):
