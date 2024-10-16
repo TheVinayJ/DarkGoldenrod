@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:user_id>/profile/', views.profile, name='profile'),
     path('login/', login.login, name='login'),
     path('signup/', login.signup, name='signup'),
+    path('images/', views.upload_image, name='images'),
 ]
