@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.db.models import Q
 import datetime
 import os
+from .forms import AuthorProfileForm
 
 class AuthorListView(ListView):
     model = Author
