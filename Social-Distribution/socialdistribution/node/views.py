@@ -9,6 +9,8 @@ from django.db.models import Q
 import datetime
 import os
 from .forms import AuthorProfileForm
+from django.core.paginator import Paginator
+from .forms import ImageUploadForm
 
 class AuthorListView(ListView):
     model = Author
@@ -249,7 +251,7 @@ def display_feed(request):
     followings = list(follow_objects.values_list('following', flat=True))
     cleaned_followings = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in followings]
 
-    friends = [author for follow in follow_objects if follow.is_friend()]
+    friends = [follow for follow in follow_objects if follow.is_friend()]
     cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
 
     print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
@@ -273,3 +275,18 @@ def display_feed(request):
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj})
 
+def upload_image(request):
+    signed_id = request.COOKIES.get('id')
+    id = signing.loads(signed_id)
+    author = get_object_or_404(Author, id=id)
+
+    if request.method == 'POST':
+        form = ImageUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            image = form.save(commit=False)
+            image.author = author
+            image.save()
+            return redirect('index')
+    else:
+        form = ImageUploadForm()
+    return render(request, 'node_admin/upload_image.html', {'form': form})
