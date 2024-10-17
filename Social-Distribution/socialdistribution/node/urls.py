@@ -24,6 +24,7 @@ urlpatterns = [
     path('signup/', login.signup, name='signup'),
     path('images/', views.upload_image, name='images'),
     path('feed/', views.display_feed, name='following_feed'),
+    path("posts/<int:id>/repost/", views.repost_post, name="repost"),
     path('signout/', login.signout, name='signout'),
 ]
 

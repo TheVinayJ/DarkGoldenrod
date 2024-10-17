@@ -22,6 +22,12 @@
         {% endif %}
     </form>
 
+    <!-- Repost Button -->
+    <form action="/node/posts/{{ id }}/repost/" method="POST">
+        {% csrf_token %}
+        <button type="submit" id="repost">Repost</button>
+    </form>
+
     <!-- Comments Section -->
     <h2>Comments</h2>
     {% if comments %}
