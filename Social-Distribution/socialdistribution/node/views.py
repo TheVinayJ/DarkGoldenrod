@@ -1,9 +1,9 @@
 from django.core import signing
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from .models import Post, Author, PostLike, Comment, Like, Follow
+from .models import Post, Author, PostLike, Comment, Like, Follow, Repost
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
@@ -248,8 +248,9 @@ def display_feed(request):
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
+    reposts = Repost.objects.filter(shared_by=cleaned_followings)
     
-    posts = (follow_posts | friend_posts).distinct().order_by('published') 
+    posts = (follow_posts | friend_posts | reposts).distinct().order_by('published') 
 
     # Pagination setup
     paginator = Paginator(posts, 10)  # Show 10 posts per page
@@ -259,3 +260,22 @@ def display_feed(request):
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj})
 
+def repost_post(request, post_id):
+    post = Post.objects.get(id=post_id)
+    # Only public posts can be shared
+    if post.visibility != "PUBLIC":
+        return HttpResponseForbidden("Post cannot be shared.")
+    
+    shared_post = Repost.objects.create(
+        id=post.id,
+        author=post.author,
+        title=post.title,
+        description=post.description, 
+        text_content=post.text_content,
+        image_content=post.image_content,
+        published=post.published,
+        visibility=post.visibility,
+        shared_by=get_author(request).id
+    )
+
+    return redirect('/node/posts/{post_id}/repost/')

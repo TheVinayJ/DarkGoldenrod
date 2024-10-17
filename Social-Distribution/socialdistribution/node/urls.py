@@ -23,6 +23,7 @@ urlpatterns = [
     path('login/', login.login, name='login'),
     path('signup/', login.signup, name='signup'),
     path('feed/', views.display_feed, name='following_feed'),
+    path("posts/<int:id>/repost/", views.repost_post, name="repost"),
 ]
 
 if settings.DEBUG:

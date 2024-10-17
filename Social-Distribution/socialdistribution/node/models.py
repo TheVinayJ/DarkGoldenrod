@@ -67,3 +67,4 @@ class Follow(models.Model):
     def is_friend(self):
         # Check if the following author follows back the follower
         return Follow.objects.filter(follower=self.following, following=self.follower, approved=True).exists()
+    
