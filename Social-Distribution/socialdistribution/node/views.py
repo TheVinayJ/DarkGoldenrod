@@ -4,7 +4,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from .models import Post, Author, PostLike, Comment, Like, Follow
+from .models import Post, Author, PostLike, Comment, Like, Follow, CommentLike
 from django.contrib import messages
 from django.db.models import Q
 import datetime
@@ -110,6 +110,17 @@ def post_like(request, id):
         new_like = PostLike(owner=post, created_at=datetime.datetime.now(), liker=author)
         new_like.save()
     return(redirect(f'/node/posts/{id}/'))
+
+def comment_like(request, id):
+    author = get_author(request)
+    comment = get_object_or_404(Comment, pk=id)
+    post = get_object_or_404(Post, pk=comment.post.id)
+    if CommentLike.objects.filter(owner=comment, liker=author).exists():
+        CommentLike.objects.filter(owner=comment, liker=author).delete()
+    else:
+        new_like = CommentLike(owner=comment, created_at=datetime.datetime.now(), liker=author)
+        new_like.save()
+    return(redirect(f'/node/posts/{post.id}/'))
 
 def add_comment(request, id):
     """
