@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("", views.display_feed, name="index"),
     path("add/", views.editor, name="add"),
     path("save/", views.save, name="save"),
     path("posts/<int:post_id>/", views.view_post, name="view_post"),

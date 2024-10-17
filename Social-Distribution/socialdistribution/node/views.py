@@ -1,4 +1,5 @@
 from django.core import signing
+from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -86,7 +87,7 @@ def editor(request):
 
 
 def save(request):
-    author = get_object_or_404(Author, get_author(request))
+    author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
                 description=request.POST["body-text"],
@@ -133,6 +134,14 @@ def view_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     author = get_author(request)
     liked = False
+
+    if post.visibility == "FRIENDS":
+        try:
+            follow = get_object_or_404(Follow, follower=author, following = post.author)
+        except:
+            return HttpResponse(status=403)
+        if follow.is_friend():
+            return HttpResponse(status=403)
 
     if PostLike.objects.filter(owner=post, liker=author).exists():
         liked = True
@@ -233,6 +242,10 @@ def unfollow_author(request, author_id):
     # Redirect back to the authors list or a success page
     return redirect('authors')
 
+def upload_image(request):
+    pass
+
+
 
 ### WARNING: Only works for posts from authors of the same node right now
 # Shows posts from followings and friends
@@ -243,13 +256,15 @@ def display_feed(request):
     # Get the current user's full author URL
     current_author = get_author(request).id
 
+    public_posts = Post.objects.filter(visibility="PUBLIC")
+
     # Get the authors that the current user is following
     follow_objects = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/" + str(current_author), approved=True)
 
     followings = list(follow_objects.values_list('following', flat=True))
     cleaned_followings = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in followings]
 
-    friends = [author for follow in follow_objects if follow.is_friend()]
+    friends = [follow.following for follow in follow_objects if follow.is_friend()]
     cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
 
     print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
@@ -257,13 +272,14 @@ def display_feed(request):
     print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
     print(f'Author IDs: {followings}|')
     print(f"Cleaned Author IDs: {cleaned_followings}|")
+    print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
     
-    posts = (follow_posts | friend_posts).distinct().order_by('published') 
+    posts = (public_posts | follow_posts | friend_posts).distinct().order_by('published')
 
     # Pagination setup
     paginator = Paginator(posts, 10)  # Show 10 posts per page
@@ -271,5 +287,5 @@ def display_feed(request):
     page_obj = paginator.get_page(page_number)
 
     # Render the feed template and pass the posts as context
-    return render(request, 'feed.html', {'page_obj': page_obj})
+    return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
