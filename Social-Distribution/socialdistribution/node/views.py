@@ -1,16 +1,17 @@
 from django.core import signing
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost
 from django.contrib import messages
 from django.db.models import Q
-from django.core.paginator import Paginator
-from django.core import signing
-from .forms import AuthorProfileForm
 import datetime
 import os
+from .forms import AuthorProfileForm
+from django.core.paginator import Paginator
+from .forms import ImageUploadForm
 
 class AuthorListView(ListView):
     model = Author
@@ -60,7 +61,8 @@ class AuthorListView(ListView):
 
 
 def index(request):
-    author_id = get_author(request).id
+    author = get_author(request)
+    author_id = author.id if author else None
 
     posts = []
     post_objects = Post.objects.all()
@@ -87,7 +89,7 @@ def editor(request):
 
 
 def save(request):
-    author = get_object_or_404(Author, get_author(request))
+    author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
                 description=request.POST["body-text"],
@@ -101,10 +103,13 @@ def save(request):
 
 def post_like(request, id):
     author = get_author(request)
-    new_like = PostLike(owner=get_object_or_404(Post, pk=id), created_at=datetime.datetime.now(), liker=author)
-    new_like.save()
+    post = get_object_or_404(Post, pk=id)
+    if PostLike.objects.filter(owner=post, liker=author).exists():
+        PostLike.objects.filter(owner=post, liker=author).delete()
+    else:
+        new_like = PostLike(owner=post, created_at=datetime.datetime.now(), liker=author)
+        new_like.save()
     return(redirect(f'/node/posts/{id}/'))
-
 
 def add_comment(request, id):
     """
@@ -129,12 +134,27 @@ def add_comment(request, id):
 
 def view_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    author_id = get_author(request)
+    author = get_author(request)
+    liked = False
+
+    if post.visibility == "FRIENDS":
+        try:
+            follow = get_object_or_404(Follow, follower=author, following = post.author)
+        except:
+            return HttpResponse(status=403)
+        if follow.is_friend():
+            return HttpResponse(status=403)
+
+    if PostLike.objects.filter(owner=post, liker=author).exists():
+        liked = True
+
     return render(request, "post.html", {
         "post": post,
         "id": post_id,
-        'likes': PostLike.objects.filter(owner=post).count(),
-        'author_id': author_id,
+        'likes': PostLike.objects.filter(owner=post),
+        'author': author,
+        'liked' : liked,
+        'author_id': author.id,
         'comments': Comment.objects.filter(post=post),
     })
 
@@ -142,11 +162,10 @@ def view_post(request, post_id):
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
     authors_posts = Post.objects.filter(author=user).order_by('-published') # most recent on top
-    if authors_posts:
-        return render(request, "profile.html", {
-            'user': user,
-            'posts': authors_posts,
-        })
+    return render(request, "profile.html", {
+        'user': user,
+        'posts': authors_posts,
+    })
 
 
 def edit_profile(request, author_id):
@@ -169,7 +188,13 @@ def followers(request, author_id):
 
 
 def get_author(request):
-    return get_object_or_404(Author, id=signing.loads(request.COOKIES.get('id', None)))
+    try:
+        author_id_signed = request.COOKIES.get('id')
+        author_id = signing.loads(author_id_signed)
+        author = Author.objects.get(id=author_id)
+        return author
+    except (Author.DoesNotExist, signing.BadSignature, TypeError):
+        return None
 
 
 def follow_author(request, author_id):
@@ -229,13 +254,15 @@ def display_feed(request):
     # Get the current user's full author URL
     current_author = get_author(request).id
 
+    public_posts = Post.objects.filter(visibility="PUBLIC")
+
     # Get the authors that the current user is following
     follow_objects = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/" + str(current_author), approved=True)
 
     followings = list(follow_objects.values_list('following', flat=True))
     cleaned_followings = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in followings]
 
-    friends = [author for follow in follow_objects if follow.is_friend()]
+    friends = [follow.following for follow in follow_objects if follow.is_friend()]
     cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
 
     print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
@@ -243,6 +270,7 @@ def display_feed(request):
     print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
     print(f'Author IDs: {followings}|')
     print(f"Cleaned Author IDs: {cleaned_followings}|")
+    print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
@@ -250,15 +278,35 @@ def display_feed(request):
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
     reposts = Repost.objects.filter(shared_by=cleaned_followings)
     
-    posts = (follow_posts | friend_posts | reposts).distinct().order_by('published') 
+
+    posts = (public_posts | follow_posts | friend_posts | reposts).distinct().order_by('published')
+
+    cleaned_posts = []
+    for post in posts:
+        cleaned_posts.append({
+            "id": post.id,
+            "title": post.title,
+            "description": post.description,
+            "author": post.author,
+            "published": post.published,
+            "text_content": post.text_content,
+            "likes": PostLike.objects.filter(owner=post).count(),
+            "comments": Comment.objects.filter(post=post).count(),
+            "url": reverse("view_post", kwargs={"post_id": post.id})
+        })
+
+    # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
+
 
     # Pagination setup
-    paginator = Paginator(posts, 10)  # Show 10 posts per page
+    paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+
     # Render the feed template and pass the posts as context
-    return render(request, 'feed.html', {'page_obj': page_obj})
+    return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
+
 
 def repost_post(request, post_id):
     post = Post.objects.get(id=post_id)
@@ -279,3 +327,20 @@ def repost_post(request, post_id):
     )
 
     return redirect('/node/posts/{post_id}/repost/')
+
+def upload_image(request):
+    signed_id = request.COOKIES.get('id')
+    id = signing.loads(signed_id)
+    author = get_object_or_404(Author, id=id)
+
+    if request.method == 'POST':
+        form = ImageUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            image = form.save(commit=False)
+            image.author = author
+            image.save()
+            return redirect('index')
+    else:
+        form = ImageUploadForm()
+    return render(request, 'node_admin/upload_image.html', {'form': form})
+

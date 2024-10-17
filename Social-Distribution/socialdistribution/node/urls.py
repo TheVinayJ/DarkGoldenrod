@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("", views.display_feed, name="index"),
     path("add/", views.editor, name="add"),
     path("save/", views.save, name="save"),
     path("posts/<int:post_id>/", views.view_post, name="view_post"),
@@ -22,10 +22,11 @@ urlpatterns = [
     path('upload-avatar/', views.edit_profile, name='upload_avatar'),
     path('login/', login.login, name='login'),
     path('signup/', login.signup, name='signup'),
+    path('images/', views.upload_image, name='images'),
     path('feed/', views.display_feed, name='following_feed'),
     path("posts/<int:id>/repost/", views.repost_post, name="repost"),
+    path('signout/', login.signout, name='signout'),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-

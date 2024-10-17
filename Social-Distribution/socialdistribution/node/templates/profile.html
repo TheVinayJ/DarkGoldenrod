@@ -42,6 +42,11 @@
             <button type="submit" class="edit-button">Edit Profile</button>
         </form>
 
+        <form action="/node/signout/" method="post">
+            {% csrf_token %}
+            <button type="submit">Sign out</button>
+        </form>
+
         <h2>{{ user.description }}</h2>
         <a href="{% url 'followers' user.id %}">Followers</a><br>
         <a href="following/">Following</a><br>

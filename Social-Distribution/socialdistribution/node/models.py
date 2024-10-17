@@ -54,6 +54,11 @@ class PostLike(Like):
 
 class CommentLike(Like):
     owner = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    
+class Image(models.Model):
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class Follow(models.Model):
     follower = models.CharField(max_length=200)  # Full URL of the follower author
@@ -67,4 +72,3 @@ class Follow(models.Model):
     def is_friend(self):
         # Check if the following author follows back the follower
         return Follow.objects.filter(follower=self.following, following=self.follower, approved=True).exists()
-    

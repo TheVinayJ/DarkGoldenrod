@@ -10,11 +10,15 @@
     <body>
         <nav>
             <ul>
-                <li><a href="/node/index/">Home</a></li>
+                <li><a href="/node/">Home</a></li>
                 <li><a href="/node/add">New Post</a></li>
-                <li><a href="{% url 'profile' author_id %}">Profile</a></li>
+                {% if author_id %}
+                    <li><a href="{% url 'profile' author_id %}">Profile</a></li>
+                {% else %}
+                    <li><a href="{% url 'login' %}">Login</a></li>
+                {% endif %}
+
                 <li><a href="{% url 'authors' %}">Authors</a></li>
-                <li><a href="{% url 'following_feed' %}">Your Feed</a></li>
             </ul>
         </nav>
 
