@@ -10,6 +10,8 @@ from django.db.models import Q
 import datetime
 import os
 from .forms import AuthorProfileForm
+from django.core.paginator import Paginator
+from .forms import ImageUploadForm
 
 class AuthorListView(ListView):
     model = Author
@@ -242,10 +244,6 @@ def unfollow_author(request, author_id):
     # Redirect back to the authors list or a success page
     return redirect('authors')
 
-def upload_image(request):
-    pass
-
-
 
 ### WARNING: Only works for posts from authors of the same node right now
 # Shows posts from followings and friends
@@ -289,3 +287,18 @@ def display_feed(request):
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
+def upload_image(request):
+    signed_id = request.COOKIES.get('id')
+    id = signing.loads(signed_id)
+    author = get_object_or_404(Author, id=id)
+
+    if request.method == 'POST':
+        form = ImageUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            image = form.save(commit=False)
+            image.author = author
+            image.save()
+            return redirect('index')
+    else:
+        form = ImageUploadForm()
+    return render(request, 'node_admin/upload_image.html', {'form': form})

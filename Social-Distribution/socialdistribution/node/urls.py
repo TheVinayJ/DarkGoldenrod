@@ -24,6 +24,7 @@ urlpatterns = [
     path('signup/', login.signup, name='signup'),
     path('images/', views.upload_image, name='images'),
     path('feed/', views.display_feed, name='following_feed'),
+    path('signout/', login.signout, name='signout'),
 ]
 
 if settings.DEBUG:

@@ -56,3 +56,8 @@ def signup(request):
             return response
     else:
         return render(request, 'login/signup.html')
+    
+def signout(request):
+    response = redirect('login')
+    response.delete_cookie('id')
+    return response
