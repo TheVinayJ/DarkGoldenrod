@@ -279,10 +279,27 @@ def display_feed(request):
     
     posts = (public_posts | follow_posts | friend_posts).distinct().order_by('published')
 
+    cleaned_posts = []
+    for post in posts:
+        cleaned_posts.append({
+            "id": post.id,
+            "title": post.title,
+            "description": post.description,
+            "author": post.author,
+            "published": post.published,
+            "text_content": post.text_content,
+            "likes": PostLike.objects.filter(owner=post).count(),
+            "comments": Comment.objects.filter(post=post).count(),
+            "url": reverse("view_post", kwargs={"post_id": post.id})
+        })
+
+    # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
+
     # Pagination setup
-    paginator = Paginator(posts, 10)  # Show 10 posts per page
+    paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
 
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
