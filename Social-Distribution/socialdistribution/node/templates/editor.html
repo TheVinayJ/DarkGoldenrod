@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New Post</title>
+</head>
+<body>
+    <h1>Create a new post:</h1>
+
+    <form id="save-form" method="POST" action="/node/save/">
+        <input type="text" name="title" id="post-title" placeholder="Post Title"><br>
+        <textarea id="markdown-editor" name="body-text" rows="10" cols="50"></textarea><br>
+        <button id="convert-btn">Convert to HTML</button><br>
+        <br>
+        <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" checked>
+        <label for="PUBLIC">Public</label><br>
+        <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS">
+        <label for="FRIENDS">Friends Only</label><br>
+        <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED">
+        <label for="UNLISTED">Unlisted</label>
+        <button id="save-btn" type="submit">Save Page</button>
+        <br>
+        {% csrf_token %}
+    </form>
+
+    <h3>Output</h3>
+    <div id="markdown-output"></div> <!-- Rendered HTML output -->
+
+    <script src="{% static 'markdown-editor.min.js' %}"></script> <!-- Load bundled JS -->
+</body>
+</html>

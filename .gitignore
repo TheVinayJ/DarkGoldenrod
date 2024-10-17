@@ -742,3 +742,7 @@ tests/report/
 tests/screenshots/
 
 *.sqlite3
+
+*.min.js
+*.min.js.map
+staticfiles/
