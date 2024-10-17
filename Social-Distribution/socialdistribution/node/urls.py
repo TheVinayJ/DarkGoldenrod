@@ -9,6 +9,7 @@ urlpatterns = [
     path("save/", views.save, name="save"),
     path("posts/<int:post_id>/", views.view_post, name="view_post"),
     path("posts/<int:id>/like/", views.post_like, name="like"),
+    path("posts/<int:id>/likecomment/", views.comment_like, name="comment_like"),
     path('posts/<int:id>/add_comment/', views.add_comment, name="add_comment"),
     path('authors/', views.AuthorListView.as_view(), name='authors'),
     path('authors/follow/<int:author_id>/', views.follow_author, name='follow_author'),  # New URL for follow action

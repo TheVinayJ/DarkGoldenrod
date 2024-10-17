@@ -44,6 +44,11 @@
                 <li>
                     <p>{{ comment.author.display_name }} said on {{ comment.published|date:"F j, Y, g:i a" }}</p>
                     <p>{{ comment.text }}</p>
+                    <form action="/node/posts/{{ comment.id }}/likecomment/" method="POST">
+                        {% csrf_token %}
+                        <button type="submit">Like Comment</button>
+                    </form>
+                    <p>Likes: {{ likes.count }}</p>
                 </li>
             {% endfor %}
         </ul>
