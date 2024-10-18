@@ -15,8 +15,8 @@ urlpatterns = [
     path('authors/unfollow/<int:author_id>/', views.unfollow_author, name='unfollow_author'),
     ### SUGGESTION: Maybe we should change the profile path to authors/<int:user_id>/profile/
     path("<int:author_id>/profile/", views.profile, name='profile'),
-    path("<int:author_id>/followers/", views.followers, name='followers'),
-    # path("<int:author_id>/followings/", views.following, name='followings'),
+    path("<int:author_id>/followers/", views.followers_following, name='followers'),
+    path("<int:author_id>/followings/", views.followers_following, name='followings'),
     path("<int:author_id>/profile/edit", views.edit_profile, name='profile_edit'),
     path("<int:author_id>/profile/edit/save", views.edit_profile, name='profile_edit_save'),
     path('upload-avatar/', views.edit_profile, name='upload_avatar'),
@@ -27,6 +27,3 @@ urlpatterns = [
     path("posts/<int:id>/repost/", views.repost_post, name="repost"),
     path('signout/', login.signout, name='signout'),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

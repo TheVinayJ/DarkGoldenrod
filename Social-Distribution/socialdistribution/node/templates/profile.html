@@ -34,22 +34,40 @@
     <body>
         <a href="/node/">&lt; Go Back</a>
         <div class="profileNameAndPhoto">
-            <img src="{{ user.profile_image }}" alt="Profile Picture" class="profile-image">
+            <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">
             <h1>{{ user.display_name }}</h1>
         </div>
 
-        <form action="{% url 'profile_edit' user.id %}" method="get">
-            <button type="submit" class="edit-button">Edit Profile</button>
-        </form>
+        {% if ownProfile %}
+            <form action="{% url 'profile_edit' user.id %}" method="get">
+                <button type="submit" class="edit-button">Edit Profile</button>
+            </form>
 
-        <form action="/node/signout/" method="post">
-            {% csrf_token %}
-            <button type="submit">Sign out</button>
-        </form>
+            <form action="/node/signout/" method="post">
+                {% csrf_token %}
+                <button type="submit">Sign out</button>
+            </form>
+        {% else %}
+            {% if is_following %}
+                <form method="POST" action="{% url 'unfollow_author' user.id %}">
+                    {% csrf_token %}
+                    <button type="submit">
+                        Unfollow
+                    </button>
+                </form>
+            {% else %}
+                <form method="POST" action="{% url 'follow_author' user.id %}">
+                    {% csrf_token %}
+                    <button type="submit">
+                        Follow
+                    </button>
+                </form>
+            {% endif %}
+        {% endif %}
 
         <h2>{{ user.description }}</h2>
-        <a href="{% url 'followers' user.id %}">Followers</a><br>
-        <a href="following/">Following</a><br>
+        <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
+        <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
 
         <nav>
             <a href="#" onclick="showSection('feed')" style="margin-right: 15px;" >All Content</a>
@@ -63,27 +81,26 @@
         </div>
 
         <div id="posts" class="section">
-            <h3>Posts</h3>
-                {% if posts %}
-                    <ul class="post-list">
-                        {% for post in posts %}
-                            <li class="post-item">
-                                <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
-                                <p>{{ post.description }}</p>
-                                <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
-                                <p>{{ post.text_content|truncatewords:30 }}</p>
-                                <!-- Display likes and comments count -->
-                                <p>
-                                    Likes: {{ post.likes }} | Comments: {{ post.comments.count }}
-                                </p>
-                                <!-- Like and Comment buttons -->
-                                <a href="{% url 'view_post' post.id %}#comments">Comment</a>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No posts available.</p>
-                {% endif %}
+            {% if posts %}
+                <ul class="post-list">
+                    {% for post in posts %}
+                        <li class="post-item">
+                            <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+                            <p>{{ post.description }}</p>
+                            <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
+                            <p>{{ post.text_content|truncatewords:30 }}</p>
+                            <!-- Display likes and comments count -->
+                            <p>
+                                Likes: {{ post.likes }} | Comments: {{ post.comments.count }}
+                            </p>
+                            <!-- Like and Comment buttons -->
+                            <a href="{% url 'view_post' post.id %}#comments">Comment</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No posts available.</p>
+            {% endif %}
         </div>
 
         <div id="github" class="section">
