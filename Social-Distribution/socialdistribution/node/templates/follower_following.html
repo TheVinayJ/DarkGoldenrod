@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authors List</title>
+</head>
+<body>
+    <h1>{{ DisplayTitle }}</h1>
+
+    <ul>
+        {% for author in authors %}
+        <li>
+            <!-- Link to the author's profile page -->
+            <strong><a href="{% url 'profile' author.id %}">{{ author.display_name }}</a></strong><br>
+
+            Host: {{ author.host }}<br>
+            GitHub: <a href="{{ author.github }}">{{ author.github }}</a><br>
+
+            <!-- Follow form -->
+            <form method="POST" action="{% url 'follow_author' author.id %}">
+                {% csrf_token %}
+                <button type="submit">
+                    Follow
+                </button>
+            </form>
+            <form method="POST" action="{% url 'unfollow_author' author.id %}">
+                {% csrf_token %}
+                <button type="submit">
+                    Unfollow
+                </button>
+            </form>
+        </li>
+        {% empty %}
+        <li>No authors found.</li>
+        <br>
+        {% endfor %}
+    </ul>
+</body>
+</html>

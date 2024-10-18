@@ -236,10 +236,22 @@ def view_post(request, post_id):
 
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
-    authors_posts = Post.objects.filter(author=user).exclude(visibility='DELETED').order_by('-published') # most recent on top
+    current_author = get_author(request) # logged in author
+    ownProfile = (user == current_author)
+
+        # Construct the identifiers without using host
+    is_following = Follow.objects.filter(
+        follower="http://darkgoldenrod/api/authors/" + str(current_author.id),  # Example follower URL
+        following="http://darkgoldenrod/api/authors/" + str(author_id),  # Example following URL
+    ).exists()
+
+    authors_posts = Post.objects.filter(author=user).order_by('-published') # most recent on top
+
     return render(request, "profile.html", {
         'user': user,
         'posts': authors_posts,
+        'ownProfile': ownProfile,
+        'is_following': is_following,
     })
 
 
@@ -253,14 +265,28 @@ def edit_profile(request, author_id):
             return redirect('profile', author_id=user.id)  # Redirect to the profile view after saving
     else:
         form = AuthorProfileForm(instance=user)
+
     return render(request, 'edit_profile.html', {'form': form, 'user': user})
 
 
-def followers(request, author_id):
+def followers_following(request, author_id):
     user = get_object_or_404(Author, id=author_id)
-    followers = user.friends.all()
-    return render(request, 'authors.html', {'authors':followers})# come back to latererer
+    user_url = "http://darkgoldenrod/api/authors/" + str(author_id)  # Example URL format
 
+    # find a diff way to do this tbh
+    see_follower = request.GET.get('see_follower', 'true') == 'true'
+
+    # remeber to add the approve bit later
+    if see_follower:
+        # Get all followers by checking the Follow model
+        followers = Follow.objects.filter(following=user_url).values_list('follower', flat=True)
+    else:
+        followers = Follow.objects.filter(follower=user_url).values_list('following', flat=True)
+
+    follower_ids = [url.replace("http://darkgoldenrod/api/authors/", "") for url in followers]
+    follower_authors = Author.objects.filter(id__in=follower_ids)
+
+    return render(request, 'follower_following.html', {'authors':follower_authors})
 
 def get_author(request):
     try:
@@ -337,8 +363,12 @@ def display_feed(request):
     followings = list(follow_objects.values_list('following', flat=True))
     cleaned_followings = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in followings]
 
+
     friends = [follow.following for follow in follow_objects if follow.is_friend()]
     cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
+
+    if not cleaned_followings and not cleaned_friends:
+        return render(request, 'feed.html', {'page_obj': [], 'author_id': current_author})
 
     print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
     follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
@@ -377,12 +407,12 @@ def display_feed(request):
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
 
+    # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
 
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
 
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
