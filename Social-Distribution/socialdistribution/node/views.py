@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.views.generic import ListView
 from .models import Post, Author, PostLike, Comment, Like, Follow, CommentLike
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Count, Exists, OuterRef, Subquery
 import datetime
 import os
 from .forms import AuthorProfileForm
@@ -159,6 +159,9 @@ def view_post(request, post_id):
     if PostLike.objects.filter(owner=post, liker=author).exists():
         liked = True
 
+    # user_likes strategy obtained from Microsoft Copilot, Oct. 2024
+    user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
+
     return render(request, "post.html", {
         "post": post,
         "id": post_id,
@@ -166,7 +169,10 @@ def view_post(request, post_id):
         'author': author,
         'liked' : liked,
         'author_id': author.id,
-        'comments': Comment.objects.filter(post=post),
+        'comments': Comment.objects.filter(post=post)
+                  .annotate(likes=Count('commentlike'),
+                            liked=Exists(user_likes)
+                            ),
     })
 
 
