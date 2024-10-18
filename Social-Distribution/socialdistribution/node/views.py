@@ -12,6 +12,8 @@ import os
 from .forms import AuthorProfileForm
 from django.core.paginator import Paginator
 from .forms import ImageUploadForm
+import http.client
+import json
 
 class AuthorListView(ListView):
     model = Author
@@ -164,12 +166,20 @@ def profile(request, author_id):
     current_author = get_author(request) # logged in author
     ownProfile = (user == current_author)
 
-        # Construct the identifiers without using host
     is_following = Follow.objects.filter(
-        follower="http://darkgoldenrod/api/authors/" + str(current_author.id),  # Example follower URL
-        following="http://darkgoldenrod/api/authors/" + str(author_id),  # Example following URL
+        follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
+        following="http://darkgoldenrod/api/authors/" + str(author_id),
     ).exists()
 
+    # github
+    conn = http.client.HTTPSConnection("api.github.com")
+    headers = {
+        'User-Agent': 'node'
+    }
+    conn.request("GET", f"/users/{user.github}/events/public", headers=headers)
+    res = conn.getresponse()
+    data = res.read()
+    activity = json.loads(data.decode("utf-8")) if res.status == 200 else []
     authors_posts = Post.objects.filter(author=user).order_by('-published') # most recent on top
 
     return render(request, "profile.html", {
@@ -177,8 +187,8 @@ def profile(request, author_id):
         'posts': authors_posts,
         'ownProfile': ownProfile,
         'is_following': is_following,
+        'activity': activity,
     })
-
 
 def edit_profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
@@ -192,7 +202,6 @@ def edit_profile(request, author_id):
         form = AuthorProfileForm(instance=user)
 
     return render(request, 'edit_profile.html', {'form': form, 'user': user})
-
 
 def followers_following(request, author_id):
     user = get_object_or_404(Author, id=author_id)
