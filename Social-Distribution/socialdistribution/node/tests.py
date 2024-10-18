@@ -42,7 +42,9 @@ class PostTests(TestCase):
 
     def test_like_post(self):
         test_post_id = self.post.id
-        self.assertFalse(PostLike.objects.filter(post=self.post).exists())
-        response = self.client.post(reverse(views.post_like), test_post_id, follow=True)
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue(PostLike.objects.filter(post=self.post).exists())
+        self.assertFalse(PostLike.objects.filter(owner=self.post).exists())
+        response = self.client.post(reverse('like', args=[test_post_id]), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(PostLike.objects.filter(owner=self.post).exists())
+
+    
