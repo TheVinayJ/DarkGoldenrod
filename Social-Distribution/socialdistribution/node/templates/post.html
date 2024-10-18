@@ -46,9 +46,13 @@
                     <p>{{ comment.text }}</p>
                     <form action="/node/posts/{{ comment.id }}/likecomment/" method="POST">
                         {% csrf_token %}
-                        <button type="submit">Like Comment</button>
+                        {% if comment.liked %}
+                        <button type="submit">Unlike</button>
+                        {% else %}
+                        <button type="submit">Like</button>
+                        {% endif %}
                     </form>
-                    <p>Likes: {{ likes.count }}</p>
+                    <p>Likes: {{ comment.likes }}</p>
                 </li>
             {% endfor %}
         </ul>
