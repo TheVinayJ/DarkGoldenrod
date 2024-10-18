@@ -104,18 +104,29 @@
         </div>
 
         <div id="github" class="section">
-            <h3>GitHub Activity</h3>
-            {% if github_activity %}
-                <ul>
-                    {% for activity in github_activity %}
-                        <li>{{ activity }}</li>
-                    {% empty %}
-                        <li>No recent activity.</li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>No GitHub activity to display.</p>
-            {% endif %}
+            <ul>
+                {% for event in activity %}
+                    <li>
+                        <strong>Event Type:</strong> {{ event.type }}<br>
+                        <strong>Repo:</strong> <a href="{{ event.repo.url }}">{{ event.repo.name }}</a><br>
+                        <strong>Date:</strong> {{ event.created_at }}<br>
+                        <strong>Details:</strong>
+                        {% if event.payload.commits %}
+                            <div style="margin-top: 5px;">
+                                <ul style="list-style-type: none; padding-left: 0;">
+                                    {% for commit in event.payload.commits %}
+                                        <li>{{ commit.message }} <span style="font-style: italic;">by {{ commit.author.name }}</span></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% else %}
+                                <p>No commits for this event.</p>
+                        {% endif %}
+                    </li>
+                {% empty %}
+                    <li>No activity found.</li>
+                {% endfor %}
+            </ul>
         </div>
 
         <script>
