@@ -22,6 +22,12 @@ class PostTests(TestCase):
             visibility="PUBLIC"
         )
 
+        self.comment = Comment.objects.create(
+            author=self.author,
+            post=self.post,
+            text="Test Comment text"
+        )
+
         self.client = Client()
 
         signed_id = signing.dumps(self.author.id)
@@ -47,4 +53,35 @@ class PostTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(PostLike.objects.filter(owner=self.post).exists())
 
-    
+    def test_unlike_post(self):
+        test_post_id = self.post.id
+        self.assertFalse(PostLike.objects.filter(owner=self.post).exists())
+        response = self.client.post(reverse('like', args=[test_post_id]), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(PostLike.objects.filter(owner=self.post).exists())
+        response = self.client.post(reverse('like', args=[test_post_id]), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PostLike.objects.filter(owner=self.post).exists())
+
+    def test_add_comment(self):
+        test_post_id = self.post.id
+        self.assertFalse(Comment.objects.filter(post = self.post).count() > 1)
+        response = self.client.post(reverse('add_comment', args=[test_post_id]), {'content': 'test comment'},
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Comment.objects.filter(post = self.post).count() > 1)
+
+    def test_like_comment(self):
+        self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
+        response = self.client.post(reverse('comment_like', args=[self.post.id]),)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(CommentLike.objects.filter(owner=self.comment).exists())
+
+    def test_unlike_comment(self):
+        self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
+        response = self.client.post(reverse('comment_like', args=[self.post.id]), )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(CommentLike.objects.filter(owner=self.comment).exists())
+        response = self.client.post(reverse('comment_like', args=[self.post.id]), )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
