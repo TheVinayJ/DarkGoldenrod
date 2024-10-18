@@ -9,7 +9,8 @@ class Author(models.Model):
     description = models.CharField(max_length=150, default="", blank=True, null=True)
     host = models.CharField(max_length=50, blank=True, null=True) # URL of host node
     github = models.CharField(max_length=50, blank=True, null=True) # URL of author's Github
-    profile_image = models.ImageField(upload_to='images/profilePictures', default='images/profilePictures/default/Screenshot_2024-06-16_194156.png')
+    # profile_image = models.ImageField(upload_to='images/profilePictures', default='images/profilePictures/default/Screenshot_2024-06-16_194156.png')
+    profile_image = models.ImageField(upload_to='images/profilePictures', default=None)
     page = models.CharField(max_length=100, blank=True, null=True) # URL of user's HTML profile page
     friends = models.ManyToManyField('Author', blank=True)
     password = models.CharField(max_length=50, default="")
