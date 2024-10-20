@@ -250,21 +250,6 @@ def view_post(request, post_id):
                             ),
     })
 
-def edit_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    if request.method == 'POST':
-        form = PostForm(request.POST, instance=post)
-        if form.is_valid():
-            form.save()  # Save the updated post
-            return redirect('view_post', post_id=post.id)  # Redirect to the post view
-    else:
-        form = PostForm(instance=post)  # Populate form with the current post's data
-
-    return render(request, 'edit_post.html', {
-        'form': form,
-        'post': post,
-    })
-
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
     current_author = get_author(request) # logged in author
