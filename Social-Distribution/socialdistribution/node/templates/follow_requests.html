@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Follower Requests</title>
+    </head>
+    <body>
+        <a href="{% url 'profile' author_id=author_id %}">&lt; Go Back</a>
+        <h1>Follow Requests</h1>
+        <ul>
+            {% if follow_authors %}
+                {% for request_user in follow_authors %}
+                    <li>
+                        <a href="{% url 'profile' author_id=request_user.id %}">{{ request_user.display_name }}</a> wants to follow you.
+                        <form method="POST" action="{% url 'approve_follow' author_id=author_id follower_id=request_user.id %}">
+                            {% csrf_token %}
+                            <button type="submit">Approve</button>
+                        </form>
+                        <form method="POST" action="{% url 'decline_follow' author_id=author_id follower_id=request_user.id  %}">
+                            {% csrf_token %}
+                            <button type="submit">Decline</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            {% else %}
+                <li>No follow requests.</li>
+            {% endif %}
+        </ul>
+    </body>
+</html>

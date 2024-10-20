@@ -34,13 +34,20 @@
     <body>
         <a href="/node/">&lt; Go Back</a>
         <div class="profileNameAndPhoto">
-            <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">
+<!--            TEMPORARY UNTIL DEFAULT PFP ACROSS ALL -->
+            {% if user.profile_image %}
+                <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">
+            {% endif %}
             <h1>{{ user.display_name }}</h1>
         </div>
 
         {% if ownProfile %}
             <form action="{% url 'profile_edit' user.id %}" method="get">
                 <button type="submit" class="edit-button">Edit Profile</button>
+            </form>
+
+            <form method="GET" action="{% url 'follow_requests' user.id %}">
+                <button type="submit">View Follow Requests</button>
             </form>
 
             <form action="/node/signout/" method="post">
@@ -55,6 +62,13 @@
                         Unfollow
                     </button>
                 </form>
+            {% elif is_pending %}
+                <form method="POST" action="{% url 'unfollow_author' user.id %}">
+                    {% csrf_token %}
+                    <button type="submit">
+                        Pending
+                    </button>
+                </form>
             {% else %}
                 <form method="POST" action="{% url 'follow_author' user.id %}">
                     {% csrf_token %}
@@ -65,27 +79,31 @@
             {% endif %}
         {% endif %}
 
-        <h2>{{ user.description }}</h2>
+        {% if user.description %}
+            <h2>{{ user.description }}</h2>
+        {% endif %}
+
         <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
         <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
 
         <nav>
-            <a href="#" onclick="showSection('feed')" style="margin-right: 15px;" >All Content</a>
+<!--            <a href="#" onclick="showSection('feed')" style="margin-right: 15px;" >All Content</a>-->
             <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
             <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
         </nav>
 
-        <div id="feed" class="section active">
-            <h3>Feed</h3>
-            <p>Posts, Github activity, ?? what else</p>
-        </div>
+<!--        determine if we want github activity to be saved a post model -->
+<!--        <div id="feed" class="section active">-->
+<!--            <h3>Feed</h3>-->
+<!--            <p>Posts, Github activity, ?? what else</p>-->
+<!--        </div>-->
 
-        <div id="posts" class="section">
+        <div id="posts" class="section active">
             {% if posts %}
                 <ul class="post-list">
                     {% for post in posts %}
                         <li class="post-item">
-                            <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+                            <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
                             <p>{{ post.description }}</p>
                             <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
                             <p>{{ post.text_content|truncatewords:30 }}</p>
