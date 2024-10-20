@@ -276,7 +276,8 @@ def display_feed(request):
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
-    reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
+    reposts = Repost.objects.filter(shared_by__in=cleaned_followings).exclude(shared_by=get_author(request))
+
     
 
     posts = (public_posts | follow_posts | friend_posts).distinct()
@@ -312,14 +313,13 @@ def display_feed(request):
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
 
-def repost_post(request, post_id):
-    post = Post.objects.get(id=post_id)
+def repost_post(request, id):
+    post = get_object_or_404(Post, pk=id)
     # Only public posts can be shared
     if post.visibility != "PUBLIC":
         return HttpResponseForbidden("Post cannot be shared.")
     
     shared_post = Repost.objects.create(
-        id=post.id,
         author=post.author,
         title=post.title,
         description=post.description, 
@@ -327,10 +327,10 @@ def repost_post(request, post_id):
         image_content=post.image_content,
         published=post.published,
         visibility=post.visibility,
-        shared_by=get_author(request).id
+        shared_by=get_author(request)
     )
 
-    return redirect('/node/posts/{post_id}/repost/')
+    return(redirect(f'/node/posts/{id}/'))
 
 def upload_image(request):
     signed_id = request.COOKIES.get('id')

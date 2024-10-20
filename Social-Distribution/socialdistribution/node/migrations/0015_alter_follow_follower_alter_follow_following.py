@@ -5,10 +5,6 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('node', '0014_merge_20241016_0216'),
-    ]
-
     operations = [
         migrations.AlterField(
             model_name='follow',
