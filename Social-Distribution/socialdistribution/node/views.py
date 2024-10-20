@@ -292,7 +292,7 @@ def get_author(request):
     except (Author.DoesNotExist, signing.BadSignature, TypeError):
         return None
 
-
+# With help from Chat-GPT 4o, OpenAI, 2024-10-14
 def follow_author(request, author_id):
     # Get the author being followed
     author_to_follow = get_object_or_404(Author, id=author_id).id
@@ -314,7 +314,7 @@ def follow_author(request, author_id):
     # Redirect back to the authors list or a success page
     return redirect('authors')
 
-
+# With help from Chat-GPT 4o, OpenAI, 2024-10-14
 def unfollow_author(request, author_id):
     # Get the author being followed
     author_to_unfollow = get_object_or_404(Author, id=author_id).id
@@ -367,6 +367,7 @@ def decline_follow(request, author_id, follower_id):
     follow_request.delete()
     return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
+# With help from Chat-GPT 4o, OpenAI, 2024-10-14
 ### WARNING: Only works for posts from authors of the same node right now
 # Shows posts from followings and friends
 def display_feed(request):
@@ -375,6 +376,9 @@ def display_feed(request):
     """
     # Get the current user's full author URL
     current_author = get_author(request).id
+
+    # Get filter option from URL query parameters (default is 'all')
+    filter_option = request.GET.get('filter', 'all')
 
     public_posts = Post.objects.filter(visibility="PUBLIC")
 
@@ -399,8 +403,11 @@ def display_feed(request):
     print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
+    public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
+
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
+<<<<<<< Updated upstream
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
     reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
     
@@ -426,6 +433,54 @@ def display_feed(request):
             "comments": Comment.objects.filter(post=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
+=======
+    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['PUBLIC', 'UNLISTED','FRIENDS'])
+    reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
+
+    # Filter based on the selected option
+    if filter_option == "followings":
+        combined_feed = (follow_posts | friend_posts).distinct().order_by('-published')
+    elif filter_option == "public":
+        combined_feed = public_posts.order_by('-published')
+    elif filter_option == "friends":
+        combined_feed = friend_posts.order_by('-published')
+    elif filter_option == "reposts":
+        combined_feed = reposts.order_by('-published')
+    else:  # 'all' filter (default)
+        posts = (public_posts | follow_posts | friend_posts).distinct()
+        combined_feed = list(posts) + list(reposts)
+        combined_feed.sort(key=lambda item: item.published, reverse=True)
+
+
+    cleaned_posts = []
+    for post in combined_feed:
+        if isinstance(post, Post):
+            cleaned_posts.append({
+                "id": post.id,
+                "title": post.title,
+                "description": post.description,
+                "author": post.author,
+                "published": post.published,
+                "text_content": post.text_content,
+                "likes": PostLike.objects.filter(owner=post).count(),
+                "comments": Comment.objects.filter(post=post).count(),
+                "url": reverse("view_post", kwargs={"post_id": post.id})
+            })
+        elif isinstance(post, Repost):
+            cleaned_posts.append({
+                "id": post.id,
+                "title": "Repost of: " + post.title,
+                "description": post.description,
+                "author": post.author,
+                "published": post.published,
+                "text_content": post.text_content,
+                "likes": PostLike.objects.filter(owner=post).count(),
+                "comments": Comment.objects.filter(post=post).count(),
+                "url": reverse("view_post", kwargs={"post_id": post.id}),
+                "shared_by": post.shared_by
+            })
+            
+>>>>>>> Stashed changes
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
     
