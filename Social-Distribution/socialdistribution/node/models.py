@@ -12,8 +12,8 @@ class Author(models.Model):
     profile_image = models.CharField(max_length=100, blank=True, null=True) # Link to profile picture
     page = models.CharField(max_length=100, blank=True, null=True) # URL of user's HTML profile page
     friends = models.ManyToManyField('Author', blank=True)
-    password = models.CharField(max_length=50, default="")
-    email = models.EmailField(max_length=50, default='example@example.com')
+    password = models.CharField(max_length=128)
+    email = models.EmailField(max_length=50, default='example@example.com', unique=True)
 
     def __str__(self):
         return self.display_name
@@ -21,7 +21,7 @@ class Author(models.Model):
 
 class Like(models.Model):
     object_id = models.AutoField(primary_key=True)
-    created_at = models.DateTimeField(default=django.utils.timezone.now)
+    created_at = models.DateTimeField(default=django.utils.timezone.now, db_index=True)
     liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
 
     class Meta:
@@ -33,10 +33,10 @@ class Post(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100)
     description = models.TextField() # Posts need a short description
-    text_content = models.TextField(blank=True) # Text post content (optional)
-    image_content = models.TextField(blank=True) # Link to image
-    published = models.DateTimeField(auto_now_add=True)
-    visibility = models.TextField(default="PUBLIC", max_length=50)
+    text_content = models.TextField(default="", blank=True) # Text post content (optional)
+    image_content = models.TextField(blank=True, null=True) # Link to image
+    published = models.DateTimeField(auto_now_add=True, db_index=True)
+    visibility = models.TextField(default="PUBLIC", max_length=50, db_index=True)
 
 
 class Repost(Post):
@@ -46,7 +46,7 @@ class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    published = models.DateTimeField(auto_now_add=True, null=True)
+    published = models.DateTimeField(auto_now_add=True, null=True, db_index=True)
     text = models.TextField()
 
 class PostLike(Like):
@@ -58,12 +58,12 @@ class CommentLike(Like):
 class Image(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='images/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
 class Follow(models.Model):
     follower = models.CharField(max_length=200)  # Full URL of the follower author
     following = models.CharField(max_length=200)  # Full URL of the author being followed
-    approved = models.BooleanField(default=False)  # To track if the follow request is approved
+    approved = models.BooleanField(default=False, db_index=True)  # To track if the follow request is approved
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

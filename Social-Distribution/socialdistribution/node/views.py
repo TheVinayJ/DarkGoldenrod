@@ -92,7 +92,7 @@ def save(request):
     author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
-                description=request.POST["body-text"],
+                text_content=request.POST["body-text"],
                 visibility=request.POST["visibility"],
                 published=datetime.datetime.now(),
                 author=author,
