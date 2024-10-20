@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
@@ -65,4 +66,9 @@
         <input type="submit" />
         {% csrf_token %}
     </form>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Include marked.js from local static directory -->
+    <script src="{% static 'markdown-editor.min.js' %}"></script> <!-- Load bundled JS -->
 {% endblock %}

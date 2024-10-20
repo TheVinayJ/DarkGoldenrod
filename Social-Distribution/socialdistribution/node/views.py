@@ -76,7 +76,7 @@ def save(request):
     author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
-                description=request.POST["body-text"],
+                text_content=request.POST["body-text"],
                 visibility=request.POST["visibility"],
                 published=datetime.datetime.now(),
                 author=author,
@@ -402,13 +402,19 @@ def display_feed(request):
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
-    reposts = Repost.objects.filter(shared_by=cleaned_followings)
+    reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
     
 
-    posts = (public_posts | follow_posts | friend_posts | reposts).distinct().order_by('published')
+    posts = (public_posts | follow_posts | friend_posts).distinct()
+
+    # Combine posts and reposts into a single list
+    combined_feed = list(posts) + list(reposts)
+
+    # Sort the combined feed by 'created_at' or whichever timestamp field you have
+    combined_feed.sort(key=lambda item: item.published, reverse=True)
 
     cleaned_posts = []
-    for post in posts:
+    for post in combined_feed:
         cleaned_posts.append({
             "id": post.id,
             "title": post.title,
@@ -422,7 +428,7 @@ def display_feed(request):
         })
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
-
+    
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
