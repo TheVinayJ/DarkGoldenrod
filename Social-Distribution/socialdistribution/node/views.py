@@ -407,33 +407,6 @@ def display_feed(request):
 
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
-<<<<<<< Updated upstream
-    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
-    reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
-    
-
-    posts = (public_posts | follow_posts | friend_posts).distinct()
-
-    # Combine posts and reposts into a single list
-    combined_feed = list(posts) + list(reposts)
-
-    # Sort the combined feed by 'created_at' or whichever timestamp field you have
-    combined_feed.sort(key=lambda item: item.published, reverse=True)
-
-    cleaned_posts = []
-    for post in combined_feed:
-        cleaned_posts.append({
-            "id": post.id,
-            "title": post.title,
-            "description": post.description,
-            "author": post.author,
-            "published": post.published,
-            "text_content": post.text_content,
-            "likes": PostLike.objects.filter(owner=post).count(),
-            "comments": Comment.objects.filter(post=post).count(),
-            "url": reverse("view_post", kwargs={"post_id": post.id})
-        })
-=======
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['PUBLIC', 'UNLISTED','FRIENDS'])
     reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
 
@@ -480,7 +453,6 @@ def display_feed(request):
                 "shared_by": post.shared_by
             })
             
->>>>>>> Stashed changes
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
     
