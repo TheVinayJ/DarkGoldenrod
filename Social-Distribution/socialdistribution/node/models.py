@@ -2,6 +2,7 @@ from email._header_value_parser import ContentType
 from django.db import models
 import django
 import datetime
+from model_utils.managers import InheritanceManager
 
 class Author(models.Model):
     id = models.AutoField(primary_key=True)
@@ -37,10 +38,13 @@ class Post(models.Model):
     image_content = models.TextField(blank=True) # Link to image
     published = models.DateTimeField(auto_now_add=True)
     visibility = models.TextField(default="PUBLIC", max_length=50)
+    objects = InheritanceManager()
 
 
-class Repost(Post):
+class Repost(models.Model):
+    original_post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True)
     shared_by = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True)
+    shared_date = models.DateTimeField(auto_now_add=True)
 
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)

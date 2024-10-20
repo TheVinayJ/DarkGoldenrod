@@ -34,12 +34,7 @@ class RepostTests(TestCase):
         self.login(self.author1)
         # Create a repost of the original post by Author 2
         repost = Repost.objects.create(
-            author=self.post.author,
-            title=self.post.title,
-            description=self.post.description,
-            text_content=self.post.text_content,
-            image_content=self.post.image_content,
-            visibility=self.post.visibility,
+            original_post=self.post,
             shared_by=self.author2
         )
 
@@ -49,20 +44,15 @@ class RepostTests(TestCase):
     def test_repost_appears_in_feed(self):
         self.login(self.author1)
         repost = Repost.objects.create(
-            author=self.post.author,
-            title=self.post.title,
-            description=self.post.description,
-            text_content=self.post.text_content,
-            image_content=self.post.image_content,
-            visibility=self.post.visibility,
+            original_post=self.post,
             shared_by=self.author2
         )
 
-        # Fetch the feed of Author 2
+        # Fetch the feed of Author 1
         response = self.client.get(reverse('following_feed'))
 
         # Check that the repost appears in the feed
-        self.assertContains(response, self.post.title)
+        self.assertContains(response, repost.shared_by)
 
     def test_repost_private_post_forbidden(self):
         self.login(self.author1)
