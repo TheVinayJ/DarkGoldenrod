@@ -30,6 +30,15 @@
                 <li>
                     <p>{{ comment.author.display_name }} said on {{ comment.published|date:"F j, Y, g:i a" }}</p>
                     <p>{{ comment.text }}</p>
+                    <form action="/node/posts/{{ comment.id }}/likecomment/" method="POST">
+                        {% csrf_token %}
+                        {% if comment.liked %}
+                        <button type="submit">Unlike</button>
+                        {% else %}
+                        <button type="submit">Like</button>
+                        {% endif %}
+                    </form>
+                    <p>Likes: {{ comment.likes }}</p>
                 </li>
             {% endfor %}
         </ul>
