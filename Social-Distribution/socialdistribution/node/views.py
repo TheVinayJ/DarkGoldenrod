@@ -268,11 +268,11 @@ def profile(request, author_id):
         ).exists()
     else:
         is_followback = False
-        is_pending = Follow.objects.filter( # if logged in author following the user
-            follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
-            following="http://darkgoldenrod/api/authors/" + str(author_id),
-            approved=False,
-        ).exists()
+    is_pending = Follow.objects.filter( # if logged in author following the user
+        follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
+        following="http://darkgoldenrod/api/authors/" + str(author_id),
+        approved=False,
+    ).exists()
 
     # github
     conn = http.client.HTTPSConnection("api.github.com")
