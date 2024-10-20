@@ -62,39 +62,21 @@ class AuthorListView(ListView):
         return queryset
 
 
-def index(request):
-    author = get_author(request)
-    author_id = author.id if author else None
-
-    posts = []
-    post_objects = Post.objects.all()
-    for post in post_objects:
-        posts.append({
-            "id": post.id,
-            "title": post.title,
-            "description": post.description,
-            "author": post.author,
-            "published": post.published,
-            "text_content": post.text_content,
-            "likes": PostLike.objects.filter(owner=post).count(),
-            "comments": Comment.objects.filter(post=post).count(),
-            "url": reverse("view_post", kwargs={"post_id": post.id})
-        })
-    return render(request, "index.html", {
-        "posts": posts,
-        'author_id': author_id,
-    })
-
-
 def editor(request):
+    """
+    Open menu to edit contents for a post request
+    """
     return render(request, "editor.html")
 
 
 def save(request):
+    """
+    Create a new post!
+    """
     author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
-                description=request.POST["body-text"],
+                text_content=request.POST["body-text"],
                 visibility=request.POST["visibility"],
                 published=datetime.datetime.now(),
                 author=author,
@@ -104,23 +86,31 @@ def save(request):
 
 
 def post_like(request, id):
+    """
+    Method for liking a post given an ID
+    If already liked by requesting author, unlike
+    """
     author = get_author(request)
     post = get_object_or_404(Post, pk=id)
     if PostLike.objects.filter(owner=post, liker=author).exists():
         PostLike.objects.filter(owner=post, liker=author).delete()
     else:
-        new_like = PostLike(owner=post, created_at=datetime.datetime.now(), liker=author)
+        new_like = PostLike(owner=post, liker=author)
         new_like.save()
     return(redirect(f'/node/posts/{id}/'))
 
 def comment_like(request, id):
+    """
+    Method for liking a comment given comment ID
+    if already liked by requesting author, removes the like
+    """
     author = get_author(request)
     comment = get_object_or_404(Comment, pk=id)
     post = get_object_or_404(Post, pk=comment.post.id)
     if CommentLike.objects.filter(owner=comment, liker=author).exists():
         CommentLike.objects.filter(owner=comment, liker=author).delete()
     else:
-        new_like = CommentLike(owner=comment, created_at=datetime.datetime.now(), liker=author)
+        new_like = CommentLike(owner=comment, liker=author)
         new_like.save()
     return(redirect(f'/node/posts/{post.id}/'))
 
@@ -146,6 +136,12 @@ def add_comment(request, id):
 
 
 def view_post(request, post_id):
+    """
+    For viewing a post
+    Returns 403 for visibility conflicts
+    Otherwise, render the post
+    """
+
     post = get_object_or_404(Post, id=post_id)
     author = get_author(request)
     liked = False
@@ -170,6 +166,7 @@ def view_post(request, post_id):
         liked = True
 
     # user_likes strategy obtained from Microsoft Copilot, Oct. 2024
+    # Find likes from current user matching the queried comment
     user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
 
     return render(request, "post.html", {
@@ -405,13 +402,19 @@ def display_feed(request):
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
-    reposts = Repost.objects.filter(shared_by=cleaned_followings)
+    reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
     
 
-    posts = (public_posts | follow_posts | friend_posts | reposts).distinct().order_by('published')
+    posts = (public_posts | follow_posts | friend_posts).distinct()
+
+    # Combine posts and reposts into a single list
+    combined_feed = list(posts) + list(reposts)
+
+    # Sort the combined feed by 'created_at' or whichever timestamp field you have
+    combined_feed.sort(key=lambda item: item.published, reverse=True)
 
     cleaned_posts = []
-    for post in posts:
+    for post in combined_feed:
         cleaned_posts.append({
             "id": post.id,
             "title": post.title,
@@ -425,7 +428,7 @@ def display_feed(request):
         })
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
-
+    
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
