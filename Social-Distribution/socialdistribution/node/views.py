@@ -60,31 +60,10 @@ class AuthorListView(ListView):
         return queryset
 
 
-def index(request):
-    author = get_author(request)
-    author_id = author.id if author else None
-
-    posts = []
-    post_objects = Post.objects.all()
-    for post in post_objects:
-        posts.append({
-            "id": post.id,
-            "title": post.title,
-            "description": post.description,
-            "author": post.author,
-            "published": post.published,
-            "text_content": post.text_content,
-            "likes": PostLike.objects.filter(owner=post).count(),
-            "comments": Comment.objects.filter(post=post).count(),
-            "url": reverse("view_post", kwargs={"post_id": post.id})
-        })
-    return render(request, "index.html", {
-        "posts": posts,
-        'author_id': author_id,
-    })
-
-
 def editor(request):
+    """
+    Open menu to edit contents for a post request
+    """
     return render(request, "editor.html")
 
 def edit_post(request, post_id):
@@ -126,6 +105,9 @@ def edit_post(request, post_id):
 
 
 def save(request):
+    """
+    Create a new post!
+    """
     author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
@@ -153,6 +135,10 @@ def delete_post(request, post_id):
 
 
 def post_like(request, id):
+    """
+    Method for liking a post given an ID
+    If already liked by requesting author, unlike
+    """
     author = get_author(request)
     post = get_object_or_404(Post, pk=id)
     if PostLike.objects.filter(owner=post, liker=author).exists():
@@ -163,6 +149,10 @@ def post_like(request, id):
     return(redirect(f'/node/posts/{id}/'))
 
 def comment_like(request, id):
+    """
+    Method for liking a comment given comment ID
+    if already liked by requesting author, removes the like
+    """
     author = get_author(request)
     comment = get_object_or_404(Comment, pk=id)
     post = get_object_or_404(Post, pk=comment.post.id)
@@ -195,6 +185,12 @@ def add_comment(request, id):
 
 
 def view_post(request, post_id):
+    """
+    For viewing a post
+    Returns 403 for visibility conflicts
+    Otherwise, render the post
+    """
+
     post = get_object_or_404(Post, id=post_id)
     author = get_author(request)
     liked = False
