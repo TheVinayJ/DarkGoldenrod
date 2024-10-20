@@ -11,7 +11,7 @@ import datetime
 import os
 from .forms import AuthorProfileForm
 from django.core.paginator import Paginator
-from .forms import ImageUploadForm
+from .forms import ImageUploadForm, PostForm
 import http.client
 import json
 
@@ -139,13 +139,17 @@ def view_post(request, post_id):
     author = get_author(request)
     liked = False
 
-    if post.visibility == "FRIENDS":
-        try:
-            follow = get_object_or_404(Follow, follower=author, following = post.author)
-        except:
-            return HttpResponse(status=403)
-        if follow.is_friend():
-            return HttpResponse(status=403)
+    if post.author != author: # if user that is not the creator is attempting to view
+        is_author = False
+        if post.visibility == "FRIENDS":
+            try:
+                follow = get_object_or_404(Follow, follower=author, following = post.author)
+            except:
+                return HttpResponse(status=403)
+            if follow.is_friend():
+                return HttpResponse(status=403)
+    else:
+        is_author = True
 
     if PostLike.objects.filter(owner=post, liker=author).exists():
         liked = True
@@ -158,18 +162,47 @@ def view_post(request, post_id):
         'liked' : liked,
         'author_id': author.id,
         'comments': Comment.objects.filter(post=post),
+        'is_author': is_author,
     })
 
+def edit_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if request.method == 'POST':
+        form = PostForm(request.POST, instance=post)
+        if form.is_valid():
+            form.save()  # Save the updated post
+            return redirect('view_post', post_id=post.id)  # Redirect to the post view
+    else:
+        form = PostForm(instance=post)  # Populate form with the current post's data
+
+    return render(request, 'edit_post.html', {
+        'form': form,
+        'post': post,
+    })
 
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
     current_author = get_author(request) # logged in author
     ownProfile = (user == current_author)
 
-    is_following = Follow.objects.filter(
+    is_following = Follow.objects.filter( # if logged in author following the user
         follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
         following="http://darkgoldenrod/api/authors/" + str(author_id),
+        approved=True,
     ).exists()
+    if is_following:
+        is_followback = Follow.objects.filter(  # ... see if user is following back
+            follower="http://darkgoldenrod/api/authors/" + str(author_id),
+            following="http://darkgoldenrod/api/authors/" + str(current_author.id),
+            approved=True,
+        ).exists()
+    else:
+        is_followback = False
+        is_pending = Follow.objects.filter( # if logged in author following the user
+            follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
+            following="http://darkgoldenrod/api/authors/" + str(author_id),
+            approved=False,
+        ).exists()
 
     # github
     conn = http.client.HTTPSConnection("api.github.com")
@@ -180,13 +213,20 @@ def profile(request, author_id):
     res = conn.getresponse()
     data = res.read()
     activity = json.loads(data.decode("utf-8")) if res.status == 200 else []
-    authors_posts = Post.objects.filter(author=user).order_by('-published') # most recent on top
+
+    visible_tags = ['PUBLIC']
+    if is_followback or user==current_author: # if logged in user is friends with user or if logged in user viewing own profile
+        visible_tags.append('FRIENDS') # show friend visibility posts
+        if user==current_author: # if logged in user viewing own profile, show unlisted posts too
+            visible_tags.append('UNLISTED')
+    authors_posts = Post.objects.filter(author=user, visibility__in= visible_tags).order_by('-published') # most recent on top
 
     return render(request, "profile.html", {
         'user': user,
         'posts': authors_posts,
         'ownProfile': ownProfile,
         'is_following': is_following,
+        'is_pending': is_pending,
         'activity': activity,
     })
 
@@ -204,8 +244,7 @@ def edit_profile(request, author_id):
     return render(request, 'edit_profile.html', {'form': form, 'user': user})
 
 def followers_following(request, author_id):
-    user = get_object_or_404(Author, id=author_id)
-    user_url = "http://darkgoldenrod/api/authors/" + str(author_id)  # Example URL format
+    profileUserUrl = "http://darkgoldenrod/api/authors/" + str(author_id)  # user of the profile
 
     # find a diff way to do this tbh
     see_follower = request.GET.get('see_follower', 'true') == 'true'
@@ -213,14 +252,18 @@ def followers_following(request, author_id):
     # remeber to add the approve bit later
     if see_follower:
         # Get all followers by checking the Follow model
-        followers = Follow.objects.filter(following=user_url).values_list('follower', flat=True)
+        users = Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
+        title = "Followers"
     else:
-        followers = Follow.objects.filter(follower=user_url).values_list('following', flat=True)
+        users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
+        title = "Followings"
 
-    follower_ids = [url.replace("http://darkgoldenrod/api/authors/", "") for url in followers]
-    follower_authors = Author.objects.filter(id__in=follower_ids)
+    user_ids = [url.replace("http://darkgoldenrod/api/authors/", "") for url in users]
+    user_authors = Author.objects.filter(id__in=user_ids)
 
-    return render(request, 'follower_following.html', {'authors':follower_authors})
+    return render(request, 'follower_following.html', {
+        'authors': user_authors,
+        'DisplayTitle': title})
 
 def get_author(request):
     try:
@@ -279,6 +322,32 @@ def unfollow_author(request, author_id):
     # Redirect back to the authors list or a success page
     return redirect('authors')
 
+def follow_requests(request, author_id):
+    current_author = get_author(request)  # logged in author
+    current_follow_requests = Follow.objects.filter(following="http://darkgoldenrod/api/authors/" + str(current_author.id), approved=False)
+
+    follower_authors = []
+    for a_request in current_follow_requests:
+        follower_id = a_request.follower.replace("http://darkgoldenrod/api/authors/", "")
+        follower_author = get_object_or_404(Author, id=follower_id)
+        follower_authors.append(follower_author)
+
+    print(f"Content of follow_authors: {follower_authors}")
+    return render(request, 'follow_requests.html', {
+        'follow_authors': follower_authors,
+        'author_id': author_id,
+    })
+
+def approve_follow(request, author_id, follower_id):
+    follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
+    follow_request.approved = True
+    follow_request.save()
+    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
+
+def decline_follow(request, author_id, follower_id):
+    follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
+    follow_request.delete()
+    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
 ### WARNING: Only works for posts from authors of the same node right now
 # Shows posts from followings and friends
