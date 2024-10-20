@@ -13,6 +13,11 @@
     <!-- Display Likes -->
     <p>Likes: {{ likes.count }}</p>
 
+    <!--    Display Edit if rightful owner-->
+    {% if is_author %}
+        <a href="{% url 'edit_post' post.id %}" class="edit-button">Edit Post</a>
+    {% endif %}
+
     <form action="/node/posts/{{ id }}/like/" method="POST">
         {% csrf_token %}
         {% if liked %}
@@ -20,6 +25,12 @@
         {% else %}
         <button type="submit">Like</button>
         {% endif %}
+    </form>
+
+    <!-- Repost Button -->
+    <form action="/node/posts/{{ id }}/repost/" method="POST">
+        {% csrf_token %}
+        <button type="submit" id="repost">Repost</button>
     </form>
 
     <!-- Comments Section -->
