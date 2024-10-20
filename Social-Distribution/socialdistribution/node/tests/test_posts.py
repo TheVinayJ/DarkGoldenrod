@@ -1,11 +1,16 @@
+import sys
+
+# setting path
+sys.path.append('../node')
+
 from http.client import responses
 
 from django.core import signing
 from django.urls import reverse
 
-from .models import *
+from node.models import Author, Post, Comment, PostLike, CommentLike, Follow
 from django.test import TestCase, Client
-from . import views
+from node import views
 
 
 class PostTests(TestCase):
