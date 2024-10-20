@@ -223,6 +223,12 @@ def view_post(request, post_id):
     if post.visibility == "PRIVATE":
         if post.author != author:
             return HttpResponse(status=403)
+        try:
+            follow = get_object_or_404(Follow, follower=author, following = post.author)
+        except:
+            return HttpResponse(status=403)
+        if follow.is_friend():
+            return HttpResponse(status=403)
 
     if PostLike.objects.filter(owner=post, liker=author).exists():
         liked = True
