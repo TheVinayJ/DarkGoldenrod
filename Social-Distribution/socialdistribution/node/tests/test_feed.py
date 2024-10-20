@@ -3,8 +3,8 @@ from django.urls import reverse
 from node.models import Author, Follow, Post
 import hashlib
 
-
 # With help from Chat-GPT 4o, OpenAI, 2024-10-19
+
 class FeedTest(TestCase):
 
     @classmethod
@@ -25,11 +25,13 @@ class FeedTest(TestCase):
             email="author3@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
         )
+
         cls.author4 = Author.objects.create(
             display_name="Author 4",
             email="author4@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
         )
+
 
         # Create posts with different visibility
         Post.objects.create(author=cls.author2, text_content="Public post by Author 2", visibility="PUBLIC")
@@ -41,6 +43,7 @@ class FeedTest(TestCase):
         Post.objects.create(author=cls.author4, text_content="Public post by Author 4", visibility="PUBLIC")
         Post.objects.create(author=cls.author4, text_content="Unlisted post by Author 4", visibility="UNLISTED")
         Post.objects.create(author=cls.author4, text_content="Friends-only post by Author 4", visibility="FRIENDS")
+
         
 
         # Set up following and mutual follow (friendship)
@@ -68,6 +71,7 @@ class FeedTest(TestCase):
         }
         self.client.post(reverse('login'), login_data)
 
+
     def test_all_filter(self):
         # Log in as author1
         self.login()
@@ -83,6 +87,7 @@ class FeedTest(TestCase):
         self.assertContains(response, "Friends-only post by Author 2")
         self.assertContains(response, "Public post by Author 4")
         self.assertContains(response, "Unlisted post by Author 4")
+
 
         # 3. Public posts from all authors
         self.assertContains(response, "Public post by Author 3")
@@ -149,4 +154,5 @@ class FeedTest(TestCase):
     #     # Ensure original posts do not appear
     #     self.assertNotContains(response, "Public post by Author 2")
     #     self.assertNotContains(response, "Public post by Author 3")
+
 

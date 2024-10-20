@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Post</title>
+</head>
+<body>
+    <h1>Edit Post</h1>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- Renders other form fields -->
+
+        <button type="submit">Save</button>
+        <a href="{% url 'view_post' post.id %}">Cancel</a>
+    </form>
+</body>
+</html>

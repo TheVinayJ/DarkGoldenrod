@@ -1,18 +1,26 @@
+import sys
+
+# setting path
+sys.path.append('../node')
+
 from http.client import responses
 
 from django.core import signing
 from django.urls import reverse
 
-from .models import *
+from node.models import Author, Post, Comment, PostLike, CommentLike, Follow
 from django.test import TestCase, Client
-from . import views
+from node import views
 
 
 class PostTests(TestCase):
 
     def setUp(self):
 
-        self.author = Author.objects.create(display_name="Test Author")
+        self.author = Author.objects.create(display_name="Test Author",
+                                            email='author@test.com'
+                                            )
+
         self.post = Post.objects.create(
             title="Test Title",
             description="Test Description",
@@ -35,7 +43,9 @@ class PostTests(TestCase):
             text="Test Comment text"
         )
 
-        self.friend_author = Author.objects.create(display_name="Test Friend")
+        self.friend_author = Author.objects.create(display_name="Test Friend",
+                                                   email='friend@test.com'
+                                                   )
 
         self.friends_post = Post.objects.create(
             title="Private Title",
