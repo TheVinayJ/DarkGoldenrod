@@ -1,6 +1,5 @@
 from http.client import responses
 
-from django.contrib.sessions.models import Session
 from django.core import signing
 from django.urls import reverse
 
@@ -22,10 +21,28 @@ class PostTests(TestCase):
             visibility="PUBLIC"
         )
 
+        self.private_post = Post.objects.create(
+            title="Private Title",
+            description="Test Description",
+            text_content="Test Content",
+            author=None,
+            visibility="PRIVATE"
+        )
+
         self.comment = Comment.objects.create(
             author=self.author,
             post=self.post,
             text="Test Comment text"
+        )
+
+        self.friend_author = Author.objects.create(display_name="Test Friend")
+
+        self.friends_post = Post.objects.create(
+            title="Private Title",
+            description="Test Description",
+            text_content="Test Content",
+            author=self.friend_author,
+            visibility="FRIENDS"
         )
 
         self.client = Client()
@@ -85,3 +102,19 @@ class PostTests(TestCase):
         response = self.client.post(reverse('comment_like', args=[self.post.id]), )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
+
+    def test_private_post(self):
+        response = self.client.get(reverse('view_post', args=[self.private_post.id]), follow=True)
+        self.assertEqual(response.status_code, 403)
+
+    def test_friends_post(self):
+        response = self.client.get(reverse('view_post', args=[self.friends_post.id]), follow=True)
+        self.assertEqual(response.status_code, 403)
+        self.following_friend = Follow.objects.create(
+            follower=self.author,
+            following=self.friend_author)
+        self.following_author = Follow.objects.create(
+            follower=self.friend_author,
+            following=self.author)
+        response = self.client.get(reverse('view_post', args=[self.friends_post.id]), follow=True)
+        self.assertEqual(response.status_code, 200)
