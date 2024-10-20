@@ -65,9 +65,9 @@ function convertMarkdownInElements(selector) {
 document.addEventListener('DOMContentLoaded', function() {
   console.log("DOM fully loaded and parsed");
 
-  // Convert markdown in elements with class "markdown-output"
+  // This will be used for new, edit post pages to output a preview of the markdown
   convertMarkdownInElements('.markdown-output');
 
-  // Convert markdown in elements with class "post-content"
+  // This will be used for the feed page to render the markdown content
   convertMarkdownInElements('.post-content');
 });
