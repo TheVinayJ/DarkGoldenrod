@@ -283,7 +283,7 @@ def display_feed(request):
     posts = (public_posts | follow_posts | friend_posts).distinct()
 
     # Combine posts and reposts into a single list
-    combined_feed = list(posts) + list(reposts)
+    combined_feed = list(posts) 
 
     # Sort the combined feed by 'created_at' or whichever timestamp field you have
     combined_feed.sort(key=lambda item: item.published, reverse=True)
@@ -320,13 +320,7 @@ def repost_post(request, id):
         return HttpResponseForbidden("Post cannot be shared.")
     
     shared_post = Repost.objects.create(
-        author=post.author,
-        title=post.title,
-        description=post.description, 
-        text_content=post.text_content,
-        image_content=post.image_content,
-        published=post.published,
-        visibility=post.visibility,
+        original_post=post,
         shared_by=get_author(request)
     )
 
