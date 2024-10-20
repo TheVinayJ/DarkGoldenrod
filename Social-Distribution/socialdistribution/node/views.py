@@ -95,7 +95,7 @@ def post_like(request, id):
     if PostLike.objects.filter(owner=post, liker=author).exists():
         PostLike.objects.filter(owner=post, liker=author).delete()
     else:
-        new_like = PostLike(owner=post, created_at=datetime.datetime.now(), liker=author)
+        new_like = PostLike(owner=post, liker=author)
         new_like.save()
     return(redirect(f'/node/posts/{id}/'))
 
@@ -110,7 +110,7 @@ def comment_like(request, id):
     if CommentLike.objects.filter(owner=comment, liker=author).exists():
         CommentLike.objects.filter(owner=comment, liker=author).delete()
     else:
-        new_like = CommentLike(owner=comment, created_at=datetime.datetime.now(), liker=author)
+        new_like = CommentLike(owner=comment, liker=author)
         new_like.save()
     return(redirect(f'/node/posts/{post.id}/'))
 
