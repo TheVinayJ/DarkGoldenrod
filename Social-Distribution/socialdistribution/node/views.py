@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from .models import Post, Author, PostLike, Comment, Like, Follow, CommentLike, Repost
+from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
 import datetime
@@ -113,7 +113,7 @@ def save(request):
     author = get_author(request)
     print(request.POST)
     post = Post(title=request.POST["title"],
-                description=request.POST["body-text"],
+                text_content=request.POST["body-text"],
                 visibility=request.POST["visibility"],
                 published=datetime.datetime.now(),
                 author=author,
@@ -146,7 +146,7 @@ def post_like(request, id):
     if PostLike.objects.filter(owner=post, liker=author).exists():
         PostLike.objects.filter(owner=post, liker=author).delete()
     else:
-        new_like = PostLike(owner=post, created_at=datetime.datetime.now(), liker=author)
+        new_like = PostLike(owner=post, liker=author)
         new_like.save()
     return(redirect(f'/node/posts/{id}/'))
 
@@ -161,7 +161,7 @@ def comment_like(request, id):
     if CommentLike.objects.filter(owner=comment, liker=author).exists():
         CommentLike.objects.filter(owner=comment, liker=author).delete()
     else:
-        new_like = CommentLike(owner=comment, created_at=datetime.datetime.now(), liker=author)
+        new_like = CommentLike(owner=comment, liker=author)
         new_like.save()
     return(redirect(f'/node/posts/{post.id}/'))
 
@@ -200,7 +200,9 @@ def view_post(request, post_id):
     if post.visibility == 'DELETED':
         return HttpResponse(status=404)  
 
-    if post.visibility == "FRIENDS":
+    if post.author != author: # if user that is not the creator is attempting to view
+        is_author = False
+        if post.visibility == "FRIENDS":
         if author == post.author:
             pass  # Author is allowed to view their own post
         else:
@@ -223,11 +225,17 @@ def view_post(request, post_id):
     if post.visibility == "PRIVATE":
         if post.author != author:
             return HttpResponse(status=403)
-        try:
-            follow = get_object_or_404(Follow, follower=author, following = post.author)
-        except:
-            return HttpResponse(status=403)
-        if follow.is_friend():
+            try:
+                follow = get_object_or_404(Follow, follower=author, following = post.author)
+            except:
+                return HttpResponse(status=403)
+            if follow.is_friend():
+                return HttpResponse(status=403)
+    else:
+        is_author = True
+
+    if post.visibility == "PRIVATE":
+        if post.author != author:
             return HttpResponse(status=403)
 
     if PostLike.objects.filter(owner=post, liker=author).exists():
@@ -243,12 +251,14 @@ def view_post(request, post_id):
         'likes': PostLike.objects.filter(owner=post),
         'author': author,
         'liked' : liked,
-        'author_id': author.id if author else None,
+        'author_id': author.id,
+        'is_author': is_author,
         'comments': Comment.objects.filter(post=post)
                   .annotate(likes=Count('commentlike'),
                             liked=Exists(user_likes)
                             ),
     })
+
 
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
@@ -268,11 +278,11 @@ def profile(request, author_id):
         ).exists()
     else:
         is_followback = False
-    is_pending = Follow.objects.filter( # if logged in author following the user
-        follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
-        following="http://darkgoldenrod/api/authors/" + str(author_id),
-        approved=False,
-    ).exists()
+        is_pending = Follow.objects.filter( # if logged in author following the user
+            follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
+            following="http://darkgoldenrod/api/authors/" + str(author_id),
+            approved=False,
+        ).exists()
 
     # github
     conn = http.client.HTTPSConnection("api.github.com")
@@ -453,8 +463,7 @@ def display_feed(request):
     # Retrieve posts from authors the user is following
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED']).exclude(visibility='DELETED')
 
-    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS']).exclude(visibility='DELETED')
-    # reposts = Repost.objects.filter(shared_by=cleaned_followings)
+    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
     reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
     
 
@@ -481,8 +490,7 @@ def display_feed(request):
         })
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
-
-
+    
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
