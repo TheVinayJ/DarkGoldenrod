@@ -91,11 +91,24 @@ def edit_post(request, post_id):
     author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
 
+    if author is None:
+        return HttpResponseForbidden("You must be logged in to edit posts.")
+
+    if post.author != author:
+        return HttpResponseForbidden("You are not allowed to edit this post.")
+
     if request.method == 'POST':
 
         title = request.POST.get('title')
         description = request.POST.get('body-text')
         visibility = request.POST.get('visibility')
+
+        if not title or not description:
+            messages.error(request, "Title and description cannot be empty.")
+            return render(request, 'edit_post.html', {
+                'post': post,
+                'author_id': author.id,
+            })
 
         post.title = title
         post.description = description
@@ -179,12 +192,15 @@ def view_post(request, post_id):
         return HttpResponse(status=404)  
 
     if post.visibility == "FRIENDS":
-        try:
-            follow = get_object_or_404(Follow, follower=author, following = post.author)
-        except:
-            return HttpResponse(status=403)
-        if follow.is_friend():
-            return HttpResponse(status=403)
+        if author == post.author:
+            pass  # Author is allowed to view their own post
+        else:
+            try:
+                follow = get_object_or_404(Follow, follower=author, following=post.author)
+            except:
+                return HttpResponse(status=403)
+            if not follow.is_friend():
+                return HttpResponse(status=403)
 
     if PostLike.objects.filter(owner=post, liker=author).exists():
         liked = True
@@ -294,6 +310,8 @@ def display_feed(request):
     """
     # Get the current user's full author URL
     current_author = get_author(request).id
+
+
 
     public_posts = Post.objects.filter(visibility="PUBLIC").exclude(visibility='DELETED')
 
