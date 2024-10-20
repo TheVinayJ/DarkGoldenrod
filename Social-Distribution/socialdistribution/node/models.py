@@ -5,11 +5,12 @@ import datetime
 
 class Author(models.Model):
     id = models.AutoField(primary_key=True)
-    display_name = models.CharField(max_length=50)
+    display_name = models.CharField(max_length=50, blank=False, null=False)
     description = models.CharField(max_length=150, default="", blank=True, null=True)
     host = models.CharField(max_length=50, blank=True, null=True) # URL of host node
-    github = models.CharField(max_length=50, blank=True, null=True) # URL of author's Github
-    profile_image = models.CharField(max_length=100, blank=True, null=True) # Link to profile picture
+    github = models.CharField(max_length=50, blank=True, null=True) # author's Github username
+    # profile_image = models.ImageField(upload_to='images/profilePictures', default='images/profilePictures/default/Screenshot_2024-06-16_194156.png')
+    profile_image = models.ImageField(upload_to='images/profilePictures', default=None, blank=True, null=True)
     page = models.CharField(max_length=100, blank=True, null=True) # URL of user's HTML profile page
     friends = models.ManyToManyField('Author', blank=True)
     password = models.CharField(max_length=128)
