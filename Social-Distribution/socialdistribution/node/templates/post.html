@@ -22,11 +22,6 @@
     <!-- Display Likes -->
     <p>Likes: {{ likes.count }}</p>
 
-    <!--    Display Edit if rightful owner-->
-    {% if is_author %}
-        <a href="{% url 'edit_post' post.id %}" class="edit-button">Edit Post</a>
-    {% endif %}
-
     <form action="/node/posts/{{ id }}/like/" method="POST">
         {% csrf_token %}
         {% if liked %}

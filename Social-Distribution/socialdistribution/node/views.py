@@ -81,10 +81,10 @@ def edit_post(request, post_id):
     if request.method == 'POST':
 
         title = request.POST.get('title')
-        description = request.POST.get('body-text')
+        text_content = request.POST.get('body-text')
         visibility = request.POST.get('visibility')
 
-        if not title or not description:
+        if not title or not text_content:
             messages.error(request, "Title and description cannot be empty.")
             return render(request, 'edit_post.html', {
                 'post': post,
@@ -92,7 +92,7 @@ def edit_post(request, post_id):
             })
 
         post.title = title
-        post.description = description
+        post.text_content = text_content
         post.visibility = visibility
         post.published = datetime.datetime.now()
         post.save()
@@ -203,28 +203,18 @@ def view_post(request, post_id):
     if post.author != author: # if user that is not the creator is attempting to view
         is_author = False
         if post.visibility == "FRIENDS":
-        if author == post.author:
-            pass  # Author is allowed to view their own post
-        else:
-            try:
-                follow = get_object_or_404(Follow, follower=author, following=post.author)
-            except:
+            if author == post.author:
+                pass  # Author is allowed to view their own post
+            else:
+                try:
+                    follow = get_object_or_404(Follow, follower=author, following=post.author)
+                except:
+                    return HttpResponse(status=403)
+                if not follow.is_friend():
+                    return HttpResponse(status=403)
+        if post.visibility == "PRIVATE":
+            if post.author != author:
                 return HttpResponse(status=403)
-            if not follow.is_friend():
-                return HttpResponse(status=403)
-    if post.author != author: # if user that is not the creator is attempting to view
-        is_author = False
-        if post.visibility == "FRIENDS":
-            try:
-                follow = get_object_or_404(Follow, follower=author, following=post.author)
-            except:
-                return HttpResponse(status=403)
-            if not follow.is_friend():
-                return HttpResponse(status=403)
-
-    if post.visibility == "PRIVATE":
-        if post.author != author:
-            return HttpResponse(status=403)
             try:
                 follow = get_object_or_404(Follow, follower=author, following = post.author)
             except:
