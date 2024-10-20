@@ -210,6 +210,15 @@ def view_post(request, post_id):
                 return HttpResponse(status=403)
             if not follow.is_friend():
                 return HttpResponse(status=403)
+    if post.author != author: # if user that is not the creator is attempting to view
+        is_author = False
+        if post.visibility == "FRIENDS":
+            try:
+                follow = get_object_or_404(Follow, follower=author, following=post.author)
+            except:
+                return HttpResponse(status=403)
+            if not follow.is_friend():
+                return HttpResponse(status=403)
 
     if post.visibility == "PRIVATE":
         if post.author != author:
@@ -481,6 +490,7 @@ def display_feed(request):
         })
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
+
 
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
