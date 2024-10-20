@@ -124,6 +124,20 @@ def save(request):
     post.save()
     return(redirect('/node/'))
 
+def delete_post(request, post_id):
+    author = get_author(request)
+    post = get_object_or_404(Post, id=post_id)
+
+    if post.author != author:
+        return HttpResponseForbidden("You are not allowed to delete this post.")
+
+    if request.method == 'POST':
+        # Set the visibility to 'DELETED'
+        post.visibility = 'DELETED'
+        post.save()
+        messages.success(request, "Post has been deleted.")
+        return redirect('index')
+
 
 def post_like(request, id):
     author = get_author(request)
@@ -161,6 +175,9 @@ def view_post(request, post_id):
     author = get_author(request)
     liked = False
 
+    if post.visibility == 'DELETED':
+        return HttpResponse(status=404)  
+
     if post.visibility == "FRIENDS":
         try:
             follow = get_object_or_404(Follow, follower=author, following = post.author)
@@ -185,7 +202,7 @@ def view_post(request, post_id):
 
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
-    authors_posts = Post.objects.filter(author=user).order_by('-published') # most recent on top
+    authors_posts = Post.objects.filter(author=user).exclude(visibility='DELETED').order_by('-published') # most recent on top
     return render(request, "profile.html", {
         'user': user,
         'posts': authors_posts,
@@ -278,7 +295,7 @@ def display_feed(request):
     # Get the current user's full author URL
     current_author = get_author(request).id
 
-    public_posts = Post.objects.filter(visibility="PUBLIC")
+    public_posts = Post.objects.filter(visibility="PUBLIC").exclude(visibility='DELETED')
 
     # Get the authors that the current user is following
     follow_objects = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/" + str(current_author), approved=True)
@@ -297,16 +314,23 @@ def display_feed(request):
     print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
-    follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
+    follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED']).exclude(visibility='DELETED')
 
-    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
+    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS']).exclude(visibility='DELETED')
     # reposts = Repost.objects.filter(shared_by=cleaned_followings)
+    reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
     
 
-    posts = (public_posts | follow_posts | friend_posts).distinct().order_by('published')
+    posts = (public_posts | follow_posts | friend_posts).distinct().order_by('-published')
+
+    # Combine posts and reposts into a single list
+    combined_feed = list(posts) + list(reposts)
+
+    # Sort the combined feed by 'created_at' or whichever timestamp field you have
+    combined_feed.sort(key=lambda item: item.published, reverse=True)
 
     cleaned_posts = []
-    for post in posts:
+    for post in combined_feed:
         cleaned_posts.append({
             "id": post.id,
             "title": post.title,
@@ -318,8 +342,6 @@ def display_feed(request):
             "comments": Comment.objects.filter(post=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id})
         })
-
-    # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
 
 
     # Pagination setup

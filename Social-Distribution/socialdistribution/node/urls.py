@@ -27,6 +27,7 @@ urlpatterns = [
     path("posts/<int:id>/repost/", views.repost_post, name="repost"),
     path('signout/', login.signout, name='signout'),
     path("posts/<int:post_id>/edit/", views.edit_post, name="edit_post"),
+    path("posts/<int:post_id>/delete/", views.delete_post, name="delete_post"),
 ]
 
 if settings.DEBUG:

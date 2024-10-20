@@ -28,15 +28,36 @@ class Like(models.Model):
         abstract = True
 
 
+# class Post(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
+#     title = models.CharField(max_length=100)
+#     description = models.TextField() # Posts need a short description
+#     text_content = models.TextField(blank=True) # Text post content (optional)
+#     image_content = models.TextField(blank=True) # Link to image
+#     published = models.DateTimeField(auto_now_add=True)
+#     visibility = models.TextField(default="PUBLIC", max_length=50)
+
 class Post(models.Model):
+    VISIBILITY_CHOICES = [
+        ('PUBLIC', 'Public'),
+        ('FRIENDS', 'Friends'),
+        ('UNLISTED', 'Unlisted'),
+        ('DELETED', 'Deleted'),
+    ]
+
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100)
-    description = models.TextField() # Posts need a short description
-    text_content = models.TextField(blank=True) # Text post content (optional)
-    image_content = models.TextField(blank=True) # Link to image
+    description = models.TextField()  # Posts need a short description
+    text_content = models.TextField(blank=True)  # Text post content (optional)
+    image_content = models.TextField(blank=True)  # Link to image
     published = models.DateTimeField(auto_now_add=True)
-    visibility = models.TextField(default="PUBLIC", max_length=50)
+    visibility = models.CharField(
+        max_length=50,
+        choices=VISIBILITY_CHOICES,
+        default='PUBLIC',
+    )
 
 
 class Repost(Post):
