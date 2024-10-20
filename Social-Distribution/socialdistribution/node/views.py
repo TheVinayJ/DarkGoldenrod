@@ -164,6 +164,7 @@ def view_post(request, post_id):
         liked = True
 
     # user_likes strategy obtained from Microsoft Copilot, Oct. 2024
+    # Find likes from current user matching the queried comment
     user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
 
     return render(request, "post.html", {
