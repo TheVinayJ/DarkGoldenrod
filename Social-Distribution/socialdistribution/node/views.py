@@ -311,8 +311,6 @@ def display_feed(request):
     # Get the current user's full author URL
     current_author = get_author(request).id
 
-
-
     public_posts = Post.objects.filter(visibility="PUBLIC").exclude(visibility='DELETED')
 
     # Get the authors that the current user is following
