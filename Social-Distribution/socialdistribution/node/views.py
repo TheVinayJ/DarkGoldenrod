@@ -213,6 +213,7 @@ def profile(request, author_id):
             follower="http://darkgoldenrod/api/authors/" + str(author_id),
             following="http://darkgoldenrod/api/authors/" + str(current_author.id),
             approved=True,
+        is_pending = False
         ).exists()
     else:
         is_followback = False
