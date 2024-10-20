@@ -106,7 +106,6 @@
                     {% for post in posts %}
                         <li class="post-item">
                             <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
-                            <p>{{ post.description }}</p>
                             <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
                             <p class="post-content">{{ post.text_content|truncatewords:30 }}</p>
                             <!-- Display likes and comments count -->
