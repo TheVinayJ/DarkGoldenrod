@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.core import signing
-from ..models import Author
+from node.models import Author
 import hashlib
 
 class LoginViewTest(TestCase):
