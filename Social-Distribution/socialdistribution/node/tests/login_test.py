@@ -70,7 +70,7 @@ class SignupViewTest(TestCase):
     #   This test simulates a POST request to the signup URL with valid data for a new user.
     #   It asserts that the response is a redirect to the index page, and checks that the user is successfully created by querying the database to see if an entry exists for the new email.
     #   The test also verifies that a cookie is set with the signed user ID and that this ID matches the newly created user’s ID.
-    #   Purpose: It ensures that a user can successfully sign up and is logged in with the correct user ID in the cookie.
+    #   Purpose: It ensures that a user can successfully sign up and is logged in with the correct user ID in the cookie
     def test_signup_success(self):
         """Test successful user signup."""
         response = self.client.post(self.signup_url, {
