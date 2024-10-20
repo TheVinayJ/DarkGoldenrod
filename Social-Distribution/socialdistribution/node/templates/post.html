@@ -10,6 +10,10 @@
         {{ post.text_content|linebreaks }}
     </div>
 
+    {% if author and author.id == post.author.id %}
+        <a href="{% url 'edit_post' post.id %}">Edit Post</a>
+    {% endif %} 
+
     <!-- Display Likes -->
     <p>Likes: {{ likes.count }}</p>
 

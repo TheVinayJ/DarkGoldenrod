@@ -26,6 +26,7 @@ urlpatterns = [
     path('feed/', views.display_feed, name='following_feed'),
     path("posts/<int:id>/repost/", views.repost_post, name="repost"),
     path('signout/', login.signout, name='signout'),
+    path("posts/<int:post_id>/edit/", views.edit_post, name="edit_post"),
 ]
 
 if settings.DEBUG:

@@ -87,6 +87,30 @@ def index(request):
 def editor(request):
     return render(request, "editor.html")
 
+def edit_post(request, post_id):
+    author = get_author(request)
+    post = get_object_or_404(Post, id=post_id)
+
+    if request.method == 'POST':
+
+        title = request.POST.get('title')
+        description = request.POST.get('body-text')
+        visibility = request.POST.get('visibility')
+
+        post.title = title
+        post.description = description
+        post.visibility = visibility
+        post.published = datetime.datetime.now()
+        post.save()
+
+        return redirect('view_post', post_id=post.id)
+    
+    else:
+        return render(request, 'edit_post.html', {
+            'post': post,
+            'author_id': author.id,
+        })
+
 
 def save(request):
     author = get_author(request)
@@ -154,7 +178,7 @@ def view_post(request, post_id):
         'likes': PostLike.objects.filter(owner=post),
         'author': author,
         'liked' : liked,
-        'author_id': author.id,
+        'author_id': author.id if author else None,
         'comments': Comment.objects.filter(post=post),
     })
 
@@ -276,10 +300,10 @@ def display_feed(request):
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
-    reposts = Repost.objects.filter(shared_by=cleaned_followings)
+    # reposts = Repost.objects.filter(shared_by=cleaned_followings)
     
 
-    posts = (public_posts | follow_posts | friend_posts | reposts).distinct().order_by('published')
+    posts = (public_posts | follow_posts | friend_posts).distinct().order_by('published')
 
     cleaned_posts = []
     for post in posts:
