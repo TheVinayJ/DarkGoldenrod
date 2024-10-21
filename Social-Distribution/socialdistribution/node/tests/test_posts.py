@@ -1,6 +1,5 @@
 import sys
 
-# setting path
 sys.path.append('../node')
 
 from http.client import responses
@@ -18,7 +17,7 @@ class PostTests(TestCase):
     def setUp(self):
 
         self.author = Author.objects.create(display_name="Test Author",
-                                            email='author@test.com'
+                                            email='testAuthor@test.com'
                                             )
 
         self.post = Post.objects.create(
@@ -44,7 +43,7 @@ class PostTests(TestCase):
         )
 
         self.friend_author = Author.objects.create(display_name="Test Friend",
-                                                   email='friend@test.com'
+                                                   email='friendAuthor@test.com'
                                                    )
 
         self.friends_post = Post.objects.create(
@@ -59,6 +58,15 @@ class PostTests(TestCase):
 
         signed_id = signing.dumps(self.author.id)
         self.client.cookies['id'] = signed_id
+
+
+    def tearDown(self):
+        # Written with aid of Microsoft Copilot, Oct. 2024
+        PostLike.objects.all().delete()
+        Comment.objects.all().delete()
+        Post.objects.all().delete()
+        Author.objects.all().delete()
+        self.client.cookies.clear()
 
     def test_post_creation(self):
             self.assertEqual(self.post.title, "Test Title")
