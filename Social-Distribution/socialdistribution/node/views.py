@@ -436,12 +436,12 @@ def display_feed(request):
     if not cleaned_followings and not cleaned_friends:
         return render(request, 'feed.html', {'page_obj': [], 'author_id': current_author})
 
-    print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
-    follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
-    print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
-    print(f'Author IDs: {followings}|')
-    print(f"Cleaned Author IDs: {cleaned_followings}|")
-    print(f"{public_posts}")
+    # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
+    # follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
+    # print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
+    # print(f'Author IDs: {followings}|')
+    # print(f"Cleaned Author IDs: {cleaned_followings}|")
+    # print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
 
@@ -478,7 +478,7 @@ def display_feed(request):
     elif filter_option == "reposts":
         cleaned_posts = cleaned_reposts
     else:  # 'all' filter (default)
-        posts = (public_posts | follow_posts | friend_posts).distinct()
+        posts = (public_posts | follow_posts | friend_posts).distinct().order_by('-published')
         
 
     if filter_option != "reposts":
