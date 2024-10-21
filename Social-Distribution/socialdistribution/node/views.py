@@ -223,7 +223,9 @@ def profile(request, author_id):
             approved=False,
         ).exists()
 
-    # github
+    # 10/19/2024
+    # Me: How to retrieve public github activity of a user, based on their username, to display in an html
+    # OpenAI ChatGPT 40 mini: (the folllwing 8 lines)
     conn = http.client.HTTPSConnection("api.github.com")
     headers = {
         'User-Agent': 'node'
