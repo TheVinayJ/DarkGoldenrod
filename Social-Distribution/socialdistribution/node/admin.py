@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Author, Like, Comment, Post, Follow
+from .models import Author, Like, Comment, Post, Follow, Repost
 
 # Register your models here.
 admin.site.register(Author)
@@ -7,3 +7,4 @@ admin.site.register(Author)
 admin.site.register(Comment)
 admin.site.register(Post)
 admin.site.register(Follow)
+admin.site.register(Repost)

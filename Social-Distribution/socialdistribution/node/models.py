@@ -2,14 +2,14 @@ from email._header_value_parser import ContentType
 from django.db import models
 import django
 import datetime
+from model_utils.managers import InheritanceManager
 
 class Author(models.Model):
     id = models.AutoField(primary_key=True)
     display_name = models.CharField(max_length=50, blank=False, null=False)
     description = models.CharField(max_length=150, default="", blank=True, null=True)
     host = models.CharField(max_length=50, blank=True, null=True) # URL of host node
-    github = models.CharField(max_length=50, blank=True, null=True) # author's Github username
-    # profile_image = models.ImageField(upload_to='images/profilePictures', default='images/profilePictures/default/Screenshot_2024-06-16_194156.png')
+    github = models.CharField(max_length=50, blank=True, null=True) # URL of author's Github
     profile_image = models.ImageField(upload_to='images/profilePictures', default="null", blank=True, null=True)
     page = models.CharField(max_length=100, blank=True, null=True) # URL of user's HTML profile page
     friends = models.ManyToManyField('Author', blank=True)
@@ -28,16 +28,6 @@ class Like(models.Model):
     class Meta:
         abstract = True
 
-
-# class Post(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
-#     title = models.CharField(max_length=100)
-#     description = models.TextField() # Posts need a short description
-#     text_content = models.TextField(blank=True) # Text post content (optional)
-#     image_content = models.TextField(blank=True) # Link to image
-#     published = models.DateTimeField(auto_now_add=True)
-#     visibility = models.TextField(default="PUBLIC", max_length=50)
 
 class Post(models.Model):
     VISIBILITY_CHOICES = [
@@ -59,10 +49,13 @@ class Post(models.Model):
         choices=VISIBILITY_CHOICES,
         default='PUBLIC',
     )
+    objects = InheritanceManager()
 
 
-class Repost(Post):
+class Repost(models.Model):
+    original_post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True)
     shared_by = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True)
+    shared_date = models.DateTimeField(auto_now_add=True)
 
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
