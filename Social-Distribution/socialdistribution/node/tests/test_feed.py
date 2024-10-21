@@ -167,6 +167,10 @@ class FeedTest(TestCase):
             "Unlisted post by Author 2",
             "Public post by Author 2",
         ]
+        content = response.content.decode("utf-8")
+        for i in range(len(posts_in_order) - 1):
+            self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
+
 
     # def test_reposts_filter(self):
     #     # Log in as author1

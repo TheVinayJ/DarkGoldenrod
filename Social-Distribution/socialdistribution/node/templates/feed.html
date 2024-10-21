@@ -1,8 +1,10 @@
 <!-- With help from Chat-GPT 4o, OpenAI, 2024-10-20 -->
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <h1>Posts from Followings and Friends</h1>
+
 
 <div class="filter-options">
     <a href="?filter=all">All Posts</a> |
@@ -11,6 +13,7 @@
     <a href="?filter=friends">Friends' Posts</a> |
     <a href="?filter=reposts">Reposts</a>
 </div>
+
 
 {% if page_obj %}
 <ul class="post-list">
@@ -22,8 +25,10 @@
         <p>{{ post.description }}</p>
         <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
         <p>Reposted by {{ post.shared_by }}</p>
-        <p>{{ post.text_content|truncatewords:30 }}</p>
-        <p>Published on {{ post.published }}</p>
+        <!-- Rendered Markdown Content -->
+        <p class="markdown-output">
+            {{ post.text_content|safe }}
+        </p>
         <!-- Display likes and comments count -->
         <p>
             Likes: {{ post.likes }} | Comments: {{ post.comments }}
@@ -34,7 +39,10 @@
         <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
         <p>{{ post.description }}</p>
         <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
-        <p>{{ post.text_content|truncatewords:30 }}</p>
+        <!-- Rendered Markdown Content -->
+        <p class="markdown-output">
+            {{ post.text_content|safe }}
+        </p>
         <!-- Display likes and comments count -->
         <p>
             Likes: {{ post.likes }} | Comments: {{ post.comments }}
@@ -58,6 +66,7 @@
             Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
         </span>
 
+
         {% if page_obj.has_next %}
         <a href="?page={{ page_obj.next_page_number }}">next</a>
         <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
@@ -67,4 +76,9 @@
 {% else %}
 <p>No posts available.</p>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<!-- Include marked.js from local static directory -->
+<script src="{% static 'markdown-editor.min.js' %}"></script> <!-- Load bundled JS -->
 {% endblock %}

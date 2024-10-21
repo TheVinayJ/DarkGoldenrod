@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -39,49 +40,85 @@
             margin-right: 20px;
         }
     </style>
+    <script src="{% static 'markdown-editor.min.js' %}"></script>
 </head>
 
 <body>
     <a href="/node/">&lt; Go Back</a>
     <div class="profileNameAndPhoto">
-        <img src="{{ user.profile_image }}" alt="Profile Picture" class="profile-image">
+        <!--            TEMPORARY UNTIL DEFAULT PFP ACROSS ALL -->
+        {% if user.profile_image %}
+        <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">
+        {% endif %}
         <h1>{{ user.display_name }}</h1>
     </div>
 
+    {% if ownProfile %}
     <form action="{% url 'profile_edit' user.id %}" method="get">
         <button type="submit" class="edit-button">Edit Profile</button>
+    </form>
+
+    <form method="GET" action="{% url 'follow_requests' user.id %}">
+        <button type="submit">View Follow Requests</button>
     </form>
 
     <form action="/node/signout/" method="post">
         {% csrf_token %}
         <button type="submit">Sign out</button>
     </form>
+    {% else %}
+    {% if is_following %}
+    <form method="POST" action="{% url 'unfollow_author' user.id %}">
+        {% csrf_token %}
+        <button type="submit">
+            Unfollow
+        </button>
+    </form>
+    {% elif is_pending %}
+    <form method="POST" action="{% url 'unfollow_author' user.id %}">
+        {% csrf_token %}
+        <button type="submit">
+            Pending
+        </button>
+    </form>
+    {% else %}
+    <form method="POST" action="{% url 'follow_author' user.id %}">
+        {% csrf_token %}
+        <button type="submit">
+            Follow
+        </button>
+    </form>
+    {% endif %}
+    {% endif %}
 
+    {% if user.description %}
     <h2>{{ user.description }}</h2>
-    <a href="{% url 'followers' user.id %}">Followers</a><br>
-    <a href="following/">Following</a><br>
+    {% endif %}
+
+    <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
+    <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
 
     <nav>
-        <a href="#" onclick="showSection('feed')" style="margin-right: 15px;">All Content</a>
+        <!--            <a href="#" onclick="showSection('feed')" style="margin-right: 15px;" >All Content</a>-->
         <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
         <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
     </nav>
 
-    <div id="feed" class="section active">
-        <h3>Feed</h3>
-        <p>Posts, Github activity, ?? what else</p>
-    </div>
+    <!--        determine if we want github activity to be saved a post model -->
+    <!--        <div id="feed" class="section active">-->
+    <!--            <h3>Feed</h3>-->
+    <!--            <p>Posts, Github activity, ?? what else</p>-->
+    <!--        </div>-->
 
-    <div id="posts" class="section">
-        <h3>Posts</h3>
+    <div id="posts" class="section active">
         {% if posts %}
         <ul class="post-list">
             {% for post in posts %}
             <li class="post-item">
-                <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+                <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
                 <p>{{ post.description }}</p>
                 <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
-                <p>{{ post.text_content|truncatewords:30 }}</p>
+                <p class="post-content">{{ post.text_content|truncatewords:30 }}</p>
                 <!-- Display likes and comments count -->
                 <p>
                     Likes: {{ post.likes }} | Comments: {{ post.comments.count }}
@@ -97,18 +134,30 @@
     </div>
 
     <div id="github" class="section">
-        <h3>GitHub Activity</h3>
-        {% if github_activity %}
         <ul>
-            {% for activity in github_activity %}
-            <li>{{ activity }}</li>
+            {% for event in activity %}
+            <li>
+                <strong>Event Type:</strong> {{ event.type }}<br>
+                <strong>Repo:</strong> <a href="{{ event.repo.url }}">{{ event.repo.name }}</a><br>
+                <strong>Date:</strong> {{ event.created_at }}<br>
+                <strong>Details:</strong>
+                {% if event.payload.commits %}
+                <div style="margin-top: 5px;">
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        {% for commit in event.payload.commits %}
+                        <li>{{ commit.message }} <span style="font-style: italic;">by {{ commit.author.name }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% else %}
+                <p>No commits for this event.</p>
+                {% endif %}
+            </li>
             {% empty %}
-            <li>No recent activity.</li>
+            <li>No activity found.</li>
             {% endfor %}
         </ul>
-        {% else %}
-        <p>No GitHub activity to display.</p>
-        {% endif %}
     </div>
 
     <script>
