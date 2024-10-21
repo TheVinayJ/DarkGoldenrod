@@ -197,24 +197,9 @@ def view_post(request, post_id):
     author = get_author(request)
     liked = False
 
-    if post.visibility == 'DELETED':
-        return HttpResponse(status=404)  
-
     if post.author != author: # if user that is not the creator is attempting to view
         is_author = False
         if post.visibility == "FRIENDS":
-            if author == post.author:
-                pass  # Author is allowed to view their own post
-            else:
-                try:
-                    follow = get_object_or_404(Follow, follower=author, following=post.author)
-                except:
-                    return HttpResponse(status=403)
-                if not follow.is_friend():
-                    return HttpResponse(status=403)
-        if post.visibility == "PRIVATE":
-            if post.author != author:
-                return HttpResponse(status=403)
             try:
                 follow = get_object_or_404(Follow, follower=author, following = post.author)
             except:
