@@ -248,11 +248,15 @@ def unfollow_author(request, author_id):
 ### WARNING: Only works for posts from authors of the same node right now
 # Shows posts from followings and friends
 def display_feed(request):
+    
     """
     Display posts from the authors the logged-in user is following.
     """
     # Get the current user's full author URL
     current_author = get_author(request).id
+
+    # Get filter option from URL query parameters (default is 'all')
+    filter_option = request.GET.get('filter', 'all')
 
     public_posts = Post.objects.filter(visibility="PUBLIC")
 
@@ -262,8 +266,12 @@ def display_feed(request):
     followings = list(follow_objects.values_list('following', flat=True))
     cleaned_followings = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in followings]
 
+
     friends = [follow.following for follow in follow_objects if follow.is_friend()]
     cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
+
+    if not cleaned_followings and not cleaned_friends:
+        return render(request, 'feed.html', {'page_obj': [], 'author_id': current_author})
 
     print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
     follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
@@ -273,24 +281,16 @@ def display_feed(request):
     print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
+    public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
+
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
-    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['FRIENDS'])
-    reposts = Repost.objects.filter(shared_by__in=cleaned_followings).exclude(shared_by=get_author(request))
-
-    
-
-    posts = (public_posts | follow_posts | friend_posts).distinct()
-
-    # Combine posts and reposts into a single list
-    combined_feed = list(posts) 
-
-    # Sort the combined feed by 'created_at' or whichever timestamp field you have
-    combined_feed.sort(key=lambda item: item.published, reverse=True)
-
-    cleaned_posts = []
-    for post in combined_feed:
-        cleaned_posts.append({
+    friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['PUBLIC', 'UNLISTED','FRIENDS'])
+    reposts = Repost.objects.filter(shared_by__in=cleaned_followings).order_by('-shared_date')
+    cleaned_reposts = []
+    for repost in reposts:
+        post = repost.original_post
+        cleaned_reposts.append({
             "id": post.id,
             "title": post.title,
             "description": post.description,
@@ -299,15 +299,49 @@ def display_feed(request):
             "text_content": post.text_content,
             "likes": PostLike.objects.filter(owner=post).count(),
             "comments": Comment.objects.filter(post=post).count(),
-            "url": reverse("view_post", kwargs={"post_id": post.id})
+            "url": reverse("view_post", kwargs={"post_id": post.id}),
+            "shared_by": repost.shared_by,
+            "shared_date": repost.shared_date
         })
 
+    # Filter based on the selected option
+    if filter_option == "followings":
+        posts = (follow_posts | friend_posts).distinct().order_by('-published')
+    elif filter_option == "public":
+        posts = public_posts.order_by('-published')
+    elif filter_option == "friends":
+        posts = friend_posts.order_by('-published')
+    elif filter_option == "reposts":
+        cleaned_posts = cleaned_reposts
+    else:  # 'all' filter (default)
+        posts = (public_posts | follow_posts | friend_posts).distinct()
+        
 
+    if filter_option != "reposts":
+        cleaned_posts = []
+        for post in posts:
+            cleaned_posts.append({
+                "id": post.id,
+                "title": post.title,
+                "description": post.description,
+                "author": post.author,
+                "published": post.published,
+                "text_content": post.text_content,
+                "likes": PostLike.objects.filter(owner=post).count(),
+                "comments": Comment.objects.filter(post=post).count(),
+                "url": reverse("view_post", kwargs={"post_id": post.id})
+            })
+        
+    if filter_option == "all":
+        cleaned_posts = cleaned_reposts + cleaned_posts
+            
+
+    # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
+    
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
 
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
