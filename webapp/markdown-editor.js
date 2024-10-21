@@ -71,3 +71,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // This will be used for the feed page to render the markdown content
   convertMarkdownInElements('.post-content');
+});
