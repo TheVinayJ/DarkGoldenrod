@@ -1,20 +1,25 @@
+<!-- With help from Chat-GPT 4o, OpenAI, 2024-10-20 -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authors List</title>
 </head>
+
 <body>
+    {% extends 'base.html' %}
+    {% block content %}
     <h1>List of Authors</h1>
-    
+
     <ul>
         {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
                 {% endfor %}
-            </ul>
+        </ul>
         {% endif %}
 
         {% for author in authors %}
@@ -24,7 +29,7 @@
 
             Host: {{ author.host }}<br>
             GitHub: <a href="{{ author.github }}">{{ author.github }}</a><br>
-    
+
             <!-- Follow form -->
             <form method="POST" action="{% url 'follow_author' author.id %}">
                 {% csrf_token %}
@@ -44,5 +49,7 @@
         <br>
         {% endfor %}
     </ul>
+    {% endblock %}
 </body>
+
 </html>
