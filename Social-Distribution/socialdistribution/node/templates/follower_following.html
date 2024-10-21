@@ -1,27 +1,14 @@
-<!-- With help from Chat-GPT 4o, OpenAI, 2024-10-20 -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authors List</title>
 </head>
-
 <body>
-    {% extends 'base.html' %}
-    {% block content %}
-    <h1>List of Authors</h1>
+    <h1>{{ DisplayTitle }}</h1>
 
     <ul>
-        {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-                {% endfor %}
-        </ul>
-        {% endif %}
-
         {% for author in authors %}
         <li>
             <!-- Link to the author's profile page -->
@@ -49,7 +36,5 @@
         <br>
         {% endfor %}
     </ul>
-    {% endblock %}
 </body>
-
 </html>
