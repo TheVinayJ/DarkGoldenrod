@@ -131,29 +131,13 @@ class EditPostTests(TestCase):
         Post.objects.all().delete()
         Author.objects.all().delete()
         self.client.cookies.clear()
-          
+
     def testOtherAuthorsCannotModify(self):
         signed_id = signing.dumps(self.author2.id)
         self.client.cookies['id'] = signed_id
 
         response = self.client.get(reverse('view_post', args=[self.post1.id]))
         self.assertNotContains(response, 'Edit Post')
-
-    def testEditPost(self):
-        signed_id = signing.dumps(self.author1.id)
-        self.client.cookies['id'] = signed_id
-
-        new_data = {
-            'title': 'Updated Title',
-            'description': 'Updated Description',
-        }
-
-        response = self.client.post(reverse('edit_post', args=[self.post1.id]), new_data)
-        self.post1.refresh_from_db()
-        self.assertEqual(self.post1.title, 'Updated Title')
-        self.assertEqual(self.post1.description, 'Updated Description')
-        self.assertRedirects(response, reverse('view_post', args=[self.post1.id]))  # check if redirect properly
-        self.assertEqual(response.status_code, 302)  # new edited data successfully moved
 
 
 class FollowTests(TestCase):

@@ -68,6 +68,43 @@ def editor(request):
     """
     return render(request, "editor.html")
 
+def edit_post(request, post_id):
+    author = get_author(request)
+    post = get_object_or_404(Post, id=post_id)
+
+    if author is None:
+        return HttpResponseForbidden("You must be logged in to edit posts.")
+
+    if post.author != author:
+        return HttpResponseForbidden("You are not allowed to edit this post.")
+
+    if request.method == 'POST':
+
+        title = request.POST.get('title')
+        text_content = request.POST.get('body-text')
+        visibility = request.POST.get('visibility')
+
+        if not title or not text_content:
+            messages.error(request, "Title and description cannot be empty.")
+            return render(request, 'edit_post.html', {
+                'post': post,
+                'author_id': author.id,
+            })
+
+        post.title = title
+        post.text_content = text_content
+        post.visibility = visibility
+        post.published = datetime.datetime.now()
+        post.save()
+
+        return redirect('view_post', post_id=post.id)
+    
+    else:
+        return render(request, 'edit_post.html', {
+            'post': post,
+            'author_id': author.id,
+        })
+
 
 def save(request):
     """
@@ -83,6 +120,20 @@ def save(request):
     )
     post.save()
     return(redirect('/node/'))
+
+def delete_post(request, post_id):
+    author = get_author(request)
+    post = get_object_or_404(Post, id=post_id)
+
+    if post.author != author:
+        return HttpResponseForbidden("You are not allowed to delete this post.")
+
+    if request.method == 'POST':
+        # Set the visibility to 'DELETED'
+        post.visibility = 'DELETED'
+        post.save()
+        messages.success(request, "Post has been deleted.")
+        return redirect('index')
 
 
 def post_like(request, id):
@@ -183,20 +234,6 @@ def view_post(request, post_id):
                             ),
     })
 
-def edit_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    if request.method == 'POST':
-        form = PostForm(request.POST, instance=post)
-        if form.is_valid():
-            form.save()  # Save the updated post
-            return redirect('view_post', post_id=post.id)  # Redirect to the post view
-    else:
-        form = PostForm(instance=post)  # Populate form with the current post's data
-
-    return render(request, 'edit_post.html', {
-        'form': form,
-        'post': post,
-    })
 
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
@@ -213,6 +250,7 @@ def profile(request, author_id):
             follower="http://darkgoldenrod/api/authors/" + str(author_id),
             following="http://darkgoldenrod/api/authors/" + str(current_author.id),
             approved=True,
+        is_pending = False
         ).exists()
     else:
         is_followback = False
@@ -222,7 +260,9 @@ def profile(request, author_id):
             approved=False,
         ).exists()
 
-    # github
+    # 10/19/2024
+    # Me: How to retrieve public github activity of a user, based on their username, to display in an html
+    # OpenAI ChatGPT 40 mini: (the folllwing 8 lines)
     conn = http.client.HTTPSConnection("api.github.com")
     headers = {
         'User-Agent': 'node'
@@ -371,6 +411,7 @@ def decline_follow(request, author_id, follower_id):
 ### WARNING: Only works for posts from authors of the same node right now
 # Shows posts from followings and friends
 def display_feed(request):
+    
     """
     Display posts from the authors the logged-in user is following.
     """
@@ -395,39 +436,54 @@ def display_feed(request):
     if not cleaned_followings and not cleaned_friends:
         return render(request, 'feed.html', {'page_obj': [], 'author_id': current_author})
 
-    print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
-    follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
-    print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
-    print(f'Author IDs: {followings}|')
-    print(f"Cleaned Author IDs: {cleaned_followings}|")
-    print(f"{public_posts}")
+    # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
+    # follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
+    # print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
+    # print(f'Author IDs: {followings}|')
+    # print(f"Cleaned Author IDs: {cleaned_followings}|")
+    # print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
+
     public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
 
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['PUBLIC', 'UNLISTED','FRIENDS'])
-    reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
+    reposts = Repost.objects.filter(shared_by__in=cleaned_followings).order_by('-shared_date')
+    cleaned_reposts = []
+    for repost in reposts:
+        post = repost.original_post
+        cleaned_reposts.append({
+            "id": post.id,
+            "title": post.title,
+            "description": post.description,
+            "author": post.author,
+            "published": post.published,
+            "text_content": post.text_content,
+            "likes": PostLike.objects.filter(owner=post).count(),
+            "comments": Comment.objects.filter(post=post).count(),
+            "url": reverse("view_post", kwargs={"post_id": post.id}),
+            "shared_by": repost.shared_by,
+            "shared_date": repost.shared_date
+        })
 
     # Filter based on the selected option
     if filter_option == "followings":
-        combined_feed = (follow_posts | friend_posts).distinct().order_by('-published')
+        posts = (follow_posts | friend_posts).distinct().order_by('-published')
     elif filter_option == "public":
-        combined_feed = public_posts.order_by('-published')
+        posts = public_posts.order_by('-published')
     elif filter_option == "friends":
-        combined_feed = friend_posts.order_by('-published')
+        posts = friend_posts.order_by('-published')
     elif filter_option == "reposts":
-        combined_feed = reposts.order_by('-published')
+        cleaned_posts = cleaned_reposts
     else:  # 'all' filter (default)
-        posts = (public_posts | follow_posts | friend_posts).distinct()
-        combined_feed = list(posts) + list(reposts)
-        combined_feed.sort(key=lambda item: item.published, reverse=True)
+        posts = (public_posts | follow_posts | friend_posts).distinct().order_by('-published')
+        
 
-
-    cleaned_posts = []
-    for post in combined_feed:
-        if isinstance(post, Post):
+    if filter_option != "reposts":
+        cleaned_posts = []
+        for post in posts:
             cleaned_posts.append({
                 "id": post.id,
                 "title": post.title,
@@ -439,20 +495,11 @@ def display_feed(request):
                 "comments": Comment.objects.filter(post=post).count(),
                 "url": reverse("view_post", kwargs={"post_id": post.id})
             })
-        elif isinstance(post, Repost):
-            cleaned_posts.append({
-                "id": post.id,
-                "title": "Repost of: " + post.title,
-                "description": post.description,
-                "author": post.author,
-                "published": post.published,
-                "text_content": post.text_content,
-                "likes": PostLike.objects.filter(owner=post).count(),
-                "comments": Comment.objects.filter(post=post).count(),
-                "url": reverse("view_post", kwargs={"post_id": post.id}),
-                "shared_by": post.shared_by
-            })
+        
+    if filter_option == "all":
+        cleaned_posts = cleaned_reposts + cleaned_posts
             
+
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
     
@@ -465,25 +512,18 @@ def display_feed(request):
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
 
-def repost_post(request, post_id):
-    post = Post.objects.get(id=post_id)
+def repost_post(request, id):
+    post = get_object_or_404(Post, pk=id)
     # Only public posts can be shared
     if post.visibility != "PUBLIC":
         return HttpResponseForbidden("Post cannot be shared.")
     
     shared_post = Repost.objects.create(
-        id=post.id,
-        author=post.author,
-        title=post.title,
-        description=post.description, 
-        text_content=post.text_content,
-        image_content=post.image_content,
-        published=post.published,
-        visibility=post.visibility,
-        shared_by=get_author(request).id
+        original_post=post,
+        shared_by=get_author(request)
     )
 
-    return redirect('/node/posts/{post_id}/repost/')
+    return(redirect(f'/node/posts/{id}/'))
 
 def upload_image(request):
     signed_id = request.COOKIES.get('id')

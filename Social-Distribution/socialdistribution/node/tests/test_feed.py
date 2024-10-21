@@ -1,10 +1,11 @@
 from django.test import TestCase
 from django.urls import reverse
 from node.models import Author, Follow, Post
+from datetime import datetime, timedelta
 import hashlib
 
-# With help from Chat-GPT 4o, OpenAI, 2024-10-19
 
+# With help from Chat-GPT 4o, OpenAI, 2024-10-19
 class FeedTest(TestCase):
 
     @classmethod
@@ -25,25 +26,23 @@ class FeedTest(TestCase):
             email="author3@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
         )
-
         cls.author4 = Author.objects.create(
             display_name="Author 4",
             email="author4@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
         )
 
-
-        # Create posts with different visibility
-        Post.objects.create(author=cls.author2, text_content="Public post by Author 2", visibility="PUBLIC")
-        Post.objects.create(author=cls.author2, text_content="Unlisted post by Author 2", visibility="UNLISTED")
-        Post.objects.create(author=cls.author2, text_content="Friends-only post by Author 2", visibility="FRIENDS")
-        Post.objects.create(author=cls.author3, text_content="Public post by Author 3", visibility="PUBLIC")
-        Post.objects.create(author=cls.author3, text_content="Unlisted post by Author 3", visibility="UNLISTED")
-        Post.objects.create(author=cls.author3, text_content="Friends-only post by Author 3", visibility="FRIENDS")
-        Post.objects.create(author=cls.author4, text_content="Public post by Author 4", visibility="PUBLIC")
-        Post.objects.create(author=cls.author4, text_content="Unlisted post by Author 4", visibility="UNLISTED")
-        Post.objects.create(author=cls.author4, text_content="Friends-only post by Author 4", visibility="FRIENDS")
-
+        # Create posts with different visibility and published dates
+        now = datetime.now()
+        Post.objects.create(author=cls.author2, text_content="Public post by Author 2", visibility="PUBLIC", published=now - timedelta(days=10))
+        Post.objects.create(author=cls.author2, text_content="Unlisted post by Author 2", visibility="UNLISTED", published=now - timedelta(days=9))
+        Post.objects.create(author=cls.author2, text_content="Friends-only post by Author 2", visibility="FRIENDS", published=now - timedelta(days=8))
+        Post.objects.create(author=cls.author3, text_content="Public post by Author 3", visibility="PUBLIC", published=now - timedelta(days=7))
+        Post.objects.create(author=cls.author3, text_content="Unlisted post by Author 3", visibility="UNLISTED", published=now - timedelta(days=6))
+        Post.objects.create(author=cls.author3, text_content="Friends-only post by Author 3", visibility="FRIENDS", published=now - timedelta(days=5))
+        Post.objects.create(author=cls.author4, text_content="Public post by Author 4", visibility="PUBLIC", published=now - timedelta(days=4))
+        Post.objects.create(author=cls.author4, text_content="Unlisted post by Author 4", visibility="UNLISTED", published=now - timedelta(days=3))
+        Post.objects.create(author=cls.author4, text_content="Friends-only post by Author 4", visibility="FRIENDS", published=now)
         
 
         # Set up following and mutual follow (friendship)
@@ -71,7 +70,6 @@ class FeedTest(TestCase):
         }
         self.client.post(reverse('login'), login_data)
 
-
     def test_all_filter(self):
         # Log in as author1
         self.login()
@@ -88,7 +86,6 @@ class FeedTest(TestCase):
         self.assertContains(response, "Public post by Author 4")
         self.assertContains(response, "Unlisted post by Author 4")
 
-
         # 3. Public posts from all authors
         self.assertContains(response, "Public post by Author 3")
 
@@ -96,6 +93,19 @@ class FeedTest(TestCase):
         self.assertNotContains(response, "Unlisted post by Author 3")  # No unlisted post from non-followed or non-friends
         self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
         self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
+
+        # Check that posts are ordered from newest to oldest
+        posts_in_order = [
+            "Unlisted post by Author 4",
+            "Public post by Author 4",
+            "Public post by Author 3",
+            "Friends-only post by Author 2",
+            "Unlisted post by Author 2",
+            "Public post by Author 2",
+        ]
+        content = response.content.decode("utf-8")
+        for i in range(len(posts_in_order) - 1):
+            self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
 
 
     def test_following_filter(self):
@@ -119,6 +129,18 @@ class FeedTest(TestCase):
         self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
         self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
 
+        # Check that posts are ordered from newest to oldest
+        posts_in_order = [
+            "Unlisted post by Author 4",
+            "Public post by Author 4",
+            "Friends-only post by Author 2",
+            "Unlisted post by Author 2",
+            "Public post by Author 2",
+        ]
+        content = response.content.decode("utf-8")
+        for i in range(len(posts_in_order) - 1):
+            self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
+
     def test_friends_filter(self):
         # Log in as author1
         self.login()
@@ -140,6 +162,16 @@ class FeedTest(TestCase):
         self.assertNotContains(response, "Unlisted post by Author 4")  # No unlisted post from non-friends
         self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
 
+        # Check that posts are ordered from newest to oldest
+        posts_in_order = [
+            "Unlisted post by Author 2",
+            "Public post by Author 2",
+        ]
+        content = response.content.decode("utf-8")
+        for i in range(len(posts_in_order) - 1):
+            self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
+
+
     # def test_reposts_filter(self):
     #     # Log in as author1
     #     self.login()
@@ -154,5 +186,4 @@ class FeedTest(TestCase):
     #     # Ensure original posts do not appear
     #     self.assertNotContains(response, "Public post by Author 2")
     #     self.assertNotContains(response, "Public post by Author 3")
-
 
