@@ -1,17 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Post</title>
-</head>
-<body>
-    <h1>Edit Post</h1>
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}  <!-- Renders other form fields -->
+{% extends 'base.html' %}
+{% load static %}
 
-        <button type="submit">Save</button>
-        <a href="{% url 'view_post' post.id %}">Cancel</a>
+{% block title %}Edit Post{% endblock %}
+
+{% block content %}
+    <h1>Edit Post</h1>
+
+    <form id="edit-form" method="POST" action="{% url 'edit_post' post.id %}">
+        {% csrf_token %}
+        <input type="text" name="title" id="post-title" placeholder="Post Title" value="{{ post.title }}"><br>
+        <textarea id="markdown-editor" name="body-text" rows="10" cols="50">{{ post.text_content }}</textarea><br>
+        <br>
+        <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" {% if post.visibility == 'PUBLIC' %}checked{% endif %}>
+        <label for="PUBLIC">Public</label><br>
+        <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS" {% if post.visibility == 'FRIENDS' %}checked{% endif %}>
+        <label for="FRIENDS">Friends Only</label><br>
+        <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED" {% if post.visibility == 'UNLISTED' %}checked{% endif %}>
+        <label for="UNLISTED">Unlisted</label><br><br>
+        <button id="save-btn" type="submit">Save Changes</button>
     </form>
-</body>
-</html>
+{% endblock %}

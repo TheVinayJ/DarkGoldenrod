@@ -68,6 +68,43 @@ def editor(request):
     """
     return render(request, "editor.html")
 
+def edit_post(request, post_id):
+    author = get_author(request)
+    post = get_object_or_404(Post, id=post_id)
+
+    if author is None:
+        return HttpResponseForbidden("You must be logged in to edit posts.")
+
+    if post.author != author:
+        return HttpResponseForbidden("You are not allowed to edit this post.")
+
+    if request.method == 'POST':
+
+        title = request.POST.get('title')
+        text_content = request.POST.get('body-text')
+        visibility = request.POST.get('visibility')
+
+        if not title or not text_content:
+            messages.error(request, "Title and description cannot be empty.")
+            return render(request, 'edit_post.html', {
+                'post': post,
+                'author_id': author.id,
+            })
+
+        post.title = title
+        post.text_content = text_content
+        post.visibility = visibility
+        post.published = datetime.datetime.now()
+        post.save()
+
+        return redirect('view_post', post_id=post.id)
+    
+    else:
+        return render(request, 'edit_post.html', {
+            'post': post,
+            'author_id': author.id,
+        })
+
 
 def save(request):
     """
@@ -83,6 +120,20 @@ def save(request):
     )
     post.save()
     return(redirect('/node/'))
+
+def delete_post(request, post_id):
+    author = get_author(request)
+    post = get_object_or_404(Post, id=post_id)
+
+    if post.author != author:
+        return HttpResponseForbidden("You are not allowed to delete this post.")
+
+    if request.method == 'POST':
+        # Set the visibility to 'DELETED'
+        post.visibility = 'DELETED'
+        post.save()
+        messages.success(request, "Post has been deleted.")
+        return redirect('index')
 
 
 def post_like(request, id):
@@ -183,20 +234,6 @@ def view_post(request, post_id):
                             ),
     })
 
-def edit_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    if request.method == 'POST':
-        form = PostForm(request.POST, instance=post)
-        if form.is_valid():
-            form.save()  # Save the updated post
-            return redirect('view_post', post_id=post.id)  # Redirect to the post view
-    else:
-        form = PostForm(instance=post)  # Populate form with the current post's data
-
-    return render(request, 'edit_post.html', {
-        'form': form,
-        'post': post,
-    })
 
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
@@ -403,9 +440,7 @@ def display_feed(request):
     print(f"{public_posts}")
 
     # Retrieve posts from authors the user is following
-    public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
-
-    follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
+    follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED']).exclude(visibility='DELETED')
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['PUBLIC', 'UNLISTED','FRIENDS'])
     reposts = Repost.objects.filter(shared_by__in=cleaned_followings)
@@ -420,7 +455,7 @@ def display_feed(request):
     elif filter_option == "reposts":
         combined_feed = reposts.order_by('-published')
     else:  # 'all' filter (default)
-        posts = (public_posts | follow_posts | friend_posts).distinct()
+        posts = (public_posts | follow_posts | friend_posts).distinct().order_by('-published')
         combined_feed = list(posts) + list(reposts)
         combined_feed.sort(key=lambda item: item.published, reverse=True)
 
