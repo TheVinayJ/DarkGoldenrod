@@ -51,6 +51,7 @@ class Post(models.Model):
 
 
 class Repost(models.Model):
+    id = models.AutoField(primary_key=True)
     original_post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True)
     shared_by = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True)
     shared_date = models.DateTimeField(auto_now_add=True)
