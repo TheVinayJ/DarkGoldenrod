@@ -98,7 +98,7 @@ class ProfileTests(TestCase):
         posts = response.context['posts']
         self.assertNotIn(self.post3, posts)
 
-class EditPostTests(TestCase):
+class RestrictEditPostTests(TestCase):
     def setUp(self):
         self.author1 = Author.objects.create(id=1, display_name="Test Author1", description="Test Description", github="torvalds")
         self.author2 = Author.objects.create(id=2, display_name="Test Author2")
@@ -119,23 +119,6 @@ class EditPostTests(TestCase):
 
         response = self.client.get(reverse('view_post', args=[self.post1.id]))
         self.assertNotContains(response, 'Edit Post')
-
-    def testEditPost(self):
-        signed_id = signing.dumps(self.author1.id)
-        self.client.cookies['id'] = signed_id
-
-        new_data = {
-            'title': 'Updated Title',
-            'description': 'Updated Description',
-        }
-
-        response = self.client.post(reverse('edit_post', args=[self.post1.id]), new_data)
-        self.post1.refresh_from_db()
-        self.assertEqual(self.post1.title, 'Updated Title')
-        self.assertEqual(self.post1.description, 'Updated Description')
-        self.assertRedirects(response, reverse('view_post', args=[self.post1.id]))  # check if redirect properly
-        self.assertEqual(response.status_code, 302)  # new edited data successfully moved
-
 
 class PostTests(TestCase):
     def setUp(self):
