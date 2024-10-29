@@ -11,7 +11,7 @@
         {{ post.text_content|linebreaks }}
     </div>
 
-    {% if author and author.id == post.author.id %}
+    {% if author and author.id == post.author.id and post.text_content != "Public Github Activity" %}
         <a href="{% url 'edit_post' post.id %}">Edit Post</a>
         <form action="{% url 'delete_post' post.id %}" method="POST" style="display:inline;">
             {% csrf_token %}

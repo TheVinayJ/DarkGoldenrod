@@ -42,7 +42,7 @@ class Post(models.Model):
     description = models.TextField()  # Posts need a short description
     text_content = models.TextField(blank=True)  # Text post content (optional)
     image_content = models.TextField(blank=True)  # Link to image
-    published = models.DateTimeField(auto_now_add=True)
+    published = models.DateTimeField()
     visibility = models.CharField(
         max_length=50,
         choices=VISIBILITY_CHOICES,

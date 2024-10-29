@@ -1,5 +1,6 @@
 from django.core import signing
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -11,7 +12,7 @@ import datetime
 import os
 from .forms import AuthorProfileForm
 from django.core.paginator import Paginator
-from .forms import ImageUploadForm, PostForm
+from .forms import ImageUploadForm
 import http.client
 import json
 
@@ -115,7 +116,7 @@ def save(request):
     post = Post(title=request.POST["title"],
                 text_content=request.POST["body-text"],
                 visibility=request.POST["visibility"],
-                published=datetime.datetime.now(),
+                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
                 author=author,
     )
     post.save()
@@ -198,7 +199,6 @@ def view_post(request, post_id):
     liked = False
 
     if post.author != author: # if user that is not the creator is attempting to view
-        is_author = False
         if post.visibility == "FRIENDS":
             try:
                 follow = get_object_or_404(Follow, follower=author, following = post.author)
@@ -206,8 +206,6 @@ def view_post(request, post_id):
                 return HttpResponse(status=403)
             if follow.is_friend():
                 return HttpResponse(status=403)
-    else:
-        is_author = True
 
     if post.visibility == "PRIVATE":
         if post.author != author:
@@ -227,7 +225,6 @@ def view_post(request, post_id):
         'author': author,
         'liked' : liked,
         'author_id': author.id,
-        'is_author': is_author,
         'comments': Comment.objects.filter(post=post)
                   .annotate(likes=Count('commentlike'),
                             liked=Exists(user_likes)
@@ -260,9 +257,29 @@ def profile(request, author_id):
             approved=False,
         ).exists()
 
+    visible_tags = ['PUBLIC']
+    if is_followback or user==current_author: # if logged in user is friends with user or if logged in user viewing own profile
+        visible_tags.append('FRIENDS') # show friend visibility posts
+        if user==current_author: # if logged in user viewing own profile, show unlisted posts too
+            visible_tags.append('UNLISTED')
+    authors_posts = Post.objects.filter(author=user, visibility__in= visible_tags).exclude(text_content="Public Github Activity").order_by('-published') # most recent on top
+    retrieve_github(user)
+    github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, text_content="Public Github Activity").order_by('-published')
+
+    return render(request, "profile/profile.html", {
+        'user': user,
+        'posts': authors_posts,
+        'ownProfile': ownProfile,
+        'is_following': is_following,
+        'is_pending': is_pending,
+        'activity': github_posts,
+    })
+
+def retrieve_github(user):
     # 10/19/2024
     # Me: How to retrieve public github activity of a user, based on their username, to display in an html
-    # OpenAI ChatGPT 40 mini: (the folllwing 8 lines)
+    # OpenAI ChatGPT 40 mini generated:
+    # Starts here
     conn = http.client.HTTPSConnection("api.github.com")
     headers = {
         'User-Agent': 'node'
@@ -271,35 +288,67 @@ def profile(request, author_id):
     res = conn.getresponse()
     data = res.read()
     activity = json.loads(data.decode("utf-8")) if res.status == 200 else []
+    # Ends here
 
-    visible_tags = ['PUBLIC']
-    if is_followback or user==current_author: # if logged in user is friends with user or if logged in user viewing own profile
-        visible_tags.append('FRIENDS') # show friend visibility posts
-        if user==current_author: # if logged in user viewing own profile, show unlisted posts too
-            visible_tags.append('UNLISTED')
-    authors_posts = Post.objects.filter(author=user, visibility__in= visible_tags).order_by('-published') # most recent on top
+    # 10/28/2024
+    # Me: Retrieve the different event types, the repo, the date in each event in the json and create them into post if they do not yet exist in the database
+    # OpenAI ChatGPT 40 mini generated:
+    # Starts here
+    for event in activity:
+        # Extract the event type and creation date
+        event_type = event.get("type")
+        created_at = event.get("created_at")
 
-    return render(request, "profile.html", {
-        'user': user,
-        'posts': authors_posts,
-        'ownProfile': ownProfile,
-        'is_following': is_following,
-        'is_pending': is_pending,
-        'activity': activity,
-    })
+        # Create a better description based on the event type
+        if event_type == "PushEvent":
+            post_description = f"Pushed {len(event.get('payload', {}).get('commits', []))} commit(s) to {event['repo']['name']}."
+        elif event_type == "ForkEvent":
+            post_description = f"Forked the repository {event['repo']['name']}."
+        elif event_type == "CreateEvent":
+            post_description = f"Created a new {event['payload'].get('ref_type')} '{event['payload'].get('ref')}' in {event['repo']['name']}."
+        elif event_type == "PullRequestEvent":
+            post_description = f"Opened a pull request '{event['payload']['pull_request']['title']}' in {event['repo']['name']}."
+        elif event_type == "IssuesEvent":
+            post_description = f"Created an issue '{event['payload']['issue']['title']}' in {event['repo']['name']}."
+        else:
+            post_description = f"Performed a {event_type.lower()} action in {event['repo']['name']}."
+
+        # Convert created_at string to a datetime object
+        naive_published_date = datetime.datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%SZ")
+        published_date = timezone.make_aware(naive_published_date, datetime.timezone.utc)
+
+        # Check for existing post and create new post if it doesn't exist
+        if not Post.objects.filter(author=user, title=event_type, description=post_description,
+                                   published=published_date).exists():
+            Post.objects.create(
+                author=user,
+                title=event_type,
+                description=post_description,
+                visibility='PUBLIC',
+                published=published_date,  # Set the published date from the activity
+                text_content="Public Github Activity"
+            )
+    # Ends here
+
 
 def edit_profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
 
+    original_github = user.github
+
     if request.method == 'POST':
         form = AuthorProfileForm(request.POST, request.FILES, instance=user)
         if form.is_valid():
+            # Delete old GitHub activity posts when new GitHub user inputted
+            if original_github != user.github:
+                Post.objects.filter(author=user, text_content="Public Github Activity").delete()
+
             form.save()  # Save the form data
             return redirect('profile', author_id=user.id)  # Redirect to the profile view after saving
     else:
         form = AuthorProfileForm(instance=user)
 
-    return render(request, 'edit_profile.html', {'form': form, 'user': user})
+    return render(request, 'profile/edit_profile.html', {'form': form, 'user': user})
 
 def followers_following(request, author_id):
     profileUserUrl = "http://darkgoldenrod/api/authors/" + str(author_id)  # user of the profile
@@ -307,7 +356,6 @@ def followers_following(request, author_id):
     # find a diff way to do this tbh
     see_follower = request.GET.get('see_follower', 'true') == 'true'
 
-    # remeber to add the approve bit later
     if see_follower:
         # Get all followers by checking the Follow model
         users = Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
