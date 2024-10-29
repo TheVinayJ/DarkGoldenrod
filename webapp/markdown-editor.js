@@ -7,7 +7,7 @@ console.log("markdown-editor.js loaded");
 
 // ChatGPT code starts here
 
-// Step 1: Create a custom renderer for marked
+// Step 1: Create a custom renderer
 const renderer = new marked.Renderer();
 
 renderer.image = function (href, title, text) {
@@ -49,23 +49,29 @@ if (convertBtn) {
     const markdownText = document.getElementById('markdown-editor').value;
     const htmlOutput = marked(markdownText); // Convert markdown to HTML using the custom renderer
     document.getElementById('markdown-output').innerHTML = htmlOutput; // Display the HTML
+    console.log("Markdown converted for create post");
   });
 }
 
-// Handle the display of markdown content in the feed
+// Function to convert markdown in specified elements
 function convertMarkdownInElements(selector) {
   const markdownElements = document.querySelectorAll(selector);
   console.log(`Found ${markdownElements.length} markdown elements in selector "${selector}"`);
 
   markdownElements.forEach(function(element) {
-    const markdownText = element.textContent.trim();
-    const htmlContent = marked(markdownText);
-    element.innerHTML = htmlContent;
+    const markdownText = element.textContent.trim(); // Get the raw markdown text
+    const htmlContent = marked(markdownText); // Convert markdown to HTML using the custom renderer
+    element.innerHTML = htmlContent; // Replace the markdown with HTML content
+    console.log("Markdown converted for a feed post");
+    console.log(`Markdown: ${markdownText}`);
+    console.log(`HTML: ${htmlContent}`);
   });
 }
 
 // Handle Markdown rendering for the Feed page
 document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM fully loaded and parsed");
+
   // This will be used for new, edit post pages to output a preview of the markdown
   convertMarkdownInElements('.markdown-output');
 
