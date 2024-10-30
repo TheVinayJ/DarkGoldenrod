@@ -2,6 +2,7 @@ from email._header_value_parser import ContentType
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 from encrypted_model_fields.fields import EncryptedCharField
+from django.core.validators import URLValidator
 import django
 import datetime
 
