@@ -1,5 +1,7 @@
 from email._header_value_parser import ContentType
 from django.db import models
+from django.contrib.auth.hashers import make_password, check_password
+from encrypted_model_fields.fields import EncryptedCharField
 import django
 import datetime
 
@@ -14,9 +16,42 @@ class Author(models.Model):
     friends = models.ManyToManyField('Author', blank=True)
     password = models.CharField(max_length=128)
     email = models.EmailField(max_length=50, default='example@example.com', unique=True)
+    is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)  # Required for admin interface
 
     def __str__(self):
         return self.display_name
+    
+    def save(self, *args, **kwargs):
+        # Hash the password if it's not already hashed
+        if not self.pk or Author.objects.get(pk=self.pk).password != self.password:
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+    def check_password_custom(self, raw_password):
+        return check_password(raw_password, self.password)
+    
+class RemoteNode(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="Friendly name for the remote node")
+    url = models.URLField(max_length=200, validators=[URLValidator()], help_text="URL of the remote node")
+    username = models.CharField(max_length=150, help_text="Username for authentication")
+    password = EncryptedCharField(max_length=128, help_text="Password for authentication")  # Encrypted field
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        # Hash the password if it's not already hashed
+        if not self.pk or RemoteNode.objects.get(pk=self.pk).password != self.password:
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+    def check_password_custom(self, raw_password):
+        return check_password(raw_password, self.password)
     
 
 class Like(models.Model):
