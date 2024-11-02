@@ -113,13 +113,31 @@ def save(request):
     """
     author = get_author(request)
     print(request.POST)
-    post = Post(title=request.POST["title"],
-                text_content=request.POST["body-text"],
-                visibility=request.POST["visibility"],
-                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                author=author,
-    )
-    post.save()
+    content_type = request.POST["contentType"]
+    if content_type != "image":
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    text_content=request.POST["text-context"],
+                    content_type=content_type,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+        )
+        post.save()
+    else:
+        image = request.FILES["image"]
+        file_suffix = os.path.splitext(image.name)[1]
+        content_type = request.POST["contentType"]
+        content_type += '/' + file_suffix
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    image_content=request.POST["image"],
+                    content_type=content_type,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
     return(redirect('/node/'))
 
 def delete_post(request, post_id):
