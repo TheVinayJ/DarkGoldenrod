@@ -262,9 +262,9 @@ def profile(request, author_id):
         visible_tags.append('FRIENDS') # show friend visibility posts
         if user==current_author: # if logged in user viewing own profile, show unlisted posts too
             visible_tags.append('UNLISTED')
-    authors_posts = Post.objects.filter(author=user, visibility__in= visible_tags).exclude(text_content="Public Github Activity").order_by('-published') # most recent on top
+    authors_posts = Post.objects.filter(author=user, visibility__in= visible_tags).exclude(description="Public Github Activity").order_by('-published') # most recent on top
     retrieve_github(user)
-    github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, text_content="Public Github Activity").order_by('-published')
+    github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
 
     return render(request, "profile/profile.html", {
         'user': user,
@@ -318,15 +318,15 @@ def retrieve_github(user):
         published_date = timezone.make_aware(naive_published_date, datetime.timezone.utc)
 
         # Check for existing post and create new post if it doesn't exist
-        if not Post.objects.filter(author=user, title=event_type, description=post_description,
+        if not Post.objects.filter(author=user, title=event_type, text_content=post_description,
                                    published=published_date).exists():
             Post.objects.create(
                 author=user,
                 title=event_type,
-                description=post_description,
+                description="Public Github Activity",
                 visibility='PUBLIC',
                 published=published_date,  # Set the published date from the activity
-                text_content="Public Github Activity"
+                text_content=post_description,
             )
     # Ends here
 

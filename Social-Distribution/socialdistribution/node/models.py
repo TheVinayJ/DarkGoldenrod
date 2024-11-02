@@ -76,6 +76,7 @@ class Post(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100)
     description = models.TextField()  # Posts need a short description
+    contentType = models.TextField()
     text_content = models.TextField(blank=True)  # Text post content (optional)
     image_content = models.TextField(blank=True)  # Link to image
     published = models.DateTimeField()
