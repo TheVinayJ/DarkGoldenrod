@@ -25,6 +25,8 @@ from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
 
+
+
 def api_authors_list(request):
     page = int(request.GET.get('page', 1))  # Number of pages to include
     size = int(request.GET.get('size', 10))  # Number of records per page\
@@ -66,6 +68,7 @@ def api_authors_list(request):
 
     return JsonResponse(response_data)
 
+@api_view(['GET'])
 def authors_list(request):
     query = request.GET.get('q', '')
     page = request.GET.get('page', 1)
@@ -80,9 +83,12 @@ def authors_list(request):
 
     # Make the GET request to the API endpoint
     response = requests.get(api_url)
-    print("Response: ", response)
+    # print("Response: ", response)
+    # print("Response text: ", response.text)
+    # print("Response body: ", response.json())
+    
     authors = response.json().get('authors', []) if response.status_code == 200 else []
-    print("Response body: ", response.json())
+    
 
     for author in authors:
         author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
@@ -456,7 +462,8 @@ def get_author(request):
         return request.user
     return None
 
-
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def local_api_follow(request, author_id):
     # send a Post request to INBOX with the follow request object
     # Called by authors.html
@@ -505,7 +512,6 @@ def local_api_follow(request, author_id):
 
     return redirect('authors')
 
-
 @csrf_exempt
 def inbox(request, author_id):
     print("Inbox function ran")
@@ -523,10 +529,11 @@ def inbox(request, author_id):
                 return follow_author(follower, following)
             # Add additional handling for other types (e.g., post, like, comment) as needed
         except (json.JSONDecodeError, KeyError):
-            print("Error processing request:", e)
             return JsonResponse({'error': 'Invalid request format'}, status=400)
     
     return JsonResponse({'message': 'Method not allowed'}, status=405)
+
+
     # if type = "follow":
     #     follow_author(author_id, follow_id)
     # identify the post request from the body by "type"
@@ -557,6 +564,7 @@ def follow_author(follower, following):
         return JsonResponse({'message': 'Follow relationship already exists'}, status=400)
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
+@permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
     author_to_unfollow = get_object_or_404(Author, id=author_id).id
