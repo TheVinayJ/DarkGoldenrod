@@ -31,37 +31,41 @@ class SignupView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        next_url = request.data.get('next') or request.GET.get('next') or '/'
+        next_url = '/node/'  # Redirect to home page by default
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        author = serializer.save()
 
-        # Generate access token
-        access_token = AccessToken.for_user(author)
+        try:
+            author = serializer.save()
+            access_token = AccessToken.for_user(author)
+            response_data = {
+                'message': 'Signup successful',
+                'next': next_url,
+                'user_id': author.id
+            }
+            response = JsonResponse(response_data, status=status.HTTP_201_CREATED)
 
-        response = redirect(next_url)
+            # Set access token in cookie
+            response.set_cookie(
+                key='access_token',
+                value=str(access_token),
+                httponly=True,
+                secure=False,  # Set to True in production with HTTPS
+                samesite='Lax',
+                max_age=60 * 60 * 24 * 7,
+            )
+            response.set_cookie(
+                key='user_id',
+                value=author.id,
+                httponly=False,
+                secure=False,
+                samesite='Lax',
+                max_age=60 * 60 * 24 * 7,
+            )
+            return response
 
-        # Set the access token in the cookie
-        response.set_cookie(
-            key='access_token',
-            value=str(access_token),
-            httponly=True,
-            secure=False,  # Set to True in production with HTTPS
-            samesite='Lax',
-            max_age=60*60*24*7,
-        )
-
-        # Optionally, set user_id or other cookies
-        response.set_cookie(
-            key='user_id',
-            value=author.id,
-            httponly=False,
-            secure=False,
-            samesite='Lax',
-            max_age=60*60*24*7,
-        )
-
-        return response
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
@@ -73,18 +77,19 @@ class LoginView(generics.GenericAPIView):
         next_url = request.data.get('next') or request.GET.get('next') or '/'
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
 
-        # Generate access token
+        user = serializer.validated_data['user']
         access_token = AccessToken.for_user(user)
 
         # Optionally update last login
         update_last_login(None, user)
 
         response_data = {
+            'message': 'Login successful',
             'next': next_url,
+            'user_id': user.id,
         }
-        response = JsonResponse(response_data, status=200)
+        response = JsonResponse(response_data, status=status.HTTP_200_OK)
 
         # Set the access token in the cookie
         response.set_cookie(
@@ -93,26 +98,24 @@ class LoginView(generics.GenericAPIView):
             httponly=True,
             secure=False,  # Set to True in production with HTTPS
             samesite='Lax',
-            max_age=60*60*24*7,
+            max_age=60 * 60 * 24 * 7,
         )
-
         response.set_cookie(
             key='user_id',
             value=user.id,
             httponly=False,
             secure=False,
             samesite='Lax',
-            max_age=60*60*24*7,
+            max_age=60 * 60 * 24 * 7,
         )
 
-        # CSRF cookie is set by the decorator
         return response
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        response = Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+        response = JsonResponse({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
         response.delete_cookie('access_token')
         response.delete_cookie('user_id')
         return response
@@ -122,7 +125,7 @@ class UserInfoView(APIView):
 
     def get(self, request):
         user = request.user
-        return Response({
+        user_data = {
             'id': user.id,
             'email': user.email,
             'display_name': user.display_name,
@@ -132,17 +135,5 @@ class UserInfoView(APIView):
             'profile_image': request.build_absolute_uri(user.profile_image.url) if user.profile_image else None,
             'page': user.page,
             'friends': [friend.id for friend in user.friends.all()],
-        }, status=status.HTTP_200_OK)
-
-# class RemoteNodeViewSet(viewsets.ModelViewSet):
-#     queryset = RemoteNode.objects.all()
-#     serializer_class = RemoteNodeSerializer
-#     permission_classes = [IsAdminUser]
-
-#     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
-#     def connect(self, request, pk=None):
-#         remote_node = self.get_object()
-#         result = RemoteNodeService.connect_to_node(remote_node.id)
-#         if "error" in result:
-#             return Response(result, status=status.HTTP_400_BAD_REQUEST)
-#         return Response(result, status=status.HTTP_200_OK)
+        }
+        return JsonResponse(user_data, status=status.HTTP_200_OK)
