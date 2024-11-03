@@ -46,5 +46,5 @@ urlpatterns = [
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
     path('api/user-info/', UserInfoView.as_view(), name='user_info'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
+    path('authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
 ]

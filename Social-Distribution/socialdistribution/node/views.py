@@ -26,7 +26,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 
-
 def api_authors_list(request):
     page = int(request.GET.get('page', 1))  # Number of pages to include
     size = int(request.GET.get('size', 10))  # Number of records per page\
@@ -180,7 +179,7 @@ def author_posts(request, author_id):
                         author=author,
                         )
             post.save()
-        return JsonResponse({"message": "Post created successfully"}, status=201)
+        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
