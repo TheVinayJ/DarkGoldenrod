@@ -49,7 +49,16 @@
     {% csrf_token %}
 </form>
 
+<script src="{% static 'CSRFToken.min.js' %}"></script>
+<script src="{% static 'authentication.min.js' %}"></script>
 <script>
+    function getCSRFToken() {
+    const cookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+    return cookie ? cookie.split('=')[1] : '';
+    }
+
     // JavaScript to handle content type selection
     // Microsoft Copilot, Oct. 2024. Change form based off radio selection
     document.querySelectorAll('input[name="contentType"]').forEach((elem) => {
@@ -61,6 +70,25 @@
             document.getElementById(`${value}-input`).style.display = "block";
         });
     });
+
+    let authorID = getAuthorId();
+    let apiUrl = `/api/authors/${authorSerial}/posts`;
+
+    document.getElementById('save-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        let formData = new FormData(this);
+
+        let response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            credentials: "include",
+            body: formData
+        });
+    })
+
 </script>
 
 
