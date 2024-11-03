@@ -72,7 +72,7 @@
     });
 
     let authorID = getAuthorId();
-    let apiUrl = `/api/authors/${authorSerial}/posts`;
+    let apiUrl = `/api/authors/${authorID}/posts`;
 
     document.getElementById('save-form').addEventListener('submit', async function(event) {
         event.preventDefault();

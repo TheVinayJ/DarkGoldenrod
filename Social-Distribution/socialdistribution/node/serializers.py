@@ -6,6 +6,10 @@ from rest_framework.reverse import reverse
 from .models import Author, RemoteNode, Post
 from django.contrib.auth import authenticate
 
+class LikesSerializer(serializers.ModelSerializer):
+    class Meta:
+
+
 class AuthorSerializer(serializers.ModelSerializer):
 
     type = serializers.SerializerMethodField()
