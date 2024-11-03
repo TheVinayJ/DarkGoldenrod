@@ -3,12 +3,34 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from .models import Author, RemoteNode, Post
+from .models import Author, RemoteNode, Post, Like
 from django.contrib.auth import authenticate
 
-class LikesSerializer(serializers.ModelSerializer):
-    class Meta:
 
+class LikeSerializer:
+    pass
+
+
+class LikesSerializer(serializers.Serializer):
+    type = serializers.CharField(default='likes')
+    page = serializers.CharField()
+    id = serializers.CharField()
+    page_number = serializers.IntegerField()
+    size = serializers.IntegerField()
+    count = serializers.IntegerField()
+    src = LikeSerializer(many=True)
+
+    def to_representation(self, instance):
+        post = instance
+        likes = Like.objects.filter(post=post).order_by('-created_at')[:50]
+        representation = super().to_representation({ 'page': f"http://darkgoldenrod/authors/{post.author.id}/posts/{post.id}",
+                                                     'id': f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}/likes",
+                                                     'page_number': 1,
+                                                     'size': 50,
+                                                     'count': likes.count(),
+                                                     'src': likes,
+                                                     })
+        return representation
 
 class AuthorSerializer(serializers.ModelSerializer):
 
