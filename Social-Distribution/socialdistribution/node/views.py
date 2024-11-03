@@ -26,7 +26,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 
-
 def api_authors_list(request):
     page = int(request.GET.get('page', 1))  # Number of pages to include
     size = int(request.GET.get('size', 10))  # Number of records per page\
@@ -283,7 +282,7 @@ def view_post(request, post_id):
     liked = False
 
     if post.author != author: # if user that is not the creator is attempting to view
-        if post.visibility == "FRIENDS":
+        if post.visibility == "FRIENDS" or post.visibility == "UNLISTED":
             try:
                 follow = get_object_or_404(Follow, follower=author, following = post.author)
             except:
