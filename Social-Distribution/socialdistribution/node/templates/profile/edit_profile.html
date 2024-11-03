@@ -5,20 +5,56 @@
     <title>Edit Profile</title>
 </head>
 <body>
+    <a href="{% url 'profile' user.id %}">&lt; Go Back</a>
     <h1>Edit Profile</h1>
-    <form method="POST" enctype="multipart/form-data">
+
+    <form id="editProfileForm">
         {% csrf_token %}
-        {{ form.as_p }}  <!-- Renders other form fields -->
+        <label for="display_name">Display Name:</label>
+        <input type="text" name="display_name" id="display_name" value="{{ user.display_name }}"><br>
 
-        <!-- Profile Image Upload -->
-        <div>
-            <label for="id_profile_image" class="profile-image-container">
-                <!-- <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image" id="profileImage" > -->
-                <input type="file" name="profile_image" id="id_profile_image" style="display: none;" accept="image/*">
-            </label>
-        </div>
+        <label for="description">Description:</label>
+        <input type="text" name="description" id="description" value="{{ user.description }}"><br>
 
-        <button type="submit">Save</button>
+        <label for="profile_image">Profile Image:</label>
+        <input type="file" name="profile_image" id="profile_image" value="{{ user.profile_image }}"><br>
+<!--         {% if user.profile_image %}-->
+<!--            <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">-->
+<!--         {% endif %}-->
+
+        <label for="github">GitHub Username:</label>
+        <input type="text" name="github" id="github" value="{{ user.github }}"><br>
+
+        <button type="button" id="saveButton">Save</button>
     </form>
+
+    <script>
+        document.getElementById('saveButton').addEventListener('click', function() {
+            const formData = new FormData(document.getElementById('editProfileForm'));
+
+            console.log('Form Data:', formData);
+
+            fetch(`/node/{{user.id}}/profile/edit`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(data => {
+                window.location.href = `/node/{{user.id}}/profile`;
+            })
+            .catch(error => {
+                console.error('Error:', error); // Handle errors
+                alert('Error updating profile.'); // Example of error message
+            });
+        });
+    </script>
 </body>
 </html>

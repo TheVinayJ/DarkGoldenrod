@@ -48,3 +48,8 @@ class LoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+class AuthorProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = ['id','display_name', 'profile_image', 'description', 'github']

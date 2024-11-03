@@ -5,7 +5,7 @@
         <title>Follower Requests</title>
     </head>
     <body>
-        <a href="{% url 'profile' author_id=author_id %}">&lt; Go Back</a>
+        <a href="{% url 'profile' author_id=author.id %}">&lt; Go Back</a>
         <h1>Follow Requests</h1>
         <ul>
             {% if follow_authors %}
@@ -26,5 +26,49 @@
                 <li>No follow requests.</li>
             {% endif %}
         </ul>
+
+    <script>
+        // accept follower
+        fetch(`/api/authors/${author.id}/followers/${request_user.id}/approve/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+                },
+            })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Network response was not ok.');
+        })
+        .then(data => {
+             window.location.href = `/node/{{user.id}}/profile`;
+        })
+        .catch(error => {
+            console.error('Error:', error); // Handle error
+        });
+
+        // decline follower
+        fetch(`/api/authors/${author.id}/followers/${request_user.id}/decline/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+                },
+            })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Network response was not ok.');
+        })
+        .then(data => {
+             window.location.href = `/node/{{user.id}}/profile`;
+        })
+        .catch(error => {
+            console.error('Error:', error); // Handle error
+        });
+    </script>
     </body>
 </html>
