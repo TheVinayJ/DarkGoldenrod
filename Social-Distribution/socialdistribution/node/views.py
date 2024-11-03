@@ -374,6 +374,10 @@ def edit_profile(request, author_id):
         serializer = AuthorProfileSerializer(user, data=request.data)  # This should handle multipart/form-data
 
         if serializer.is_valid():
+            if request.FILES.get('profile_image'):
+                # Set the new image if it exists
+                user.profile_image = request.FILES['profile_image']
+
             # Check for changes in GitHub username
             if original_github != serializer.validated_data.get('github'):
                 Post.objects.filter(author=user, description="Public Github Activity").delete()

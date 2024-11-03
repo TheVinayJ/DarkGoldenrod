@@ -50,6 +50,23 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 class AuthorProfileSerializer(serializers.ModelSerializer):
+    description = serializers.CharField(default="", allow_blank=True)
+    github = serializers.CharField(default="", allow_blank=True)
     class Meta:
         model = Author
         fields = ['id','display_name', 'profile_image', 'description', 'github']
+
+    def update(self, instance, validated_data):
+        # Get the profile_image from validated_data if it exists
+        profile_image = validated_data.pop('profile_image', None)
+
+        # If a new profile image is provided, update it; otherwise, keep the existing one
+        if profile_image is not None:
+            instance.profile_image = profile_image
+
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
