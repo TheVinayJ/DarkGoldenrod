@@ -141,40 +141,62 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def save(request):
+def author_posts(request, author_id):
     """
-    Create a new post!
+    Create a new post or return author's posts.
     """
     author = get_author(request)
-    print(request.POST)
-    contentType = request.POST["contentType"]
-    if contentType != "image":
-        post = Post(title=request.POST["title"],
-                    description=request.POST["description"],
-                    text_content=request.POST["content"],
-                    contentType=contentType,
-                    visibility=request.POST["visibility"],
-                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                    author=author,
-        )
-        post.save()
-    else:
-        image = request.FILES["content"]
-        file_suffix = os.path.splitext(image.name)[1]
+    if request.method == 'POST':
         contentType = request.POST["contentType"]
-        contentType += '/' + file_suffix[1:]
-        post = Post(title=request.POST["title"],
-                    description=request.POST["description"],
-                    image_content=request.POST["content"],
-                    contentType=contentType,
-                    visibility=request.POST["visibility"],
-                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                    author=author,
-                    )
-        post.save()
-    return(redirect('/node/'))
+        if contentType != "image":
+            post = Post(title=request.POST["title"],
+                        description=request.POST["description"],
+                        text_content=request.POST["content"],
+                        contentType=contentType,
+                        visibility=request.POST["visibility"],
+                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                        author=author,
+                        )
+            post.save()
+        else:
+            image = request.FILES["content"]
+            file_suffix = os.path.splitext(image.name)[1]
+            contentType = request.POST["contentType"]
+            contentType += '/' + file_suffix[1:]
+            post = Post(title=request.POST["title"],
+                        description=request.POST["description"],
+                        image_content=image,
+                        contentType=contentType,
+                        visibility=request.POST["visibility"],
+                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                        author=author,
+                        )
+            post.save()
+        return JsonResponse({"message": "Post created successfully"}, status=201)
+    elif request.method == 'GET':
+        return get_posts_from_author(request, author_id)
+
+    return JsonResponse({"error": "Invalid request method"}, status=400)
+
+
+def get_posts_from_author(request, author_id):
+    requester = get_author(request)
+    author = get_object_or_404(Author, id=author_id)
+    if requester == author:
+        posts = Post.objects.filter(author=author)
+    else:
+        posts = Post.objects.filter(author=author, visibility = 'PUBLIC')
+
+    formatted_posts = [{
+        'type': "post",
+        'title': post.title,
+        'id': f"http://darkgoldenrod/api/authors/{author.id}/posts/{post.id}",
+        'description:': post.description,
+        'contentType': post.contentType,
+        'content': post.content
+    } for post in posts]
 
 def delete_post(request, post_id):
     author = get_author(request)

@@ -71,8 +71,8 @@
         });
     });
 
-    let authorSerial = "YOUR_AUTHOR_SERIAL";
-    let apiUrl = `//service/api/authors/${authorSerial}/posts`
+    let authorID = getAuthorId();
+    let apiUrl = `/api/authors/${authorSerial}/posts`;
 
     document.getElementById('save-form').addEventListener('submit', async function(event) {
         event.preventDefault();
@@ -88,8 +88,6 @@
             body: formData
         });
     })
-
-
 
 </script>
 

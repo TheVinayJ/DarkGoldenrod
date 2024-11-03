@@ -1,9 +1,78 @@
 # yourapp/serializers.py
 
 from rest_framework import serializers
-from .models import Author, RemoteNode
+from rest_framework.reverse import reverse
+
+from .models import Author, RemoteNode, Post
 from django.contrib.auth import authenticate
 
+class AuthorSerializer(serializers.ModelSerializer):
+
+    type = serializers.SerializerMethodField()
+    id = serializers.SerializerMethodField()
+    host = serializers.SerializerMethodField()
+    displayName = serializers.CharField(source='display_name')
+    page = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Author
+        fields = [
+            'github',
+            'profileImage',
+            'displayName',
+        ]
+
+    def get_type(self, obj):
+        return "author"
+
+    def get_id(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.id}"
+
+    def get_host(self, obj):
+        return "http://darkgoldenrod/api"
+
+    def get_page(self, obj):
+        return f"http://darkgoldenrod/{obj.id}/profile"
+
+class PostSerializer(serializers.ModelSerializer):
+    content = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    id = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField
+    comments = serializers.SerializerMethodField()
+    likes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = [
+            'type',
+            'title',
+            'id',
+            'description',
+            'contentType',
+            'content',
+            'visibility',
+            'author',
+            'published',
+            'comments',
+            'likes',
+        ]
+
+    def get_id(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}"
+
+    def get_author(self, obj):
+        return AuthorSerializer(obj.author).data
+
+    def get_content(self, obj):
+        if obj.contentType.startswith('text'):
+            return obj.text_content
+        elif obj.contentType.startswith('image'):
+            return obj.image_content.url if obj.image_content else None
+        return None
+
+    def get_type(self, obj):
+        return "post"
 
 class SignupSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
