@@ -1,3 +1,5 @@
+from crypt import methods
+
 from django.core import signing
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.utils import timezone
@@ -791,3 +793,13 @@ def upload_image(request):
     else:
         form = ImageUploadForm()
     return render(request, 'node_admin/upload_image.html', {'form': form})
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def api_get_post_from_author(request, author_id, post_id):
+    if request.method == 'GET':
+        return view_post(request, post_id)
+    elif request.method == 'PUT':
+        return edit_post(request, post_id)
+    elif request.method == 'DELETE':
+        return delete_post(request, post_id)
