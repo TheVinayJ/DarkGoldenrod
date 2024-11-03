@@ -1,7 +1,10 @@
-from django.urls import path
+from django.urls import path, include
 from . import views, login
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework import routers
+from rest_framework_simplejwt.views import TokenRefreshView
+from .login import SignupView, LoginView, LogoutView, UserInfoView
 
 urlpatterns = [
     path("", views.display_feed, name="index"),
@@ -37,5 +40,10 @@ urlpatterns = [
 
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
-    path('api/authors/', views.api_authors_list, name='api_authors_list'),
+    path('api/authors/', views.api_authors_list, name='api_authors_list'),    
+    path('api/signup/', SignupView.as_view(), name='api_signup'),
+    path('api/login/', LoginView.as_view(), name='api_login'),
+    path('api/logout/', LogoutView.as_view(), name='api_logout'),
+    path('api/user-info/', UserInfoView.as_view(), name='user_info'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

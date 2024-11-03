@@ -1,3 +1,9 @@
+<style>
+    .post-item h2 a {
+        font-size: 27px;
+    }
+</style>
+
 <li class="post-item">
     <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
     <p>{{ post.description }}</p>

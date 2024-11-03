@@ -8,6 +8,15 @@
         a {
             color: darkgoldenrod;
             text-decoration: none;
+            padding: 5px 10px;
+            font-size: 17px;
+        }
+        a:hover {
+            color: goldenrod; /* Change text color on hover */
+            text-decoration: underline; /* Underline on hover */
+        }
+        form {
+            padding: 5px 10px;
         }
 
         .section {
@@ -20,26 +29,25 @@
 
         .active {
             display: block;
-            /* Show the active section */
         }
 
         .profileNameAndPhoto {
             margin-top: 20px;
             display: flex;
-            /* Use flexbox layout */
         }
 
         .profile-image {
             width: 100px;
-            /* Adjust size as needed */
             height: 100px;
-            /* Adjust size as needed */
             border-radius: 50%;
             /* Make it circular */
             margin-right: 20px;
+            padding-bottom: 10px;
         }
+
     </style>
     {% load static %}
+    <script src="{% static 'authentication.min.js' %}"></script>
     <script src="{% static 'markdown-editor.min.js' %}"></script>
 </head>
 
@@ -61,11 +69,9 @@
     <form method="GET" action="{% url 'follow_requests' user.id %}">
         <button type="submit">View Follow Requests</button>
     </form>
-
-    <form action="/node/signout/" method="post">
-        {% csrf_token %}
-        <button type="submit">Sign out</button>
-    </form>
+        
+        <button id="logout-button">Sign Out</button>
+        
     {% else %}
     {% if is_following %}
     <form method="POST" action="{% url 'unfollow_author' user.id %}">
@@ -128,7 +134,6 @@
     <p>No GitHub activity available.</p>
     {% endif %}
 </div>
-
     <script>
         function showSection(sectionId) {
             // Hide all sections
