@@ -4,20 +4,40 @@
 <head>
     <title>Username's Profile</title>
     <meta charset="UTF-8">
+    {% load static %}
+    <link rel="stylesheet" href="{% static "css/login.css" %}">
     <style>
         body {
+            font-family: Arial, sans-serif;
             margin-left: 10px;
+            display: flex;
+            flex-direction: column;
         }
         a {
             color: darkgoldenrod;
             text-decoration: none;
             margin-bottom: 5px ;
             font-size: 17px;
+            position: relative;
+        }
+
+        a:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 0;
+            height: 2px;
+            background-color: darkgoldenrod;
+            transition: width 0.3s ease-in-out;
         }
         a:hover {
             color: goldenrod; /* Change text color on hover */
-            text-decoration: underline; /* Underline on hover */
         }
+        a:hover::after {
+            width: 100%;
+        }
+
         form {
             padding: 5px 10px;
         }
@@ -48,6 +68,24 @@
             padding-bottom: 10px;
         }
 
+        .post-github {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: row;
+        }
+        
+        button {
+            
+        }
+        
+        button:hover {
+        }
+
     </style>
     {% load static %}
     <script src="{% static 'authentication.min.js' %}"></script>
@@ -65,17 +103,21 @@
     </div>
 
     {% if ownProfile %}
-    <form action="{% url 'profile_edit' user.id %}" method="get">
-        <button type="submit" class="edit-button">Edit Profile</button>
-    </form>
+        <div class="button-container">
+        <form action="{% url 'profile_edit' user.id %}" method="get">
+            <button type="submit" class="edit-button">Edit Profile</button>
+        </form>
 
-    <form method="GET" action="{% url 'follow_requests' user.id %}">
-        <button type="submit">View Follow Requests</button>
-    </form>
-        <button id="logout-button">Sign Out</button>
-        
+        <form method="GET" action="{% url 'follow_requests' user.id %}">
+            <button type="submit">View Follow Requests</button>
+        </form>
+
+        <form>
+            <button id="logout-button">Sign Out</button>
+        </form>
+        </div>
     {% else %}
-        
+        <div class="button-container">
         {% if is_following %}
         <form method="POST" action="{% url 'unfollow_author' user.id %}">
             {% csrf_token %}
@@ -98,14 +140,18 @@
             </button>
         </form>
         {% endif %}
+        </div>
+        
     {% endif %}
     
     <h2>{{ user.description|default:"&nbsp;" }}</h2>
 
-    <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
-    <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
+    <div>
+        <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
+        <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
+    </div>
 
-    <nav>
+    <nav class="post-github">
         <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
         <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
     </nav>
