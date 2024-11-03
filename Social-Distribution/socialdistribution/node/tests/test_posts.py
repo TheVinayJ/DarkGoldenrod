@@ -85,7 +85,7 @@ class PostTests(TestCase):
     def test_add_post(self):
             response = self.client.get(reverse('add'), follow=True)
             self.assertEqual(response.status_code, 200)
-            response = self.client.post(reverse(views.save), {'title': 'New Post',
+            response = self.client.post(f'api/authors/{self.author.id}/posts', {'title': 'New Post',
                                                             'body-text': 'Test Description',
                                                             'visibility': 'PUBLIC',
                                                             'contentType': 'text/plain',

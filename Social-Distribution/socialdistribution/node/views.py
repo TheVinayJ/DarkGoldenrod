@@ -5,10 +5,12 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
+from node.serializer import serializer
+
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
-from .serializers import AuthorProfileSerializer
+from .serializers import AuthorProfileSerializer, PostSerializer
 import datetime
 import requests
 import os
@@ -194,14 +196,8 @@ def get_posts_from_author(request, author_id):
     else:
         posts = Post.objects.filter(author=author, visibility = 'PUBLIC')
 
-    formatted_posts = [{
-        'type': "post",
-        'title': post.title,
-        'id': f"http://darkgoldenrod/api/authors/{author.id}/posts/{post.id}",
-        'description:': post.description,
-        'contentType': post.contentType,
-        'content': post.content
-    } for post in posts]
+    serializer = PostSerializer(posts, many=True)
+    return Response(serializer.data)
 
 def delete_post(request, post_id):
     author = get_author(request)
