@@ -141,7 +141,8 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
-
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def save(request):
     """
     Create a new post!
