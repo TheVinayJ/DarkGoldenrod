@@ -146,7 +146,7 @@ async function handleLogout() {
 
         if (response.ok) {
             // Redirect to login page
-            window.location.href = '/login.html';
+            window.location.href = '/node/';
         } else {
             alert('Logout failed. Please try again.');
         }
