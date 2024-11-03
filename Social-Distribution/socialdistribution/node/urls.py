@@ -9,7 +9,6 @@ from .login import SignupView, LoginView, LogoutView, UserInfoView
 urlpatterns = [
     path("", views.display_feed, name="index"),
     path("add/", views.editor, name="add"),
-    path("save/", views.save, name="save"),
     path("posts/<int:post_id>/", views.view_post, name="view_post"),
     path("posts/<int:id>/like/", views.post_like, name="like"),
     path("posts/<int:id>/likecomment/", views.comment_like, name="comment_like"),
