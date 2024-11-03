@@ -128,8 +128,9 @@ class Post(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100)
     description = models.TextField()  # Posts need a short description
+    contentType = models.TextField()
     text_content = models.TextField(blank=True)  # Text post content (optional)
-    image_content = models.TextField(blank=True)  # Link to image
+    image_content = models.ImageField(upload_to='images/postImages', default="null", blank=True, null=True)
     published = models.DateTimeField()
     visibility = models.CharField(
         max_length=50,

@@ -9,5 +9,5 @@ class ImageUploadForm(forms.ModelForm):
 
 class AuthorProfileForm(forms.ModelForm):
     class Meta:
-        model = Author  # Use your Author model
+        model = Author
         fields = ['display_name', 'profile_image', 'description', 'github']

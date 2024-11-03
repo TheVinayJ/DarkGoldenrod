@@ -9,20 +9,60 @@
     <h1>Create a new post:</h1>
 
     <form id="save-form" method="POST" action="/node/save/">
-        <input type="text" name="title" id="post-title" placeholder="Post Title"><br>
-        <textarea id="markdown-editor" name="body-text" rows="10" cols="50"></textarea><br>
+    <input type="text" name="title" id="post-title" placeholder="Post Title"><br>
+
+    <!-- Short description -->
+    <textarea name="description" id="post-description" rows="3" cols="50" placeholder="Short Description"></textarea><br>
+
+    <!-- Content type selection -->
+    <label>Content Type:</label><br>
+    <input type="radio" id="text/plain" name="contentType" value="plaintext" checked>
+    <label for="text/plain">Plaintext</label><br>
+    <input type="radio" id="text/markdown" name="contentType" value="markdown">
+    <label for="text/markdown">Markdown</label><br>
+    <input type="radio" id="image" name="contentType" value="image">
+    <label for="image">Image</label><br>
+
+    <!-- Content input fields -->
+    <div id="plaintext-input" class="content-input">
+        <textarea id="plaintext-editor" name="content" rows="10" cols="50" placeholder="Enter plaintext..."></textarea><br>
+    </div>
+    <div id="markdown-input" class="content-input" style="display:none;">
+        <textarea id="markdown-editor" name="content" rows="10" cols="50" placeholder="Enter markdown..."></textarea><br>
         <button id="convert-btn">Convert to HTML</button><br>
-        <br>
-        <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" checked>
-        <label for="PUBLIC">Public</label><br>
-        <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS">
-        <label for="FRIENDS">Friends Only</label><br>
-        <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED">
-        <label for="UNLISTED">Unlisted</label>
-        <button id="save-btn" type="submit">Save Page</button>
-        <br>
-        {% csrf_token %}
-    </form>
+    </div>
+    <div id="image-input" class="content-input" style="display:none;">
+        <input type="file" name="content" id="image-upload" accept="image/*"><br>
+    </div>
+
+    <!-- Visibility options -->
+    <br>
+    <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" checked>
+    <label for="PUBLIC">Public</label><br>
+    <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS">
+    <label for="FRIENDS">Friends Only</label><br>
+    <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED">
+    <label for="UNLISTED">Unlisted</label>
+    <br>
+
+    <button id="save-btn" type="submit">Save Page</button>
+    {% csrf_token %}
+</form>
+
+<script>
+    // JavaScript to handle content type selection
+    // Microsoft Copilot, Oct. 2024. Change form based off radio selection
+    document.querySelectorAll('input[name="content-type"]').forEach((elem) => {
+        elem.addEventListener("change", function(event) {
+            let value = event.target.value;
+            document.querySelectorAll(".content-input").forEach((inputElem) => {
+                inputElem.style.display = "none";
+            });
+            document.getElementById(`${value}-input`).style.display = "block";
+        });
+    });
+</script>
+
 
     <h3>Output</h3>
     <div id="markdown-output"></div> <!-- Rendered HTML output -->
