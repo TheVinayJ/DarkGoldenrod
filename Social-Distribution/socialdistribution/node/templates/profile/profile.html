@@ -8,6 +8,15 @@
         a {
             color: darkgoldenrod;
             text-decoration: none;
+            padding: 5px 10px;
+            font-size: 17px;
+        }
+        a:hover {
+            color: goldenrod; /* Change text color on hover */
+            text-decoration: underline; /* Underline on hover */
+        }
+        form {
+            padding: 5px 10px;
         }
 
         .section {
@@ -20,24 +29,22 @@
 
         .active {
             display: block;
-            /* Show the active section */
         }
 
         .profileNameAndPhoto {
             margin-top: 20px;
             display: flex;
-            /* Use flexbox layout */
         }
 
         .profile-image {
             width: 100px;
-            /* Adjust size as needed */
             height: 100px;
-            /* Adjust size as needed */
             border-radius: 50%;
             /* Make it circular */
             margin-right: 20px;
+            padding-bottom: 10px;
         }
+
     </style>
     {% load static %}
     <script src="{% static 'authentication.min.js' %}"></script>
