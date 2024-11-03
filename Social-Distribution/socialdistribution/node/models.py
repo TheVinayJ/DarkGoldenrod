@@ -78,7 +78,7 @@ class Post(models.Model):
     description = models.TextField()  # Posts need a short description
     contentType = models.TextField()
     text_content = models.TextField(blank=True)  # Text post content (optional)
-    profile_image = models.ImageField(upload_to='images/postImages', default="null", blank=True, null=True)
+    image_content = models.ImageField(upload_to='images/postImages', default="null", blank=True, null=True)
     published = models.DateTimeField()
     visibility = models.CharField(
         max_length=50,

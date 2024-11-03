@@ -117,7 +117,7 @@ def save(request):
     if content_type != "image":
         post = Post(title=request.POST["title"],
                     description=request.POST["description"],
-                    text_content=request.POST["text-context"],
+                    text_content=request.POST["content"],
                     content_type=content_type,
                     visibility=request.POST["visibility"],
                     published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
@@ -131,7 +131,7 @@ def save(request):
         content_type += '/' + file_suffix
         post = Post(title=request.POST["title"],
                     description=request.POST["description"],
-                    image_content=request.POST["image"],
+                    image_content=request.POST["content"],
                     content_type=content_type,
                     visibility=request.POST["visibility"],
                     published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
