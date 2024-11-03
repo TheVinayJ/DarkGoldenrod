@@ -180,7 +180,7 @@ def author_posts(request, author_id):
                         author=author,
                         )
             post.save()
-        return JsonResponse({"message": "Post created successfully"}, status=201)
+        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 

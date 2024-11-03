@@ -8,7 +8,7 @@
 <body>
     <h1>Create a new post:</h1>
 
-    <form enctype="multipart/form-data" id="save-form" method="POST" action="/node/save/">
+    <form enctype="multipart/form-data" id="save-form" method="POST">
     <input type="text" name="title" id="post-title" placeholder="Post Title"><br>
 
     <!-- Short description -->
@@ -49,9 +49,17 @@
     {% csrf_token %}
 </form>
 
-<script src="{% static 'CSRFToken.min.js' %}"></script>
 <script src="{% static 'authentication.min.js' %}"></script>
 <script>
+
+    function getAuthorId() {
+        console.log(document.cookie);
+    const cookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('user_id='));
+    return cookie ? cookie.split('=')[1] : null;
+}
+
     function getCSRFToken() {
     const cookie = document.cookie
         .split('; ')
@@ -77,17 +85,22 @@
     document.getElementById('save-form').addEventListener('submit', async function(event) {
         event.preventDefault();
         let formData = new FormData(this);
-
-        let response = await fetch(apiUrl, {
+        let request = {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken(),
             },
             credentials: "include",
             body: formData
-        });
-    })
+        }
+
+        let response = await fetch(apiUrl, request);
+        let responseData = await response.json();
+        if (responseData.url) {
+            window.location.href = responseData.url
+        }
+
+    });
 
 </script>
 
