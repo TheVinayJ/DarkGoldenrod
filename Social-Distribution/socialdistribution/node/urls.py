@@ -9,7 +9,6 @@ from .login import SignupView, LoginView, LogoutView, UserInfoView
 urlpatterns = [
     path("", views.display_feed, name="index"),
     path("add/", views.editor, name="add"),
-    path("save/", views.save, name="save"),
     path("posts/<int:post_id>/", views.view_post, name="view_post"),
     path("posts/<int:id>/like/", views.post_like, name="like"),
     path("posts/<int:id>/likecomment/", views.comment_like, name="comment_like"),
@@ -18,7 +17,6 @@ urlpatterns = [
     path('authors/follow/<int:author_id>/', views.local_api_follow, name='follow_author'),  # New URL for follow action
     path('authors/unfollow/<int:author_id>/', views.unfollow_author, name='unfollow_author'),
     ### SUGGESTION: Maybe we should change the profile path to authors/<int:user_id>/profile/
-    path("<int:author_id>/profile/", views.profile, name='profile'),
     path("<int:author_id>/followers/", views.followers_following, name='followers'),
     path("<int:author_id>/followings/", views.followers_following, name='followings'),
 
@@ -26,8 +24,10 @@ urlpatterns = [
     path('<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
     path('<int:author_id>/follower_requests/decline/<int:follower_id>/', views.decline_follow, name='decline_follow'),
 
-    path("<int:author_id>/profile/edit", views.edit_profile, name='profile_edit'),
-    path("<int:author_id>/profile/edit/save", views.edit_profile, name='profile_edit_save'),
+    path("<int:author_id>/profile/", views.profile, name='profile'),
+    path("<int:author_id>/profile/edit", views.view_edit_profile, name='profile_edit'),
+    path("api/<int:author_id>/profile/edit", views.edit_profile, name='api_profile_edit'),
+
     path('upload-avatar/', views.edit_profile, name='upload_avatar'),
     path('login/', login.login, name='login'),
     path('signup/', login.signup, name='signup'),
@@ -37,6 +37,8 @@ urlpatterns = [
     path('signout/', login.signout, name='signout'),
     path("posts/<int:post_id>/edit/", views.edit_post, name="edit_post"),
     path("posts/<int:post_id>/delete/", views.delete_post, name="delete_post"),
+    path('authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
+    path('authours/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
 
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
@@ -45,8 +47,7 @@ urlpatterns = [
     path('api/login/', LoginView.as_view(), name='api_login'),
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
     path('api/user-info/', UserInfoView.as_view(), name='user_info'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
 ]
-
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

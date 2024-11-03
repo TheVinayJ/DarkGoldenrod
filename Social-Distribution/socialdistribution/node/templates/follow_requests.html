@@ -12,11 +12,11 @@
                 {% for request_user in follow_authors %}
                     <li>
                         <a href="{% url 'profile' author_id=request_user.id %}">{{ request_user.display_name }}</a> wants to follow you.
-                        <form method="POST" action="{% url 'approve_follow' author_id=author_id follower_id=request_user.id %}">
+                        <form method="POST" action="{% url 'approve_follow' author_id=author.id follower_id=request_user.id %}">
                             {% csrf_token %}
                             <button type="submit">Approve</button>
                         </form>
-                        <form method="POST" action="{% url 'decline_follow' author_id=author_id follower_id=request_user.id  %}">
+                        <form method="POST" action="{% url 'decline_follow' author_id=author.id follower_id=request_user.id  %}">
                             {% csrf_token %}
                             <button type="submit">Decline</button>
                         </form>
