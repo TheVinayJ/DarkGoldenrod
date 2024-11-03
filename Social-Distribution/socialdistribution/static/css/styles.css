@@ -10,7 +10,6 @@ h2{
 form {
     display: flex;
     flex-direction: column;
-    width: 300px;
 }
 
 label {
@@ -21,7 +20,6 @@ label {
 input {
     margin-bottom: 10px;
     padding: 5px;
-    font-size: 16px;
     border-radius: 5px;
     border: 1px solid lightgray;
     transition: box-shadow 0.3s ease-in-out, border 0.3s ease-in-out;
@@ -42,7 +40,6 @@ input:focus {
 button {
     margin-top: 20px;
     padding: 10px;
-    font-size: 16px;
     background-color: darkgoldenrod;
     color: white;
     border: none;
@@ -59,8 +56,7 @@ button:hover {
 a {
     color: darkgoldenrod;
     text-decoration: none;
-    margin-bottom: 5px ;
-    font-size: 17px;
+    margin-bottom: 5px;
     position: relative;
 }
 
