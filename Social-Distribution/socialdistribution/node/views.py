@@ -166,7 +166,7 @@ def save(request):
         contentType += '/' + file_suffix[1:]
         post = Post(title=request.POST["title"],
                     description=request.POST["description"],
-                    image_content=request.POST["content"],
+                    image_content=image,
                     contentType=contentType,
                     visibility=request.POST["visibility"],
                     published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
@@ -661,7 +661,8 @@ def display_feed(request):
             "comments": Comment.objects.filter(post=post).count(),
             "url": reverse("view_post", kwargs={"post_id": post.id}),
             "shared_by": repost.shared_by,
-            "shared_date": repost.shared_date
+            "shared_date": repost,
+            "image_content_url": post.image_content.url if post.image_content and post.image_content.url else None
         })
     
     # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
@@ -697,7 +698,8 @@ def display_feed(request):
                 "text_content": post.text_content,
                 "likes": PostLike.objects.filter(owner=post).count(),
                 "comments": Comment.objects.filter(post=post).count(),
-                "url": reverse("view_post", kwargs={"post_id": post.id})
+                "url": reverse("view_post", kwargs={"post_id": post.id}),
+                "image_content_url": post.image_content.url if post.image_content and post.image_content.url else None
             })
 
     if filter_option == "all":

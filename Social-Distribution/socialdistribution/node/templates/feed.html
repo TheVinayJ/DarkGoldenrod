@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block content %}
-<h1>Posts from Followings and Friends</h1>
+<h1>Feed</h1>
 
 
 <div class="filter-options">
@@ -19,37 +19,34 @@
 <ul class="post-list">
     {% for post in page_obj %}
     <li class="post-item">
+        <!-- Post title and metadata -->
+        <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
+
+        {% if post.image_content_url %}
+        <img src="{{ post.image_content_url }}" alt="Post Image">
+        {% endif %}
+        
         {% if post.shared_by %}
         <!-- This is a repost -->
-        <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
         <p>{{ post.description }}</p>
         <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
-        <p>Reposted by {{ post.shared_by }}</p>
-        <!-- Rendered Markdown Content -->
-        <p class="markdown-output">
-            {{ post.text_content|safe }}
-        </p>
-        <!-- Display likes and comments count -->
-        <p>
-            Likes: {{ post.likes }} | Comments: {{ post.comments }}
-        </p>
-        <!-- Like and Comment buttons -->
-        <a href="{% url 'view_post' post.id %}#comments">Comment</a>
+        <p>Reposted by {{ post.shared_by.display_name }}</p>
         {% else %}
-        <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
+        <!-- Normal post -->
         <p>{{ post.description }}</p>
         <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
+        {% endif %}
+        
         <!-- Rendered Markdown Content -->
         <p class="markdown-output">
             {{ post.text_content|safe }}
         </p>
+        
         <!-- Display likes and comments count -->
-        <p>
-            Likes: {{ post.likes }} | Comments: {{ post.comments }}
-        </p>
-        <!-- Like and Comment buttons -->
-        <a href="{% url 'view_post' post.id %}#comments">Comment</a>
-        {% endif %}
+        <div class="post-actions">
+            <p>Likes: {{ post.likes }} | Comments: {{ post.comments }}</p>
+            <a href="{% url 'view_post' post.id %}#comments">Comment</a>
+        </div>
     </li>
     {% endfor %}
 </ul>

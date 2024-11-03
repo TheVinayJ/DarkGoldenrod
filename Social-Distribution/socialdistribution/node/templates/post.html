@@ -6,6 +6,9 @@
 {% block content %}
     <h1>{{ post.title }}</h1>
     <p>{{ post.description }}</p>
+    {% if post.image_content %}
+    <img src="{{ post.image_content.url }}" alt="Post Image">
+    {% endif %}
     <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
     <div class="post-content">
         {{ post.text_content|linebreaks }}
