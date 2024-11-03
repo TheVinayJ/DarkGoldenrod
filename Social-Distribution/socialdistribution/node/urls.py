@@ -17,7 +17,6 @@ urlpatterns = [
     path('authors/follow/<int:author_id>/', views.local_api_follow, name='follow_author'),  # New URL for follow action
     path('authors/unfollow/<int:author_id>/', views.unfollow_author, name='unfollow_author'),
     ### SUGGESTION: Maybe we should change the profile path to authors/<int:user_id>/profile/
-    path("<int:author_id>/profile/", views.profile, name='profile'),
     path("<int:author_id>/followers/", views.followers_following, name='followers'),
     path("<int:author_id>/followings/", views.followers_following, name='followings'),
 
@@ -25,8 +24,10 @@ urlpatterns = [
     path('<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
     path('<int:author_id>/follower_requests/decline/<int:follower_id>/', views.decline_follow, name='decline_follow'),
 
-    path("<int:author_id>/profile/edit", views.edit_profile, name='profile_edit'),
-    path("<int:author_id>/profile/edit/save", views.edit_profile, name='profile_edit_save'),
+    path("<int:author_id>/profile/", views.profile, name='profile'),
+    path("<int:author_id>/profile/edit", views.view_edit_profile, name='profile_edit'),
+    path("api/<int:author_id>/profile/edit", views.edit_profile, name='api_profile_edit'),
+
     path('upload-avatar/', views.edit_profile, name='upload_avatar'),
     path('login/', login.login, name='login'),
     path('signup/', login.signup, name='signup'),
