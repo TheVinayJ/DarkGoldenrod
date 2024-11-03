@@ -5,10 +5,13 @@
     <title>Username's Profile</title>
     <meta charset="UTF-8">
     <style>
+        body {
+            margin-left: 10px;
+        }
         a {
             color: darkgoldenrod;
             text-decoration: none;
-            padding: 5px 10px;
+            margin-bottom: 5px ;
             font-size: 17px;
         }
         a:hover {
@@ -69,48 +72,44 @@
     <form method="GET" action="{% url 'follow_requests' user.id %}">
         <button type="submit">View Follow Requests</button>
     </form>
-        
         <button id="logout-button">Sign Out</button>
         
     {% else %}
-    {% if is_following %}
-    <form method="POST" action="{% url 'unfollow_author' user.id %}">
-        {% csrf_token %}
-        <button type="submit">
-            Unfollow
-        </button>
-    </form>
-    {% elif is_pending %}
-    <form method="POST" action="{% url 'unfollow_author' user.id %}">
-        {% csrf_token %}
-        <button type="submit">
-            Pending
-        </button>
-    </form>
-    {% else %}
-    <form method="POST" action="{% url 'follow_author' user.id %}">
-        {% csrf_token %}
-        <button type="submit">
-            Follow
-        </button>
-    </form>
+        
+        {% if is_following %}
+        <form method="POST" action="{% url 'unfollow_author' user.id %}">
+            {% csrf_token %}
+            <button type="submit">
+                Unfollow
+            </button>
+        </form>
+        {% elif is_pending %}
+        <form method="POST" action="{% url 'unfollow_author' user.id %}">
+            {% csrf_token %}
+            <button type="submit">
+                Pending
+            </button>
+        </form>
+        {% else %}
+        <form method="POST" action="{% url 'follow_author' user.id %}">
+            {% csrf_token %}
+            <button type="submit">
+                Follow
+            </button>
+        </form>
+        {% endif %}
     {% endif %}
-    {% endif %}
-
-    {% if user.description %}
-    <h2>{{ user.description }}</h2>
-    {% endif %}
+    
+    <h2>{{ user.description|default:"&nbsp;" }}</h2>
 
     <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
     <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
 
     <nav>
-        <!--            <a href="#" onclick="showSection('feed')" style="margin-right: 15px;" >All Content</a>-->
         <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
         <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
     </nav>
-
-
+    
     <div id="posts" class="section active">
         {% if posts %}
         <ul class="post-list">
@@ -125,13 +124,13 @@
 
     <div id="github" class="section">
     {% if activity %}
-    <ul class="github_activity">
-        {% for event in activity %}
-            {% include 'profile/post_in_profile.html' with post=event %}
-        {% endfor %}
-    </ul>
+        <ul class="github_activity">
+            {% for event in activity %}
+                {% include 'profile/post_in_profile.html' with post=event %}
+            {% endfor %}
+        </ul>
     {% else %}
-    <p>No GitHub activity available.</p>
+        <p>No GitHub activity available.</p>
     {% endif %}
 </div>
     <script>

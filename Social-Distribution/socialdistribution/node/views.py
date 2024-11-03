@@ -1,5 +1,5 @@
 from django.core import signing
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
@@ -295,6 +295,36 @@ def profile(request, author_id):
     retrieve_github(user)
     github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
 
+    response_data = {
+        'user': {
+            'id': user.id,
+            'profile photo': user.profile_image,
+            'display name': user.display_name,
+            'description': user.description,
+            'github': user.github,
+        },
+        'posts': [
+            {
+                'id': post.id,
+                'title': post.title,
+                'description': post.description,
+                # 'content': post.content,
+                'published': post.published,
+                'visibility': post.visibility,
+            } for post in authors_posts
+        ],
+        'activity': [
+            {
+                'id': post.id,
+                'title': post.title,
+                'description': post.description,
+                # 'content': post.content,
+                'published': post.published,
+                'visibility': post.visibility,
+            } for post in github_posts
+        ],
+    }
+
     return render(request, "profile/profile.html", {
         'user': user,
         'posts': authors_posts,
@@ -359,33 +389,28 @@ def retrieve_github(user):
             )
     # Ends here
 
+def view_edit_profile(request,author_id):
+    user = get_object_or_404(Author, id=author_id)
+    serializer = AuthorProfileSerializer(user)
+    return render(request, 'profile/edit_profile.html', {'user': serializer.data})
 
-@api_view(['GET','POST'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def edit_profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
-
-    if request.method == 'GET':
-        serializer = AuthorProfileSerializer(user)
-        return render(request, 'profile/edit_profile.html',{'user': serializer.data})
 
     if request.method == 'POST':
         original_github = user.github
         serializer = AuthorProfileSerializer(user, data=request.data)  # This should handle multipart/form-data
 
         if serializer.is_valid():
-            if request.FILES.get('profile_image'):
-                # Set the new image if it exists
-                user.profile_image = request.FILES['profile_image']
-
             # Check for changes in GitHub username
             if original_github != serializer.validated_data.get('github'):
                 Post.objects.filter(author=user, description="Public Github Activity").delete()
 
-            serializer.save()  # Save the updated user data
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer.save()
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(serializer.data, status=200)
 
 @api_view(['GET'])
 def followers_following(request, author_id):
@@ -492,20 +517,16 @@ def follow_requests(request, author_id):
         'author': current_author,
     })
 
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def approve_follow(request, author_id, follower_id):
     follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
     follow_request.approved = True
     follow_request.save()
-    return Response({"message": "Follow request approved."}, status=status.HTTP_200_OK)
+    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def decline_follow(request, author_id, follower_id):
     follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
     follow_request.delete()
-    return Response({"message": "Follow request approved."}, status=status.HTTP_200_OK)
+    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
 ### WARNING: Only works for posts from authors of the same node right now
