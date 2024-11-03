@@ -10,10 +10,12 @@
     "build1": "esbuild webapp/auth-check.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/auth-check.min.js",
     "build2": "esbuild webapp/authentication.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/authentication.min.js",
     "build3": "esbuild webapp/markdown-editor.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/markdown-editor.min.js",
-    "build:js": "npm run build1 && npm run build2 && npm run build3",
+    "build4": "esbuild webapp/CSRFToken.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/CSRFToken.min.js",
+    "build:js": "npm run build1 && npm run build2 && npm run build3 && npm run build4",
     "watch1": "esbuild webapp/auth-check.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/auth-check.min.js --watch",
     "watch2": "esbuild webapp/authentication.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/authentication.min.js --watch",
     "watch3": "esbuild webapp/markdown-editor.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/markdown-editor.min.js --watch",
-    "build:js:watch": "npm-run-all --parallel watch1 watch2 watch3"
+    "watch4": "esbuild webapp/CSRFToken.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/CSRFToken.min.js --watch",
+    "build:js:watch": "npm-run-all --parallel watch1 watch2 watch3 watch4"
   }
 }
