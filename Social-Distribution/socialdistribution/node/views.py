@@ -282,7 +282,7 @@ def view_post(request, post_id):
     liked = False
 
     if post.author != author: # if user that is not the creator is attempting to view
-        if post.visibility == "FRIENDS" or post.visibility == "UNLISTED":
+        if post.visibility == "FRIENDS":
             try:
                 follow = get_object_or_404(Follow, follower=author, following = post.author)
             except:
