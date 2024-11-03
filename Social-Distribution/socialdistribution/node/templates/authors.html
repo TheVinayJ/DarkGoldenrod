@@ -13,19 +13,29 @@
     {% block content %}
     <h1>List of Authors</h1>
 
+    <!-- Search form -->
+    <form method="get" action="">
+        <input type="text" name="q" placeholder="Search authors..." value="{{ query }}">
+        <button type="submit">Search</button>
+    </form>
+
     <ul>
         {% if messages %}
         <ul class="messages">
             {% for message in messages %}
             <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-                {% endfor %}
+            {% endfor %}
         </ul>
         {% endif %}
 
         {% for author in authors %}
         <li>
             <!-- Link to the author's profile page -->
-            <strong><a href="{% url 'profile' author.id %}">{{ author.display_name }}</a></strong><br>
+            {% if author.linkable %}
+                <strong><a href="{% url 'profile' author.id %}">{{ author.display_name }}</a></strong><br>
+            {% else %}
+                <strong>{{ author.display_name }}</strong><br>
+            {% endif %}
 
             Host: {{ author.host }}<br>
             GitHub: <a href="{{ author.github }}">{{ author.github }}</a><br>

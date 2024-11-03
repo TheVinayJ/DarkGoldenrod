@@ -1,5 +1,5 @@
 from django.core import signing
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
@@ -10,65 +10,92 @@ from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
 from .serializers import AuthorProfileSerializer
 import datetime
+import requests
 import os
 from .forms import AuthorProfileForm
 from django.core.paginator import Paginator
 from .forms import ImageUploadForm
 import http.client
 import json
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from django.contrib.auth.decorators import login_required
-
 from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
 
-class AuthorListView(ListView):
-    model = Author
-    template_name = 'authors.html'  # Specify the template to use
-    context_object_name = 'authors'  # Name of the context object to access in the template
+def api_authors_list(request):
+    page = int(request.GET.get('page', 1))  # Number of pages to include
+    size = int(request.GET.get('size', 10))  # Number of records per page\
+    query = request.GET.get('q', '')  # Search query
 
-    # Get the query of the GET request
-    def get_queryset(self):
-        # Get the base queryset (all authors)
-        queryset = Author.objects.all()
+    # Filter authors based on the query if it exists
+    if query:
+        authors = Author.objects.filter(
+            Q(display_name__icontains=query)
+        )
+    else:
+        authors = Author.objects.all()
 
-        # Get the search query and field
-        query = self.request.GET.get('q')
-        field = self.request.GET.get('field')
+    # Use Paginator to split the queryset into pages
+    paginator = Paginator(authors, size)
 
-        # If no query is provided, return all authors
-        if not query:
-            return queryset
+    # Ensure the requested page doesn't exceed total number of pages
+    if page > paginator.num_pages:
+        page = paginator.num_pages
 
-        # Perform filtering based on the field provided
-        if field:
-            # If a specific field is provided, filter by that field
-            if field == "display_name":
-                queryset = queryset.filter(display_name__icontains=query)
-            elif field == "host":
-                queryset = queryset.filter(host__icontains=query)
-            elif field == "github":
-                queryset = queryset.filter(github__icontains=query)
-            elif field == "profile_image":
-                queryset = queryset.filter(profile_image__icontains=query)
-            elif field == "page":
-                queryset = queryset.filter(page__icontains=query)
-            else:
-                # Return an empty queryset if the field is invalid
-                queryset = Author.objects.none()
-        else:
-            # If no specific field is provided, search across all relevant fields
-            queryset = queryset.filter(
-                Q(display_name__icontains=query) |
-                Q(host__icontains=query) |
-                Q(github__icontains=query) |
-                Q(profile_image__icontains=query) |
-                Q(page__icontains=query)
-            )
+    # Collect all authors up to the requested page
+    author_list = []
+    for i in range(1, page + 1):
+        current_page = paginator.page(i)
+        author_list.extend([{
+            "type": "author",
+            "id": f"http://darkgoldenrod/api/authors/{author.id}",
+            "host": author.host,
+            "display_name": author.display_name,
+            "github": author.github,
+            "profileImage": author.profile_image.url if author.profile_image else '',
+            "page": author.page
+        } for author in current_page])
 
-        return queryset
+    response_data = {
+        "type": "authors",
+        "authors": author_list,
+    }
+
+    return JsonResponse(response_data)
+
+def authors_list(request):
+    query = request.GET.get('q', '')
+    page = request.GET.get('page', 1)
+    size = request.GET.get('size', 10)
+
+    # Construct the URL for the API endpoint
+    api_url = request.build_absolute_uri(reverse('api_authors_list'))
+    api_url += f'?page={page}&size={size}'
+
+    if query:
+        api_url += f'&q={query}'
+
+    # Make the GET request to the API endpoint
+    response = requests.get(api_url)
+    print("Response: ", response)
+    authors = response.json().get('authors', []) if response.status_code == 200 else []
+    print("Response body: ", response.json())
+
+    for author in authors:
+        author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
+        author['id'] = author['id'].split('/')[-1] if author['linkable'] else author['id']
+
+    context = {
+        'authors': authors,
+        'query': query,
+        'total_pages': response.json().get('total_pages', 1) if response.status_code == 200 else 1,
+    }
+
+    return render(request, 'authors.html', context)
+
 
 
 def editor(request):
@@ -429,27 +456,105 @@ def get_author(request):
         return request.user
     return None
 
+
+def local_api_follow(request, author_id):
+    # send a Post request to INBOX with the follow request object
+    # Called by authors.html
+    # get current author id and follow author id for POST request body
+    # author_id should have the full url (include node and everything) inside.
+    current_author = get_author(request)
+    author_to_follow = get_object_or_404(Author, id=author_id)
+
+
+    # Construct the follow request object
+    follow_request = {
+        "type": "follow",
+        "summary": f"{current_author.display_name} wants to follow {author_to_follow.display_name}",
+        "actor": {
+            "type": "author",
+            "id": f"http://darkgoldenrod/api/authors/{current_author.id}",
+            "host":"http://darkgoldenrod/api/",
+            "displayName": current_author.display_name,
+            "github": current_author.github,
+            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+            "page": current_author.page,
+        },
+        "object": {
+            "type": "author",
+            "id": f"http://darkgoldenrod/api/authors/{author_to_follow.id}",
+            "host":"http://darkgoldenrod/api/",
+            "displayName": author_to_follow.display_name,
+            "github": author_to_follow.github,
+            "profileImage": author_to_follow.profile_image.url if current_author.profile_image else None,
+            "page": author_to_follow.page,
+        }
+    }
+
+    # Send the POST request to the target author's inbox endpoint
+    inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
+    response = requests.post(inbox_url, json=follow_request)
+
+    if response.status_code in [200, 201]:
+        print("Sent Follow request")
+        print(f"Sent to: {inbox_url}")
+        print(f"Response URL: {response.url}")
+        messages.success(request, "Follow request sent successfully.")
+    else:
+        print("Failed to send Follow request")
+        messages.error(request, "Failed to send follow request. Please try again.")
+
+    return redirect('authors')
+
+
+@csrf_exempt
+def inbox(request, author_id):
+    print("Inbox function ran")
+    if request.method == 'POST':
+        try:
+            print("Inbox POST request received")
+            # Parse the request body
+            body = json.loads(request.body)
+            print("Request body:", body)
+            if body['type'] == 'follow':
+                # Extract relevant information and call follow_author
+                follower = body['actor']
+                following = body['object']
+                print("Follow request type detected")
+                return follow_author(follower, following)
+            # Add additional handling for other types (e.g., post, like, comment) as needed
+        except (json.JSONDecodeError, KeyError):
+            print("Error processing request:", e)
+            return JsonResponse({'error': 'Invalid request format'}, status=400)
+    
+    return JsonResponse({'message': 'Method not allowed'}, status=405)
+    # if type = "follow":
+    #     follow_author(author_id, follow_id)
+    # identify the post request from the body by "type"
+
+
+### Is called by def inbox()
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
-def follow_author(request, author_id):
-    # Get the author being followed
-    author_to_follow = get_object_or_404(Author, id=author_id).id
+def follow_author(follower, following):
 
-    # Get the logged-in author (assuming you have a user to author mapping)
-    current_author = get_author(request).id # Adjust this line to match your user-author mapping
+    print("follow_author ran")
 
-    # Check if the follow relationship already exists
-    follow_exists = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/" + str(current_author), following="http://darkgoldenrod/api/authors/" + str(author_to_follow)).exists()
+    follower_url = follower['id']
+    following_url = following['id']
+
+    print(f'follower: {follower}')
+    print(f'following: {following}')
+
+    follow_exists = Follow.objects.filter(follower=follower_url, following=following_url).exists()
+
+    print(f"Tested follow_exists: {follow_exists}")
 
     if not follow_exists:
-        # Create a new follow relationship
-        Follow.objects.create(follower="http://darkgoldenrod/api/authors/" + str(current_author), following="http://darkgoldenrod/api/authors/" + str(author_to_follow))
-        messages.success(request, "You sucessfully followed this author.")
+        print("Creating follow object")
+        Follow.objects.create(follower=follower_url, following=following_url)
+        
+        return JsonResponse({'message': 'Follow request processed successfully'}, status=200)
     else:
-        print("No follow relationship exists between these authors.")
-        messages.warning(request, "You already followed this author.")
-
-    # Redirect back to the authors list or a success page
-    return redirect('authors')
+        return JsonResponse({'message': 'Follow relationship already exists'}, status=400)
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
 def unfollow_author(request, author_id):
@@ -516,42 +621,32 @@ def display_feed(request):
     """
     Display posts from the authors the logged-in user is following.
     """
+
     # Get the current user's full author URL
     current_author = get_author(request).id
 
     # Get filter option from URL query parameters (default is 'all')
     filter_option = request.GET.get('filter', 'all')
 
-    public_posts = Post.objects.filter(visibility="PUBLIC")
-
     # Get the authors that the current user is following
     follow_objects = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/" + str(current_author), approved=True)
+
 
     followings = list(follow_objects.values_list('following', flat=True))
     cleaned_followings = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in followings]
 
-
     friends = [follow.following for follow in follow_objects if follow.is_friend()]
     cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
 
-    if not cleaned_followings and not cleaned_friends:
-        return render(request, 'feed.html', {'page_obj': [], 'author_id': current_author})
-
-    # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
-    # follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
-    # print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
-    # print(f'Author IDs: {followings}|')
-    # print(f"Cleaned Author IDs: {cleaned_followings}|")
-    # print(f"{public_posts}")
-
-    # Retrieve posts from authors the user is following
 
     public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
 
     follow_posts = Post.objects.filter(author__in=cleaned_followings, visibility__in=['PUBLIC', 'UNLISTED'])
 
     friend_posts = Post.objects.filter(author__in=cleaned_friends, visibility__in=['PUBLIC', 'UNLISTED','FRIENDS'])
+    
     reposts = Repost.objects.filter(shared_by__in=cleaned_followings).order_by('-shared_date')
+
     cleaned_reposts = []
     for repost in reposts:
         post = repost.original_post
@@ -568,10 +663,19 @@ def display_feed(request):
             "shared_by": repost.shared_by,
             "shared_date": repost.shared_date
         })
+    
+    # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
+    # follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
+    # print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
+    # print(f'Author IDs: {followings}|')
+    # print(f"Cleaned Author IDs: {cleaned_followings}|")
+    # print(f"Public posts: {public_posts}\n")
+
+    # Retrieve posts from authors the user is following
 
     # Filter based on the selected option
     if filter_option == "followings":
-        posts = (follow_posts | friend_posts).distinct().order_by('-published')
+        posts = (follow_posts | friend_posts).order_by('-published')
     elif filter_option == "public":
         posts = public_posts.order_by('-published')
     elif filter_option == "friends":
@@ -580,7 +684,6 @@ def display_feed(request):
         cleaned_posts = cleaned_reposts
     else:  # 'all' filter (default)
         posts = (public_posts | follow_posts | friend_posts).distinct().order_by('-published')
-
 
     if filter_option != "reposts":
         cleaned_posts = []
