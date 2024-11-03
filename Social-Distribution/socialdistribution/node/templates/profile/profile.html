@@ -49,6 +49,7 @@
 
     </style>
     {% load static %}
+    <script src="{% static 'authentication.min.js' %}"></script>
     <script src="{% static 'markdown-editor.min.js' %}"></script>
 </head>
 
@@ -70,11 +71,9 @@
     <form method="GET" action="{% url 'follow_requests' user.id %}">
         <button type="submit">View Follow Requests</button>
     </form>
-
-    <form action="/node/signout/" method="post">
-        {% csrf_token %}
-        <button type="submit">Sign out</button>
-    </form>
+        
+        <button id="logout-button">Sign Out</button>
+        
     {% else %}
     {% if is_following %}
     <form method="POST" action="{% url 'unfollow_author' user.id %}">
@@ -137,7 +136,6 @@
     <p>No GitHub activity available.</p>
     {% endif %}
 </div>
-
     <script>
         function showSection(sectionId) {
             // Hide all sections
