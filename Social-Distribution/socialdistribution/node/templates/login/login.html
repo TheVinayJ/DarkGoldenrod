@@ -1,32 +1,98 @@
-<!-- yourapp/templates/login.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
     {% load static %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            padding-top: 20vh;
+        }
+
+        h2, a {
+            color: darkgoldenrod;
+            font-weight: bold;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            margin-bottom: 10px;
+            padding: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid lightgray;
+            transition: color 0.3s ease-in-out;
+        }
+
+        input:focus {
+            outline: none;
+            border: 2px solid darkgoldenrod;
+            box-shadow: darkgoldenrod 0px 0px 20px -5px;
+
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: darkgoldenrod;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        button:hover {
+            background-color: hotpink;
+        }
+
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid lightgrey;
+            padding: 30px;
+            border-radius: 20px;
+            align-items: center;
+            box-shadow: darkgoldenrod 0px 0px 40px -20px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Login</h2>
-    <form id="login-form" method="POST">
-        {% csrf_token %}
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required><br><br>
+    <div class="form-container">
+        <h2>Login</h2>
+        <form id="login-form" method="POST">
+            {% csrf_token %}
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required><br><br>
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required><br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br><br>
 
-        <!-- Ensure 'next' is correctly captured -->
-        <input type="hidden" id="next" name="next" value="{{ next|default:'/node/' }}">
+            <!-- Ensure 'next' is correctly captured -->
+            <input type="hidden" id="next" name="next" value="{{ next|default:'/node/' }}">
 
-        <button type="submit">Login</button>
-    </form>
-    
-    <p>Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>.</p>
+            <button type="submit">Login</button>
+        </form>
 
-    <div id="error-message" style="color: red;"></div>
+        <p>Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>.</p>
 
+        <div id="error-message" style="color: red;"></div>
+    </div>
     <!-- Include the minified JS file -->
     <script src="{% static 'authentication.min.js' %}"></script>
 </body>
