@@ -7,7 +7,7 @@ from .models import Author, RemoteNode, Post, Like
 from django.contrib.auth import authenticate
 
 
-class LikeSerializer:
+class LikeSerializer(serializers.ModelSerializer):
     pass
 
 
