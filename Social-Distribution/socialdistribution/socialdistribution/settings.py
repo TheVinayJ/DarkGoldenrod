@@ -61,12 +61,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-#'node.middleware.AuthenticationMiddleware',
-# Important: Do not delete the following lines
-# CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",                # Replace this with your local development URL 
-    "https://herokuapp_something.com",      # Replace this with our Heroku app URL
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "Authorization",
+    "Content-Type",
+    "X-CSRFToken",
+    "X-Requested-With",
 ]
 
 ROOT_URLCONF = 'socialdistribution.urls'
