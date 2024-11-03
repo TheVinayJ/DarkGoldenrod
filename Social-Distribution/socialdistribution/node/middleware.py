@@ -18,3 +18,4 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
             request.user = user
         except Exception:
             request.user = AnonymousUser()
+

@@ -6,6 +6,13 @@ function getCSRFToken() {
     return cookie ? cookie.split('=')[1] : '';
 }
 
+function getAuthorId() {
+    const cookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('author_id='));
+    return cookie ? cookie.split('=')[1] : null;
+}
+
 // Function to handle login
 async function handleLogin(event) {
     event.preventDefault();
@@ -191,3 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutButton.addEventListener('click', handleLogout);
     }
 });
+
+window.getCSRFToken = getCSRFToken;
+window.getAuthorId = getAuthorId;
