@@ -407,7 +407,7 @@ def get_author(request):
         Author instance if authenticated, else None.
     """
     if request.user.is_authenticated:
-        return request.user  # Assumes request.user is an Author instance
+        return request.user
     return None
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
@@ -619,10 +619,3 @@ def upload_image(request):
     else:
         form = ImageUploadForm()
     return render(request, 'node_admin/upload_image.html', {'form': form})
-
-
-from django.http import JsonResponse
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def test_auth_view(request):
-    return JsonResponse({'message': f'Authenticated as {request.user.email}'})
