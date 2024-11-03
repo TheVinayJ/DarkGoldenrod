@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +29,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+AUTH_USER_MODEL = 'node.Author'
+
 
 # Application definition
 
@@ -38,20 +41,32 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'encrypted_model_fields',
+    'corsheaders',
     'node',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'node.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
+]
+
+#'node.middleware.AuthenticationMiddleware',
+# Important: Do not delete the following lines
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",                # Replace this with your local development URL 
+    "https://herokuapp_something.com",      # Replace this with our Heroku app URL
 ]
 
 ROOT_URLCONF = 'socialdistribution.urls'
@@ -71,6 +86,51 @@ TEMPLATES = [
         },
     },
 ]
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'node.authentication.CookieJWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/day',
+        'anon': '100/day',
+    },
+    'EXCEPTION_HANDLER': 'node.utils.custom_exception_handler',
+}
+
+
+# Simple JWT Configuration
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Adjust as needed
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'TOKEN_BLACKLIST_ENABLED': False,  # Disable token blacklisting
+    'UPDATE_LAST_LOGIN': True,  # Optional: Update last login time
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'USER_ID_FIELD': 'id',          # Explicitly set to match your Author model
+    'USER_ID_CLAIM': 'user_id',     # Ensures the token contains the correct claim
+}
+
+FIELD_ENCRYPTION_KEY = 'f4E4uGHPBy0TxXDfOznqBt9XMMoMkrxt/9uNiXhEdtM='
+ENCRYPTED_MODEL_FIELDS_KEY = os.environ.get('ENCRYPTED_MODEL_FIELDS_KEY', 'f4E4uGHPBy0TxXDfOznqBt9XMMoMkrxt/9uNiXhEdtM=')
+
+# Security Settings
+CSRF_COOKIE_SECURE = True  # Set to True in production
+SESSION_COOKIE_SECURE = True  # Set to True in production
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 WSGI_APPLICATION = 'socialdistribution.wsgi.application'
 

@@ -3,6 +3,17 @@
     "commonmark": "^0.31.2",
     "emoji-mart": "^5.6.0",
     "esbuild": "^0.24.0",
-    "marked": "^14.1.2"
+    "marked": "^14.1.2",
+    "npm-run-all": "^4.1.5"
+  },
+  "scripts": {
+    "build1": "esbuild webapp/auth-check.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/auth-check.min.js",
+    "build2": "esbuild webapp/authentication.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/authentication.min.js",
+    "build3": "esbuild webapp/markdown-editor.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/markdown-editor.min.js",
+    "build:js": "npm run build1 && npm run build2 && npm run build3",
+    "watch1": "esbuild webapp/auth-check.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/auth-check.min.js --watch",
+    "watch2": "esbuild webapp/authentication.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/authentication.min.js --watch",
+    "watch3": "esbuild webapp/markdown-editor.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/markdown-editor.min.js --watch",
+    "build:js:watch": "npm-run-all --parallel watch1 watch2 watch3"
   }
 }

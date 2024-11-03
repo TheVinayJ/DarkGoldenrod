@@ -1,7 +1,10 @@
-from django.urls import path
+from django.urls import path, include
 from . import views, login
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework import routers
+from rest_framework_simplejwt.views import TokenRefreshView
+from .login import SignupView, LoginView, LogoutView, UserInfoView
 
 urlpatterns = [
     path("", views.display_feed, name="index"),
@@ -34,4 +37,11 @@ urlpatterns = [
     path('signout/', login.signout, name='signout'),
     path("posts/<int:post_id>/edit/", views.edit_post, name="edit_post"),
     path("posts/<int:post_id>/delete/", views.delete_post, name="delete_post"),
+    
+    path('api/signup/', SignupView.as_view(), name='api_signup'),
+    path('api/login/', LoginView.as_view(), name='api_login'),
+    path('api/logout/', LogoutView.as_view(), name='api_logout'),
+    path('api/user-info/', UserInfoView.as_view(), name='user_info'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('test-auth/', views.test_auth_view, name='test_auth_view'),
 ]

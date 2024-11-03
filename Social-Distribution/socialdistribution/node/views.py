@@ -15,6 +15,13 @@ from django.core.paginator import Paginator
 from .forms import ImageUploadForm
 import http.client
 import json
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth.decorators import login_required
+
+from .utils import get_authenticated_user_id, AuthenticationFailed
+from rest_framework.response import Response
+from rest_framework import status
 
 class AuthorListView(ListView):
     model = Author
@@ -59,7 +66,7 @@ class AuthorListView(ListView):
                 Q(profile_image__icontains=query) |
                 Q(page__icontains=query)
             )
-        
+
         return queryset
 
 
@@ -99,7 +106,7 @@ def edit_post(request, post_id):
         post.save()
 
         return redirect('view_post', post_id=post.id)
-    
+
     else:
         return render(request, 'edit_post.html', {
             'post': post,
@@ -187,6 +194,8 @@ def add_comment(request, id):
     return(redirect(f'/node/posts/{id}/'))
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def view_post(request, post_id):
     """
     For viewing a post
@@ -231,7 +240,8 @@ def view_post(request, post_id):
                             ),
     })
 
-
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
     current_author = get_author(request) # logged in author
@@ -330,7 +340,8 @@ def retrieve_github(user):
             )
     # Ends here
 
-
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def edit_profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
 
@@ -372,19 +383,20 @@ def followers_following(request, author_id):
         'DisplayTitle': title})
 
 def get_author(request):
-    try:
-        author_id_signed = request.COOKIES.get('id')
-        author_id = signing.loads(author_id_signed)
-        author = Author.objects.get(id=author_id)
-        return author
-    except (Author.DoesNotExist, signing.BadSignature, TypeError):
-        return None
+    """
+    Retrieves the authenticated Author instance.
+    Returns:
+        Author instance if authenticated, else None.
+    """
+    if request.user.is_authenticated:
+        return request.user  # Assumes request.user is an Author instance
+    return None
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
 def follow_author(request, author_id):
     # Get the author being followed
     author_to_follow = get_object_or_404(Author, id=author_id).id
-    
+
     # Get the logged-in author (assuming you have a user to author mapping)
     current_author = get_author(request).id # Adjust this line to match your user-author mapping
 
@@ -406,7 +418,7 @@ def follow_author(request, author_id):
 def unfollow_author(request, author_id):
     # Get the author being followed
     author_to_unfollow = get_object_or_404(Author, id=author_id).id
-    
+
     # Get the logged-in author (assuming you have a user to author mapping)
     current_author = get_author(request).id # Adjust this line to match your user-author mapping
 
@@ -458,8 +470,9 @@ def decline_follow(request, author_id, follower_id):
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
 ### WARNING: Only works for posts from authors of the same node right now
 # Shows posts from followings and friends
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def display_feed(request):
-    
     """
     Display posts from the authors the logged-in user is following.
     """
@@ -527,7 +540,7 @@ def display_feed(request):
         cleaned_posts = cleaned_reposts
     else:  # 'all' filter (default)
         posts = (public_posts | follow_posts | friend_posts).distinct().order_by('-published')
-        
+
 
     if filter_option != "reposts":
         cleaned_posts = []
@@ -543,14 +556,14 @@ def display_feed(request):
                 "comments": Comment.objects.filter(post=post).count(),
                 "url": reverse("view_post", kwargs={"post_id": post.id})
             })
-        
+
     if filter_option == "all":
         cleaned_posts = cleaned_reposts + cleaned_posts
-            
+
 
 
     # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
-    
+
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
@@ -565,7 +578,7 @@ def repost_post(request, id):
     # Only public posts can be shared
     if post.visibility != "PUBLIC":
         return HttpResponseForbidden("Post cannot be shared.")
-    
+
     shared_post = Repost.objects.create(
         original_post=post,
         shared_by=get_author(request)
@@ -589,3 +602,9 @@ def upload_image(request):
         form = ImageUploadForm()
     return render(request, 'node_admin/upload_image.html', {'form': form})
 
+
+from django.http import JsonResponse
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def test_auth_view(request):
+    return JsonResponse({'message': f'Authenticated as {request.user.email}'})
