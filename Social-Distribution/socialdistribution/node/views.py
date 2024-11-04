@@ -153,6 +153,7 @@ def edit_post(request, post_id):
 def create_post(request, author):
     contentType = request.POST["contentType"]
     if contentType != "image":
+        contentType = 'text/' + contentType
         post = Post(title=request.POST["title"],
                     description=request.POST["description"],
                     text_content=request.POST["content"],
