@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
+from urllib3 import request
 
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
@@ -149,6 +150,34 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
+def create_post(request, author):
+    contentType = request.POST["contentType"]
+    if contentType != "image":
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    text_content=request.POST["content"],
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    else:
+        image = request.FILES["content"]
+        file_suffix = os.path.splitext(image.name)[1]
+        contentType = request.POST["contentType"]
+        contentType += '/' + file_suffix[1:]
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    image_content=image,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_posts(request, author_id):
@@ -157,32 +186,7 @@ def author_posts(request, author_id):
     """
     author = get_author(request)
     if request.method == 'POST':
-        contentType = request.POST["contentType"]
-        if contentType != "image":
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        text_content=request.POST["content"],
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        else:
-            image = request.FILES["content"]
-            file_suffix = os.path.splitext(image.name)[1]
-            contentType = request.POST["contentType"]
-            contentType += '/' + file_suffix[1:]
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        image_content=image,
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+        create_post(request, author)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
@@ -818,3 +822,7 @@ def api_get_post_from_author(request, author_id, post_id):
         return edit_post(request, post_id)
     elif request.method == 'DELETE':
         return delete_post(request, post_id)
+
+@api_view['GET']
+def get_post():
+    return None
