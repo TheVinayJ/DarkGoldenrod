@@ -29,6 +29,9 @@ class AuthorSerializer(serializers.ModelSerializer):
     def get_page(self, obj):
         return f"http://darkgoldenrod/{obj.id}/profile"
 
+    def get_profileImage(self, obj):
+        return obj.profile_image
+
 class LikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
     author = AuthorSerializer(source='liker')
