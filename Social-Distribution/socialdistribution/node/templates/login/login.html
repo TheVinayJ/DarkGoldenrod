@@ -1,5 +1,3 @@
-<!-- yourapp/templates/login.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -7,28 +5,32 @@
     <meta charset="UTF-8">
     <title>Login</title>
     {% load static %}
+    <link rel="stylesheet" href="{% static " css/login.css" %}">
 </head>
 
 <body>
-    <h2>Login</h2>
-    <form id="login-form" method="POST">
-        {% csrf_token %}
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required><br><br>
+    <div class="form-container">
+        <h2>Login</h2>
+        <form id="login-form" method="POST">
+            {% csrf_token %}
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required><br><br>
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required><br><br>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br><br>
 
-        <!-- Ensure 'next' is correctly captured -->
-        <input type="hidden" id="next" name="next" value="{{ next|default:'/node/' }}">
+            <!-- Ensure 'next' is correctly captured -->
+            <input type="hidden" id="next" name="next" value="{{ next|default:'/node/' }}">
 
-        <button type="submit">Login</button>
-    </form>
 
-    <p>Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>.</p>
+            <button type="submit">Login</button>
+        </form>
 
-    <div id="error-message" style="color: red;"></div>
 
+        <p>Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>.</p>
+
+        <div id="error-message" style="color: red;"></div>
+    </div>
     <!-- Include the minified JS file -->
     <script src="{% static 'authentication.min.js' %}"></script>
 </body>

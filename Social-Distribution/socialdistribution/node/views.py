@@ -1,3 +1,5 @@
+from crypt import methods
+
 from django.core import signing
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.utils import timezone
@@ -5,10 +7,12 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
+from urllib3 import request
+
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
-from .serializers import AuthorProfileSerializer
+from .serializers import AuthorProfileSerializer, PostSerializer
 import datetime
 import requests
 import os
@@ -24,7 +28,6 @@ from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
-
 
 
 def api_authors_list(request):
@@ -147,6 +150,42 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
+def create_post(request, author):
+    contentType = request.POST["contentType"]
+    if contentType != "image":
+        print(request.POST)
+        content = request.POST.getlist("content")
+        print(content)
+        if contentType == 'plain':
+            content = content[0]
+        elif contentType == 'markdown':
+            content = content[1]
+        contentType = 'text/' + contentType
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    text_content=content,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    else:
+        image = request.FILES["content"]
+        file_suffix = os.path.splitext(image.name)[1]
+        contentType = request.POST["contentType"]
+        contentType += '/' + file_suffix[1:]
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    image_content=image,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_posts(request, author_id):
@@ -155,32 +194,7 @@ def author_posts(request, author_id):
     """
     author = get_author(request)
     if request.method == 'POST':
-        contentType = request.POST["contentType"]
-        if contentType != "image":
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        text_content=request.POST["content"],
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        else:
-            image = request.FILES["content"]
-            file_suffix = os.path.splitext(image.name)[1]
-            contentType = request.POST["contentType"]
-            contentType += '/' + file_suffix[1:]
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        image_content=image,
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        return JsonResponse({"message": "Post created successfully"}, status=201)
+        return create_post(request, author)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
@@ -195,14 +209,8 @@ def get_posts_from_author(request, author_id):
     else:
         posts = Post.objects.filter(author=author, visibility = 'PUBLIC')
 
-    formatted_posts = [{
-        'type': "post",
-        'title': post.title,
-        'id': f"http://darkgoldenrod/api/authors/{author.id}/posts/{post.id}",
-        'description:': post.description,
-        'contentType': post.contentType,
-        'content': post.content
-    } for post in posts]
+    serializer = PostSerializer(posts, many=True)
+    return Response(serializer.data)
 
 def delete_post(request, post_id):
     author = get_author(request)
@@ -351,6 +359,36 @@ def profile(request, author_id):
     retrieve_github(user)
     github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
 
+    response_data = {
+        'user': {
+            'id': user.id,
+            'profile photo': user.profile_image,
+            'display name': user.display_name,
+            'description': user.description,
+            'github': user.github,
+        },
+        'posts': [
+            {
+                'id': post.id,
+                'title': post.title,
+                'description': post.description,
+                # 'content': post.content,
+                'published': post.published,
+                'visibility': post.visibility,
+            } for post in authors_posts
+        ],
+        'activity': [
+            {
+                'id': post.id,
+                'title': post.title,
+                'description': post.description,
+                # 'content': post.content,
+                'published': post.published,
+                'visibility': post.visibility,
+            } for post in github_posts
+        ],
+    }
+
     return render(request, "profile/profile.html", {
         'user': user,
         'posts': authors_posts,
@@ -415,33 +453,28 @@ def retrieve_github(user):
             )
     # Ends here
 
+def view_edit_profile(request,author_id):
+    user = get_object_or_404(Author, id=author_id)
+    serializer = AuthorProfileSerializer(user)
+    return render(request, 'profile/edit_profile.html', {'user': serializer.data})
 
-@api_view(['GET','POST'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def edit_profile(request, author_id):
     user = get_object_or_404(Author, id=author_id)
-
-    if request.method == 'GET':
-        serializer = AuthorProfileSerializer(user)
-        return render(request, 'profile/edit_profile.html',{'user': serializer.data})
 
     if request.method == 'POST':
         original_github = user.github
         serializer = AuthorProfileSerializer(user, data=request.data)  # This should handle multipart/form-data
 
         if serializer.is_valid():
-            if request.FILES.get('profile_image'):
-                # Set the new image if it exists
-                user.profile_image = request.FILES['profile_image']
-
             # Check for changes in GitHub username
             if original_github != serializer.validated_data.get('github'):
                 Post.objects.filter(author=user, description="Public Github Activity").delete()
 
-            serializer.save()  # Save the updated user data
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer.save()
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(serializer.data, status=200)
 
 @api_view(['GET'])
 def followers_following(request, author_id):
@@ -629,20 +662,16 @@ def follow_requests(request, author_id):
         'author': current_author,
     })
 
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def approve_follow(request, author_id, follower_id):
     follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
     follow_request.approved = True
     follow_request.save()
-    return Response({"message": "Follow request approved."}, status=status.HTTP_200_OK)
+    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def decline_follow(request, author_id, follower_id):
     follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
     follow_request.delete()
-    return Response({"message": "Follow request approved."}, status=status.HTTP_200_OK)
+    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
 ### WARNING: Only works for posts from authors of the same node right now
@@ -778,3 +807,33 @@ def upload_image(request):
     else:
         form = ImageUploadForm()
     return render(request, 'node_admin/upload_image.html', {'form': form})
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def api_get_post_from_author(request, author_id, post_id):
+    if request.method == 'GET':
+        return get_post(request, post_id)
+    elif request.method == 'PUT':
+        return edit_post(request, post_id)
+    elif request.method == 'DELETE':
+        return delete_post(request, post_id)
+
+@api_view(['GET'])
+def get_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    author = get_author(request)
+
+    if post.author != author:  # if user that is not the creator is attempting to view
+        if post.visibility == "FRIENDS":
+            try:
+                follow = get_object_or_404(Follow, follower=author, following=post.author)
+            except:
+                return HttpResponse(status=403)
+            if follow.is_friend():
+                return HttpResponse(status=403)
+
+    if post.visibility == "PRIVATE":
+        if post.author != author:
+            return HttpResponse(status=403)
+
+    return PostSerializer(post).data

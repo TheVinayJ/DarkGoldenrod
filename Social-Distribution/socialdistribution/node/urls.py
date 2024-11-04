@@ -20,11 +20,10 @@ urlpatterns = [
     path("node/<int:author_id>/profile/", views.profile, name='profile'),
     path("node/<int:author_id>/followers/", views.followers_following, name='followers'),
     path("node/<int:author_id>/followings/", views.followers_following, name='followings'),
-
     path('node/<int:author_id>/follower_requests/', views.follow_requests, name='follow_requests'),
     path('node/<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
     path('node/<int:author_id>/follower_requests/decline/<int:follower_id>/', views.decline_follow, name='decline_follow'),
-
+    
     path("node/<int:author_id>/profile/edit", views.edit_profile, name='profile_edit'),
     path("node/<int:author_id>/profile/edit/save", views.edit_profile, name='profile_edit_save'),
     path('node/upload-avatar/', views.edit_profile, name='upload_avatar'),
@@ -37,6 +36,7 @@ urlpatterns = [
     path("node/posts/<int:post_id>/edit/", views.edit_post, name="edit_post"),
     path("node/posts/<int:post_id>/delete/", views.delete_post, name="delete_post"),
 
+
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
     path('api/authors/', views.api_authors_list, name='api_authors_list'),    
@@ -45,5 +45,7 @@ urlpatterns = [
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
     path('api/user-info/', UserInfoView.as_view(), name='user_info'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
+    path('posts/<int:post_id>', views.get_post, name='get_post'),
+    path('authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
+    path('authors/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
 ]

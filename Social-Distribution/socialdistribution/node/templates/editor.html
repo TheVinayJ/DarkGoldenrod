@@ -8,7 +8,7 @@
 <body>
     <h1>Create a new post:</h1>
 
-    <form enctype="multipart/form-data" id="save-form" method="POST" action="/node/save/">
+    <form enctype="multipart/form-data" id="save-form" method="POST">
     <input type="text" name="title" id="post-title" placeholder="Post Title"><br>
 
     <!-- Short description -->
@@ -16,7 +16,7 @@
 
     <!-- Content type selection -->
     <label>Content Type:</label><br>
-    <input type="radio" id="text/plain" name="contentType" value="plaintext" checked>
+    <input type="radio" id="text/plain" name="contentType" value="plain" checked>
     <label for="text/plain">Plaintext</label><br>
     <input type="radio" id="text/markdown" name="contentType" value="markdown">
     <label for="text/markdown">Markdown</label><br>
@@ -49,9 +49,17 @@
     {% csrf_token %}
 </form>
 
-<script src="{% static 'CSRFToken.min.js' %}"></script>
 <script src="{% static 'authentication.min.js' %}"></script>
 <script>
+
+    function getAuthorId() {
+        console.log(document.cookie);
+    const cookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('user_id='));
+    return cookie ? cookie.split('=')[1] : null;
+}
+
     function getCSRFToken() {
     const cookie = document.cookie
         .split('; ')
@@ -72,22 +80,26 @@
     });
 
     let authorID = getAuthorId();
-    let apiUrl = `/api/authors/${authorSerial}/posts`;
+    let apiUrl = `/api/authors/${authorID}/posts`;
 
     document.getElementById('save-form').addEventListener('submit', async function(event) {
         event.preventDefault();
         let formData = new FormData(this);
-
-        let response = await fetch(apiUrl, {
+        let request = {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken(),
             },
             credentials: "include",
             body: formData
-        });
-    })
+        }
+
+        let response = await fetch(apiUrl, request);
+        let responseData = await response.json();
+        if (responseData.url) {
+            window.location.href = responseData.url
+        }
+    });
 
 </script>
 

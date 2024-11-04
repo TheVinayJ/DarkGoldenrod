@@ -26,6 +26,7 @@
         <input type="text" name="github" id="github" value="{{ user.github }}"><br>
 
         <button type="button" id="saveButton">Save</button>
+    
     </form>
 
     <script>
@@ -34,7 +35,7 @@
 
             console.log('Form Data:', formData);
 
-            fetch(`/node/{{user.id}}/profile/edit`, {
+            fetch(`/node/api/{{user.id}}/profile/edit`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
