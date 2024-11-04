@@ -8,11 +8,8 @@
     <p>{{ post.description }}</p>
     <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
     <div class="post-content">
-        {% if post.contentType == "text/plain" or post.contentType == "text/markdown" %}
-        {{ post.text_content|linebreaks }}
-        {% else %}
+        {{ post.text_content }}
         <img src="{{ post.image_content.url }}" alt="{{ post.title }}">
-        {% endif %}
     </div>
 
     {% if author and author.id == post.author.id and post.text_content != "Public Github Activity" %}

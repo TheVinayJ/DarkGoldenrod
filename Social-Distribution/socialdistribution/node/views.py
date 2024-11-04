@@ -153,10 +153,17 @@ def edit_post(request, post_id):
 def create_post(request, author):
     contentType = request.POST["contentType"]
     if contentType != "image":
+        print(request.POST)
+        content = request.POST.getlist("content")
+        print(content)
+        if contentType == 'plain':
+            content = content[0]
+        elif contentType == 'markdown':
+            content = content[1]
         contentType = 'text/' + contentType
         post = Post(title=request.POST["title"],
                     description=request.POST["description"],
-                    text_content=request.POST["content"],
+                    text_content=content,
                     contentType=contentType,
                     visibility=request.POST["visibility"],
                     published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
