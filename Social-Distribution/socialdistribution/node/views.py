@@ -7,7 +7,9 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
+
 from urllib3 import request
+
 
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
@@ -28,6 +30,8 @@ from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
+import ssl
+import certifi
 
 
 def api_authors_list(request):
@@ -227,6 +231,41 @@ def delete_post(request, post_id):
         return redirect('index')
 
 
+def local_api_like(request, id):
+    liked_post = get_object_or_404(Post, id=id)
+    current_author = get_author(request)
+
+    like_object = {
+        "type" : "like",
+        "author" : {
+            "type":"author",
+            "id":f"http://darkgoldenrod/api/authors/{current_author.id}",
+            "page":current_author.page,
+            "host":"http://darkgoldenrod/api/",
+            "displayName":current_author.display_name,
+            "github": current_author.github,
+            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+        },
+        "published" : datetime.datetime.now(),
+        "id":f"http://darkgoldenrod/api/authors/{current_author.id}/liked/166",
+        "object": f"http://darkgoldenrod/authors/{liked_post.author.id}/posts/{liked_post.id}"
+
+    }
+    inbox_url = request.build_absolute_uri(reverse('inbox', args=[current_author.id]))
+    response = request.post(inbox_url, json=like_object)
+
+    if response.status_code in [200, 201]:
+        print("Sent Like request")
+        print(f"Sent to: {inbox_url}")
+        print(f"Response URL: {response.url}")
+        messages.success(request, "Follow request sent successfully.")
+    else:
+        print("Failed to send Follow request")
+        messages.error(request, "Failed to send follow request. Please try again.")
+
+    return redirect('view_post', args=[id])
+
+
 def post_like(request, id):
     """
     Method for liking a post given an ID
@@ -403,7 +442,8 @@ def retrieve_github(user):
     # Me: How to retrieve public github activity of a user, based on their username, to display in an html
     # OpenAI ChatGPT 40 mini generated:
     # Starts here
-    conn = http.client.HTTPSConnection("api.github.com")
+    context = ssl.create_default_context(cafile=certifi.where())
+    conn = http.client.HTTPSConnection("api.github.com", context=context)
     headers = {
         'User-Agent': 'node'
     }
@@ -583,6 +623,8 @@ def inbox(request, author_id):
                 following = body['object']
                 print("Follow request type detected")
                 return follow_author(follower, following)
+            if body['type'] == 'like':
+                return post_like()
             # Add additional handling for other types (e.g., post, like, comment) as needed
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
