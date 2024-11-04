@@ -36,7 +36,7 @@
     <!-- Post Image -->
     {% if post.image_content %}
     <div class="post-image">
-        <img src="{{ post.image_content.url }}" alt="Post Image">
+        <img src="{{ post.image_content.url }}" alt="">
     </div>
     {% endif %}
 
@@ -45,9 +45,7 @@
 
     <!-- Post Content -->
     <div class="post-content">
-        {% if post.contentType == "text/plain" or post.contentType == "text/markdown" %}
         {{ post.text_content|linebreaks }}
-        {% endif %}
     </div>
 
     <!-- Like and Repost Buttons -->

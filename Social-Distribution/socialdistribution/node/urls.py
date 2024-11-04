@@ -38,7 +38,7 @@ urlpatterns = [
     path("posts/<int:post_id>/edit/", views.edit_post, name="edit_post"),
     path("posts/<int:post_id>/delete/", views.delete_post, name="delete_post"),
     path('authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
-    path('authours/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
+    path('authors/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
 
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
