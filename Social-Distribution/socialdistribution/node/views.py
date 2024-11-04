@@ -801,28 +801,28 @@ def upload_image(request):
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
-        post = get_object_or_404(Post, id=post_id)
-        author = get_author(request)
+        get_post(request, post_id)
+    elif request.method == 'PUT':
+        edit_post(request, post_id)
+    elif request.method == 'DELETE':
+        delete_post(request, post_id)
 
-        if post.author != author:  # if user that is not the creator is attempting to view
-            if post.visibility == "FRIENDS":
-                try:
-                    follow = get_object_or_404(Follow, follower=author, following=post.author)
-                except:
-                    return HttpResponse(status=403)
-                if follow.is_friend():
-                    return HttpResponse(status=403)
+@api_view(['GET'])
+def get_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    author = get_author(request)
 
-        if post.visibility == "PRIVATE":
-            if post.author != author:
+    if post.author != author:  # if user that is not the creator is attempting to view
+        if post.visibility == "FRIENDS":
+            try:
+                follow = get_object_or_404(Follow, follower=author, following=post.author)
+            except:
+                return HttpResponse(status=403)
+            if follow.is_friend():
                 return HttpResponse(status=403)
 
-        return PostSerializer(post).data
-    elif request.method == 'PUT':
-        return edit_post(request, post_id)
-    elif request.method == 'DELETE':
-        return delete_post(request, post_id)
+    if post.visibility == "PRIVATE":
+        if post.author != author:
+            return HttpResponse(status=403)
 
-@api_view['GET']
-def get_post():
-    return None
+    return PostSerializer(post).data
