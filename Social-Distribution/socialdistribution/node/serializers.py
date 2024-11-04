@@ -35,10 +35,13 @@ class AuthorSerializer(serializers.ModelSerializer):
         return f"http://darkgoldenrod/{obj.id}/profile"
 
 class LikeSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(default='like')
+    author = AuthorSerializer()
+    published = serializers.DateTimeField()
+    id = serializers.CharField()
+    object = serializers.CharField()
 
-    class Meta:
-        model = Like
-        fields = '__all__'
+    
 
 
 class LikesSerializer(serializers.Serializer):
