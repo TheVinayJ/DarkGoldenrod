@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 import json
 
+# The tests in this file and the helper function was written and debugged with OpenAI, ChatGPT o1-mini
+
 User = get_user_model()
 
 class APISignupViewTest(APITestCase):
@@ -30,7 +32,7 @@ class APISignupViewTest(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         response_data = response.json()
-        
+
         # Check response content
         self.assertIn('message', response_data)
         self.assertEqual(response_data['message'], 'Signup successful')

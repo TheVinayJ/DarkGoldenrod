@@ -5,6 +5,7 @@ from rest_framework import status
 from django.test import override_settings, modify_settings
 import json
 
+# The tests in this file and the helper function was written and debugged with OpenAI, ChatGPT o1-mini
 
 User = get_user_model()
 

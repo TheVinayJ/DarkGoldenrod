@@ -5,6 +5,8 @@ from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.tokens import AccessToken
 import json
 
+# The tests in this file and the helper function was written and debugged with OpenAI, ChatGPT o1-mini
+
 User = get_user_model()
 
 class LoginViewTest(TestCase):
@@ -38,8 +40,6 @@ class LoginViewTest(TestCase):
 
         # Parse JSON response
         response_data = response.json()
-        
-        print(response_data)
 
         # Check response content
         self.assertIn('message', response_data)
