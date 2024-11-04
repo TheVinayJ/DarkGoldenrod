@@ -1,5 +1,3 @@
-# node/tests/test_logout.py
-
 from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -13,8 +11,8 @@ User = get_user_model()
 class LogoutViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.login_url = reverse('api_login')    # Ensure this matches your urls.py
-        self.logout_url = reverse('api_logout')  # Ensure this matches your urls.py
+        self.login_url = reverse('api_login') 
+        self.logout_url = reverse('api_logout')
 
         # Create a user for testing login and logout
         self.test_user = User.objects.create_user(
@@ -30,12 +28,12 @@ class LogoutViewTest(APITestCase):
         login_data = {
             'email': 'testuser@example.com',
             'password': 'testpassword123',
-            'next': '/node/'  # Optional, based on your frontend
+            'next': '/node/'
         }
         response = self.client.post(
             self.login_url,
-            data=login_data,  # Pass as dict; APIClient handles serialization
-            format='json'      # Automatically serializes to JSON
+            data=login_data,
+            format='json'
         )
         return response
 
@@ -52,8 +50,8 @@ class LogoutViewTest(APITestCase):
         # Now, perform logout
         logout_response = self.client.post(
             self.logout_url,
-            data={},            # No data needed for logout
-            format='json'       # Ensure proper content type
+            data={},
+            format='json'
         )
         self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
         print(logout_response)
