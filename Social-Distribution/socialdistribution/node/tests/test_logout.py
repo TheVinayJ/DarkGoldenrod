@@ -10,34 +10,6 @@ import json
 
 User = get_user_model()
 
-# Define custom authentication classes excluding SessionAuthentication
-CUSTOM_AUTHENTICATION_CLASSES = [
-    'rest_framework.authentication.BasicAuthentication',
-    'node.authentication.CookieJWTAuthentication',
-]
-
-@override_settings(
-    REST_FRAMEWORK={
-        'DEFAULT_AUTHENTICATION_CLASSES': CUSTOM_AUTHENTICATION_CLASSES,
-        'DEFAULT_PERMISSION_CLASSES': (
-            'rest_framework.permissions.IsAuthenticated',
-        ),
-        'DEFAULT_THROTTLE_CLASSES': [
-            'rest_framework.throttling.UserRateThrottle',
-            'rest_framework.throttling.AnonRateThrottle',
-        ],
-        'DEFAULT_THROTTLE_RATES': {
-            'user': '1000/day',
-            'anon': '100/day',
-        },
-        'EXCEPTION_HANDLER': 'node.utils.custom_exception_handler',
-    }
-)
-@modify_settings(
-    MIDDLEWARE={
-        'remove': ['django.middleware.csrf.CsrfViewMiddleware'],
-    }
-)
 class LogoutViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
