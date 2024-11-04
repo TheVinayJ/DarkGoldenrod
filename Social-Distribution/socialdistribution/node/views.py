@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from node.serializer import serializer
+from urllib3 import request
 
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
@@ -150,6 +150,42 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
+def create_post(request, author):
+    contentType = request.POST["contentType"]
+    if contentType != "image":
+        print(request.POST)
+        content = request.POST.getlist("content")
+        print(content)
+        if contentType == 'plain':
+            content = content[0]
+        elif contentType == 'markdown':
+            content = content[1]
+        contentType = 'text/' + contentType
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    text_content=content,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    else:
+        image = request.FILES["content"]
+        file_suffix = os.path.splitext(image.name)[1]
+        contentType = request.POST["contentType"]
+        contentType += '/' + file_suffix[1:]
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    image_content=image,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_posts(request, author_id):
@@ -158,32 +194,7 @@ def author_posts(request, author_id):
     """
     author = get_author(request)
     if request.method == 'POST':
-        contentType = request.POST["contentType"]
-        if contentType != "image":
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        text_content=request.POST["content"],
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        else:
-            image = request.FILES["content"]
-            file_suffix = os.path.splitext(image.name)[1]
-            contentType = request.POST["contentType"]
-            contentType += '/' + file_suffix[1:]
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        image_content=image,
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+        return create_post(request, author)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
@@ -609,6 +620,7 @@ def follow_author(follower, following):
         return JsonResponse({'message': 'Follow relationship already exists'}, status=400)
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
@@ -761,6 +773,8 @@ def display_feed(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+
+    
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
@@ -798,8 +812,28 @@ def upload_image(request):
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
-        return view_post(request, post_id)
+        return get_post(request, post_id)
     elif request.method == 'PUT':
         return edit_post(request, post_id)
     elif request.method == 'DELETE':
         return delete_post(request, post_id)
+
+@api_view(['GET'])
+def get_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    author = get_author(request)
+
+    if post.author != author:  # if user that is not the creator is attempting to view
+        if post.visibility == "FRIENDS":
+            try:
+                follow = get_object_or_404(Follow, follower=author, following=post.author)
+            except:
+                return HttpResponse(status=403)
+            if follow.is_friend():
+                return HttpResponse(status=403)
+
+    if post.visibility == "PRIVATE":
+        if post.author != author:
+            return HttpResponse(status=403)
+
+    return PostSerializer(post).data

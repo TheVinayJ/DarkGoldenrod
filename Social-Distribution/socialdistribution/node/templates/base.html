@@ -2,33 +2,36 @@
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>{% block title %}Social Distribution{% endblock %}</title>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    </head>
-    <body>
-        <nav>
-            <ul>
-                <li><a href="/node/">Home</a></li>
-                <li><a href="/node/add">New Post</a></li>
-                {% if author_id %}
-                    <li><a href="{% url 'profile' author_id %}">Profile</a></li>
-                {% else %}
-                    <li><a href="{% url 'login' %}">Login</a></li>
-                {% endif %}
 
-                <li><a href="{% url 'authors' %}">Authors</a></li>
-            </ul>
-        </nav>
+<head>
+    <title>{% block title %}Social Distribution{% endblock %}</title>
+    <meta charset="UTF-8">
+    <!-- <link rel="stylesheet" href="{% static 'css/styles.css' %}"> -->
+</head>
 
-        <div class="container">
-            {% block content %}
-            {% endblock %}
-        </div>
-        
-        {% block scripts %}
+<body>
+    <nav>
+        <ul>
+            <li><a href="/node/">Home</a></li>
+            <li><a href="/node/add">New Post</a></li>
+            {% if author_id %}
+            <li><a href="{% url 'profile' author_id %}">Profile</a></li>
+            {% else %}
+            <li><a href="{% url 'api_login' %}">Login</a></li>
+            {% endif %}
+
+            <li><a href="{% url 'authors' %}">Authors</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        {% block content %}
         {% endblock %}
-        <!-- <script src="{% static 'js/main.js' %}"></script> -->
-    </body>
+    </div>
+
+    {% block scripts %}
+    {% endblock %}
+    <!-- <script src="{% static 'js/main.js' %}"></script> -->
+</body>
+
 </html>
