@@ -73,7 +73,7 @@ class ProfileTests(TestCase):
             'next': '/node/'  # Optional, based on your frontend
         }
         response = self.client.post(
-            self.login_url,
+            reverse('api_login'),
             data=login_data,  # Pass as dict; APIClient handles serialization
             format='json'  # Automatically serializes to JSON
         )

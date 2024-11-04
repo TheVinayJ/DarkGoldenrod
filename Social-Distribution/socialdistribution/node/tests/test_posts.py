@@ -16,6 +16,8 @@ from django.urls import reverse
 from node.models import Author, Post, Comment, PostLike, CommentLike, Follow, AuthorManager
 from django.test import TestCase, Client
 from node import views
+from django.utils import timezone
+import datetime
 
 
 class PostTests(TestCase):
@@ -126,16 +128,16 @@ class PostTests(TestCase):
 
     def test_like_comment(self):
         self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
-        response = self.client.post(reverse('comment_like', args=[self.post.id]),)
+        response = self.client.post(reverse('comment_like'))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(CommentLike.objects.filter(owner=self.comment).exists())
 
     def test_unlike_comment(self):
         self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
-        response = self.client.post(reverse('comment_like', args=[self.post.id]), )
+        response = self.client.post(reverse('comment_like'))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(CommentLike.objects.filter(owner=self.comment).exists())
-        response = self.client.post(reverse('comment_like', args=[self.post.id]), )
+        response = self.client.post(reverse('comment_like'))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
 

@@ -3,6 +3,8 @@ from django.urls import reverse
 from node.models import Author
 import hashlib
 
+
+
 class AuthorListViewTest(TestCase):
 
     @classmethod
@@ -34,8 +36,14 @@ class AuthorListViewTest(TestCase):
         login_data = {
             'email': signup_data['email'],
             'password': signup_data['password'],
+            'next': '/node/'  # Optional, based on your frontend
         }
-        response = self.client.post(reverse('login'), login_data)
+        response = self.client.post(
+            reverse('api_login'),
+            data=login_data,  # Pass as dict; APIClient handles serialization
+            format='json'  # Automatically serializes to JSON
+        )
+        return response
         self.assertEqual(response.status_code, 302)  # Should redirect to index on successful login
 
     def test_view_url_exists_at_desired_location(self):

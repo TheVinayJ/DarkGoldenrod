@@ -62,114 +62,121 @@ class FeedTest(TestCase):
                               following="http://darkgoldenrod/api/authors/" + str(cls.author4.id),
                               approved=True)  # Author 1 follow Author 4
 
-    def login(self):
-        # Log in author1 (current user)
+    # login function follows Duy Bui's login_user test
+    def login(self, author):
         login_data = {
-            'email': self.author1.email,
-            'password': 'password123',
+            'email': author.email,
+            'password': author.password,
+            'next': '/node/'  # Optional, based on your frontend
         }
-        self.client.post(reverse('login'), login_data)
+        response = self.client.post(
+            reverse('api_login'),
+            data=login_data,  # Pass as dict; APIClient handles serialization
+            format='json'  # Automatically serializes to JSON
+        )
+        return response
 
     def test_all_filter(self):
         # Log in as author1
-        self.login()
+        login = self.login(self.author1)
+        if login.status_code == 200:
 
-        # Get the feed
-        response = self.client.get(reverse('following_feed'))
-        self.assertEqual(response.status_code, 200)
+            # Get the feed
+            response = self.client.get(reverse('following_feed'))
+            self.assertEqual(response.status_code, 200)
 
-        # Check that the feed contains the expected posts:
-        # 1. Public and Unlisted posts from followed authors (Author 2 & 4)
-        self.assertContains(response, "Public post by Author 2")
-        self.assertContains(response, "Unlisted post by Author 2")
-        self.assertContains(response, "Friends-only post by Author 2")
-        self.assertContains(response, "Public post by Author 4")
-        self.assertContains(response, "Unlisted post by Author 4")
+            # Check that the feed contains the expected posts:
+            # 1. Public and Unlisted posts from followed authors (Author 2 & 4)
+            self.assertContains(response, "Public post by Author 2")
+            self.assertContains(response, "Unlisted post by Author 2")
+            self.assertContains(response, "Friends-only post by Author 2")
+            self.assertContains(response, "Public post by Author 4")
+            self.assertContains(response, "Unlisted post by Author 4")
 
-        # 3. Public posts from all authors
-        self.assertContains(response, "Public post by Author 3")
+            # 3. Public posts from all authors
+            self.assertContains(response, "Public post by Author 3")
 
-        # Check that the feed does not contain posts that author1 should not see
-        self.assertNotContains(response, "Unlisted post by Author 3")  # No unlisted post from non-followed or non-friends
-        self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
-        self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
+            # Check that the feed does not contain posts that author1 should not see
+            self.assertNotContains(response, "Unlisted post by Author 3")  # No unlisted post from non-followed or non-friends
+            self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
+            self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
 
-        # Check that posts are ordered from newest to oldest
-        posts_in_order = [
-            "Unlisted post by Author 4",
-            "Public post by Author 4",
-            "Public post by Author 3",
-            "Friends-only post by Author 2",
-            "Unlisted post by Author 2",
-            "Public post by Author 2",
-        ]
-        content = response.content.decode("utf-8")
-        for i in range(len(posts_in_order) - 1):
-            self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
+            # Check that posts are ordered from newest to oldest
+            posts_in_order = [
+                "Unlisted post by Author 4",
+                "Public post by Author 4",
+                "Public post by Author 3",
+                "Friends-only post by Author 2",
+                "Unlisted post by Author 2",
+                "Public post by Author 2",
+            ]
+            content = response.content.decode("utf-8")
+            for i in range(len(posts_in_order) - 1):
+                self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
 
 
     def test_following_filter(self):
-        # Log in as author1
-        self.login()
+        login = self.login(self.author1)
+        if login.status_code == 200:
 
-        # Apply the "followings" filter
-        response = self.client.get(reverse('following_feed') + '?filter=followings')
-        self.assertEqual(response.status_code, 200)
+            # Apply the "followings" filter
+            response = self.client.get(reverse('following_feed') + '?filter=followings')
+            self.assertEqual(response.status_code, 200)
 
-        # Check that the feed contains the expected posts from followings (Author 2)
-        self.assertContains(response, "Public post by Author 2")
-        self.assertContains(response, "Unlisted post by Author 2")
-        self.assertContains(response, "Friends-only post by Author 2")
-        self.assertContains(response, "Public post by Author 4")
-        self.assertContains(response, "Unlisted post by Author 4")
+            # Check that the feed contains the expected posts from followings (Author 2)
+            self.assertContains(response, "Public post by Author 2")
+            self.assertContains(response, "Unlisted post by Author 2")
+            self.assertContains(response, "Friends-only post by Author 2")
+            self.assertContains(response, "Public post by Author 4")
+            self.assertContains(response, "Unlisted post by Author 4")
 
-        # Ensure posts from non-followed authors do not appear
-        self.assertNotContains(response, "Public post by Author 3")
-        self.assertNotContains(response, "Unlisted post by Author 3")  # No unlisted post from non-followed or non-friends
-        self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
-        self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
+            # Ensure posts from non-followed authors do not appear
+            self.assertNotContains(response, "Public post by Author 3")
+            self.assertNotContains(response, "Unlisted post by Author 3")  # No unlisted post from non-followed or non-friends
+            self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
+            self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
 
-        # Check that posts are ordered from newest to oldest
-        posts_in_order = [
-            "Unlisted post by Author 4",
-            "Public post by Author 4",
-            "Friends-only post by Author 2",
-            "Unlisted post by Author 2",
-            "Public post by Author 2",
-        ]
-        content = response.content.decode("utf-8")
-        for i in range(len(posts_in_order) - 1):
-            self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
+            # Check that posts are ordered from newest to oldest
+            posts_in_order = [
+                "Unlisted post by Author 4",
+                "Public post by Author 4",
+                "Friends-only post by Author 2",
+                "Unlisted post by Author 2",
+                "Public post by Author 2",
+            ]
+            content = response.content.decode("utf-8")
+            for i in range(len(posts_in_order) - 1):
+                self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
 
     def test_friends_filter(self):
-        # Log in as author1
-        self.login()
+        login = self.login(self.author1)
+        if login.status_code == 200:
 
-        # Apply the "friends" filter
-        response = self.client.get(reverse('following_feed') + '?filter=friends')
-        self.assertEqual(response.status_code, 200)
+            # Apply the "friends" filter
+            response = self.client.get(reverse('following_feed') + '?filter=friends')
+            self.assertEqual(response.status_code, 200)
 
-        # Check that the feed contains posts from friends (mutual follow with Author 2)
-        self.assertContains(response, "Public post by Author 2")
-        self.assertContains(response, "Unlisted post by Author 2")
-        self.assertContains(response, "Friends-only post by Author 2")
+            # Check that the feed contains posts from friends (mutual follow with Author 2)
+            self.assertContains(response, "Public post by Author 2")
+            self.assertContains(response, "Unlisted post by Author 2")
+            self.assertContains(response, "Friends-only post by Author 2")
 
-        # Ensure posts from non-friends do not appear
-        self.assertNotContains(response, "Public post by Author 3")
-        self.assertNotContains(response, "Unlisted post by Author 3")  # No unlisted post from non-followed or non-friends
-        self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
-        self.assertNotContains(response, "Public post by Author 4")
-        self.assertNotContains(response, "Unlisted post by Author 4")  # No unlisted post from non-friends
-        self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
+            # Ensure posts from non-friends do not appear
+            self.assertNotContains(response, "Public post by Author 3")
+            self.assertNotContains(response, "Unlisted post by Author 3")  # No unlisted post from non-followed or non-friends
+            self.assertNotContains(response, "Friends-only post by Author 3")   # No friends post from non-followed or non-friends
+            self.assertNotContains(response, "Public post by Author 4")
+            self.assertNotContains(response, "Unlisted post by Author 4")  # No unlisted post from non-friends
+            self.assertNotContains(response, "Friends-only post by Author 4")   # No friends post from non-friends
 
-        # Check that posts are ordered from newest to oldest
-        posts_in_order = [
-            "Unlisted post by Author 2",
-            "Public post by Author 2",
-        ]
-        content = response.content.decode("utf-8")
-        for i in range(len(posts_in_order) - 1):
-            self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
+            # Check that posts are ordered from newest to oldest
+            posts_in_order = [
+                "Unlisted post by Author 2",
+                "Public post by Author 2",
+            ]
+            content = response.content.decode("utf-8")
+            for i in range(len(posts_in_order) - 1):
+                self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
 
 
     # def test_reposts_filter(self):
