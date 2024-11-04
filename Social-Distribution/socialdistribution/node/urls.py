@@ -51,7 +51,7 @@ urlpatterns = [
     path('api/posts/<int:post_id>', views.get_post, name='get_post'),
     path('api/authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
     path('api/authors/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
-    path('api/authors/<int:author_id>/posts/<inv:post_id>/likes', views.get_post_likes, name='get_post_likes'),
+    # path('api/authors/<int:author_id>/posts/<inv:post_id>/likes', views.get_post_likes, name='get_post_likes'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
 ]
 if settings.DEBUG:

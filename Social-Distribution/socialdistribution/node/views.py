@@ -7,6 +7,8 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
+from zope.component.testfiles.components import content
+
 # from node.serializers import serializer
 
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
@@ -150,40 +152,52 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
+def add_post(request, author_id):
+    author = get_author(request)
+    print(request.POST)
+    contentType = request.POST["contentType"]
+    if contentType != "image":
+        contentType = 'text/' + contentType
+        content = request.POST.getlist("content")
+        print(content)
+        if contentType == 'text/plain':
+            content = content[0]
+        else:
+            content = content[1]
+        print(content)
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    text_content=content,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    else:
+        image = request.FILES["content"]
+        file_suffix = os.path.splitext(image.name)[1]
+        contentType = request.POST["contentType"]
+        contentType += '/' + file_suffix[1:]
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    image_content=image,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_posts(request, author_id):
     """
     Create a new post or return author's posts.
     """
-    author = get_author(request)
     if request.method == 'POST':
-        contentType = request.POST["contentType"]
-        if contentType != "image":
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        text_content=request.POST["content"],
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        else:
-            image = request.FILES["content"]
-            file_suffix = os.path.splitext(image.name)[1]
-            contentType = request.POST["contentType"]
-            contentType += '/' + file_suffix[1:]
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        image_content=image,
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+        add_post(request, author_id)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
