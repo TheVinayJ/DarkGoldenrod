@@ -3,7 +3,8 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from .models import Author, RemoteNode, Post, Like
+from .models import Author, RemoteNode, Post, Like, PostLike, CommentLike
+import datetime
 from django.contrib.auth import authenticate
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -35,33 +36,82 @@ class AuthorSerializer(serializers.ModelSerializer):
         return f"http://darkgoldenrod/{obj.id}/profile"
 
 class LikeSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(default='like')
+    author = AuthorSerializer(source='liker')
+    object = serializers.URLField()
+    published = serializers.DateTimeField(default=datetime.datetime.now)
+    id = serializers.URLField()
 
     class Meta:
-        model = Like
-        fields = '__all__'
+        model = PostLike  
+        fields = ['type', 'author', 'object', 'published', 'id']
 
-
+    # ChatGPT 4o. Nov 2024. How can I identify if a instance in a serializer is of type CommentLike or PostLike.
+    def get_model_class(self):
+        """Helper method to determine which model to use based on the instance"""
+        if hasattr(self.instance, 'owner'):
+            if hasattr(self.instance.owner, 'post'): 
+                return CommentLike
+            return PostLike
+        return PostLike
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        model_class = self.get_model_class()
+        
+        if model_class == CommentLike:
+            comment = instance.owner
+            data['object'] = f"http://darkgoldenrod/api/authors/{comment.author.id}/posts/{comment.post.id}/comments/{comment.id}"
+        else:
+            post = instance.owner
+            data['object'] = f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}"
+        
+        data['id'] = f"http://darkgoldenrod/api/authors/{instance.liker.id}/liked/{instance.object_id}"
+        
+        return data
+    
 class LikesSerializer(serializers.Serializer):
     # Microsoft Copilot, Nov. 2024. Serializer for aggregate of models
     type = serializers.CharField(default='likes')
-    page = serializers.CharField()
-    id = serializers.CharField()
-    page_number = serializers.IntegerField()
-    size = serializers.IntegerField()
+    page = serializers.SerializerMethodField()
+    id = serializers.SerializerMethodField()
+    page_number = serializers.IntegerField(default=1)
+    size = serializers.IntegerField(default=50)
     count = serializers.IntegerField()
     src = LikeSerializer(many=True)
 
-    def to_representation(self, instance):
-        post = instance
-        likes = Like.objects.filter(post=post).order_by('-created_at')[:50]
-        representation = super().to_representation({ 'page': f"http://darkgoldenrod/authors/{post.author.id}/posts/{post.id}",
-                                                     'id': f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}/likes",
-                                                     'page_number': 1,
-                                                     'size': 50,
-                                                     'count': likes.count(),
-                                                     'src': likes,
-                                                     })
-        return representation
+    def get_page(self, obj):
+        if hasattr(obj, 'post'):  
+            return f"http://darkgoldenrod/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
+        else:  
+            return f"http://darkgoldenrod/authors/{obj.author.id}/posts/{obj.id}"
+
+    def get_id(self, obj):
+        if hasattr(obj, 'post'):  
+            return f"http://darkgoldenrod/api/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
+        else:  
+            return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/likes"
+
+    def get_count(self, obj):
+        if hasattr(obj, 'post'): 
+            return CommentLike.objects.filter(owner=obj).count()
+        else:  
+            return PostLike.objects.filter(owner=obj).count()
+
+    def get_src(self, obj):
+        page_number = self.context.get('page_number', 1)
+        page_size = self.context.get('size', 50)
+        
+        if hasattr(obj, 'post'):  
+            likes = CommentLike.objects.filter(owner=obj).order_by('-created_at')
+        else:  
+            likes = PostLike.objects.filter(owner=obj).order_by('-created_at')
+        
+        start = (page_number - 1) * page_size
+        end = start + page_size
+        likes_subset = likes[start:end]
+        
+        return LikeSerializer(likes_subset, many=True).data
 
 class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()
