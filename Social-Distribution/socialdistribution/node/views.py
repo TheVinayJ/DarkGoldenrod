@@ -810,4 +810,4 @@ def api_get_post_from_author(request, author_id, post_id):
 @permission_classes([IsAuthenticated])
 def get_post(request, post_id):
     post = get_object_or_404(Post, pk=request.GET.get('post_id'))
-    return post
+    return PostSerializer(post).data
