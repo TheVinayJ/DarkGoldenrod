@@ -4,28 +4,23 @@
 <head>
     <title>Username's Profile</title>
     <meta charset="UTF-8">
+    {% load static %}
+    <link rel="stylesheet" href="{% static "css/styles.css" %}">
+
     <style>
         body {
+            font-family: Arial, sans-serif;
             margin-left: 10px;
-        }
-        a {
-            color: darkgoldenrod;
-            text-decoration: none;
-            margin-bottom: 5px ;
-            font-size: 17px;
-        }
-        a:hover {
-            color: goldenrod; /* Change text color on hover */
-            text-decoration: underline; /* Underline on hover */
-        }
-        form {
-            padding: 5px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .section {
             display: none;
             margin-bottom: 30px;
             padding: 10px;
+            width: 90%;
             border: 1px solid #ddd;
             border-radius: 5px;
         }
@@ -37,19 +32,51 @@
         .profileNameAndPhoto {
             margin-top: 20px;
             display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .profile-image {
             width: 100px;
             height: 100px;
             border-radius: 50%;
-            /* Make it circular */
-            margin-right: 20px;
             padding-bottom: 10px;
+            border: 1px solid darkgoldenrod;
         }
 
+        .post-github {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: row;
+        }
+
+        button {
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+
+        .activity {
+            margin-top: 50px;
+            display: flex;
+            flex-direction: column;
+            width: 90vw;
+            border: 1px solid #ddd;
+            align-items: center;
+        }
+        
+        nav a {
+            margin-right: 10px;
+            margin-left: 10px;
+        }
+
+
     </style>
-    {% load static %}
     <script src="{% static 'authentication.min.js' %}"></script>
     <script src="{% static 'markdown-editor.min.js' %}"></script>
 </head>
@@ -65,17 +92,19 @@
     </div>
 
     {% if ownProfile %}
-    <form action="{% url 'profile_edit' user.id %}" method="get">
-        <button type="submit" class="edit-button">Edit Profile</button>
-    </form>
+        <div class="button-container">
+        <form action="{% url 'profile_edit' user.id %}" method="get">
+            <button type="submit" class="edit-button">Edit Profile</button>
+        </form>
 
-    <form method="GET" action="{% url 'follow_requests' user.id %}">
-        <button type="submit">View Follow Requests</button>
-    </form>
-        <button id="logout-button">Sign Out</button>
-        
+        <form method="GET" action="{% url 'follow_requests' user.id %}">
+            <button type="submit">View Follow Requests</button>
+        </form>
+            
+            <button id="logout-button">Sign Out</button>
+        </div>
     {% else %}
-        
+        <div class="button-container">
         {% if is_following %}
         <form method="POST" action="{% url 'unfollow_author' user.id %}">
             {% csrf_token %}
@@ -98,41 +127,47 @@
             </button>
         </form>
         {% endif %}
+        </div>
+
     {% endif %}
     
     <h2>{{ user.description|default:"&nbsp;" }}</h2>
 
-    <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
-    <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
-
-    <nav>
-        <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
-        <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
-    </nav>
-    
-    <div id="posts" class="section active">
-        {% if posts %}
-        <ul class="post-list">
-            {% for post in posts %}
-                {% include 'profile/post_in_profile.html' with post=post %}
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p>No posts available.</p>
-        {% endif %}
+    <div>
+        <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
+        <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
     </div>
 
-    <div id="github" class="section">
-    {% if activity %}
-        <ul class="github_activity">
-            {% for event in activity %}
-                {% include 'profile/post_in_profile.html' with post=event %}
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No GitHub activity available.</p>
-    {% endif %}
-</div>
+    <div class="activity">
+        <nav class="post-github">
+            <a href="#" onclick="showSection('posts')"">Posts</a>
+            <a href="#" onclick="showSection('github')">GitHub Activity</a>
+        </nav>
+
+        <div id="posts" class="section active">
+            {% if posts %}
+            <ul class="post-list">
+                {% for post in posts %}
+                    {% include 'profile/post_in_profile.html' with post=post %}
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No posts available.</p>
+            {% endif %}
+        </div>
+
+        <div id="github" class="section">
+        {% if activity %}
+            <ul class="github_activity">
+                {% for event in activity %}
+                    {% include 'profile/post_in_profile.html' with post=event %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No GitHub activity available.</p>
+        {% endif %}
+        </div>
+    </div>
     <script>
         function showSection(sectionId) {
             // Hide all sections

@@ -6,32 +6,6 @@ from rest_framework.reverse import reverse
 from .models import Author, RemoteNode, Post, Like
 from django.contrib.auth import authenticate
 
-
-class LikeSerializer(serializers.ModelSerializer):
-    pass
-
-
-class LikesSerializer(serializers.Serializer):
-    type = serializers.CharField(default='likes')
-    page = serializers.CharField()
-    id = serializers.CharField()
-    page_number = serializers.IntegerField()
-    size = serializers.IntegerField()
-    count = serializers.IntegerField()
-    src = LikeSerializer(many=True)
-
-    def to_representation(self, instance):
-        post = instance
-        likes = Like.objects.filter(post=post).order_by('-created_at')[:50]
-        representation = super().to_representation({ 'page': f"http://darkgoldenrod/authors/{post.author.id}/posts/{post.id}",
-                                                     'id': f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}/likes",
-                                                     'page_number': 1,
-                                                     'size': 50,
-                                                     'count': likes.count(),
-                                                     'src': likes,
-                                                     })
-        return representation
-
 class AuthorSerializer(serializers.ModelSerializer):
 
     type = serializers.SerializerMethodField()
@@ -59,6 +33,38 @@ class AuthorSerializer(serializers.ModelSerializer):
 
     def get_page(self, obj):
         return f"http://darkgoldenrod/{obj.id}/profile"
+
+class LikeSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(default='like')
+    author = AuthorSerializer()
+    published = serializers.DateTimeField()
+    id = serializers.CharField()
+    object = serializers.CharField()
+
+    
+
+
+class LikesSerializer(serializers.Serializer):
+    # Microsoft Copilot, Nov. 2024. Serializer for aggregate of models
+    type = serializers.CharField(default='likes')
+    page = serializers.CharField()
+    id = serializers.CharField()
+    page_number = serializers.IntegerField()
+    size = serializers.IntegerField()
+    count = serializers.IntegerField()
+    src = LikeSerializer(many=True)
+
+    def to_representation(self, instance):
+        post = instance
+        likes = Like.objects.filter(post=post).order_by('-created_at')[:50]
+        representation = super().to_representation({ 'page': f"http://darkgoldenrod/authors/{post.author.id}/posts/{post.id}",
+                                                     'id': f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}/likes",
+                                                     'page_number': 1,
+                                                     'size': 50,
+                                                     'count': likes.count(),
+                                                     'src': likes,
+                                                     })
+        return representation
 
 class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()

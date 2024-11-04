@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 
-
+# This function was generated from OpenAI, ChatGPT o1-preview
+# Prompt: 'Can you make a function to get the tokens for a user?'
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
 
@@ -18,6 +19,8 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
+# This function was generated from OpenAI, ChatGPT o1-preview
+# Prompt: 'Can you make a function to get the authenticated user id? If not authenticated, raise an exception and redirect to the login page.'
 def get_authenticated_user_id(request):
     """
     Returns the authenticated user's ID if the user is authenticated.
@@ -28,6 +31,8 @@ def get_authenticated_user_id(request):
     else:
         raise AuthenticationFailed('User is not authenticated.')
 
+# This function was generated from OpenAI, ChatGPT o1-preview
+# Prompt: 'Can you make a function to get the authenticated user id? If not authenticated, raise an exception and redirect to the login page.'
 def custom_exception_handler(exc, context):
     if isinstance(exc, NotAuthenticated):
         request = context.get('request')
