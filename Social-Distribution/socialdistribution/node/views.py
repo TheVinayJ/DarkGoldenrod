@@ -154,17 +154,14 @@ def edit_post(request, post_id):
 
 def add_post(request, author_id):
     author = get_author(request)
-    print(request.POST)
     contentType = request.POST["contentType"]
     if contentType != "image":
         contentType = 'text/' + contentType
         content = request.POST.getlist("content")
-        print(content)
         if contentType == 'text/plain':
             content = content[0]
         else:
             content = content[1]
-        print(content)
         post = Post(title=request.POST["title"],
                     description=request.POST["description"],
                     text_content=content,
@@ -188,7 +185,7 @@ def add_post(request, author_id):
                     author=author,
                     )
         post.save()
-    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -197,7 +194,7 @@ def author_posts(request, author_id):
     Create a new post or return author's posts.
     """
     if request.method == 'POST':
-        add_post(request, author_id)
+        return add_post(request, author_id)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
