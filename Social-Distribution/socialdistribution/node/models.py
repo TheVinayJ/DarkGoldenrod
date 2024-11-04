@@ -57,33 +57,6 @@ class Author(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.display_name
-
-# class Author(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     display_name = models.CharField(max_length=50, blank=False, null=False)
-#     description = models.CharField(max_length=150, default="", blank=True, null=True)
-#     host = models.CharField(max_length=50, blank=True, null=True) # URL of host node
-#     github = models.CharField(max_length=50, blank=True, null=True) # URL of author's Github
-#     profile_image = models.ImageField(upload_to='images/profilePictures', default="null", blank=True, null=True)
-#     page = models.CharField(max_length=100, blank=True, null=True) # URL of user's HTML profile page
-#     friends = models.ManyToManyField('Author', blank=True)
-#     password = models.CharField(max_length=128)
-#     email = models.EmailField(max_length=50, default='example@example.com', unique=True)
-#     is_active = models.BooleanField(default=True)
-#     is_admin = models.BooleanField(default=False)
-#     is_staff = models.BooleanField(default=False)  # Required for admin interface
-
-#     def __str__(self):
-#         return self.display_name
-    
-#     def save(self, *args, **kwargs):
-#         # Hash the password if it's not already hashed
-#         if not self.pk or Author.objects.get(pk=self.pk).password != self.password:
-#             self.password = make_password(self.password)
-#         super().save(*args, **kwargs)
-
-#     def check_password_custom(self, raw_password):
-#         return check_password(raw_password, self.password)
     
 class RemoteNode(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="Friendly name for the remote node")
