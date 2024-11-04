@@ -7,7 +7,6 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from node.serializer import serializer
 
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
@@ -798,7 +797,23 @@ def upload_image(request):
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
-        return view_post(request, post_id)
+        post = get_object_or_404(Post, id=post_id)
+        author = get_author(request)
+
+        if post.author != author:  # if user that is not the creator is attempting to view
+            if post.visibility == "FRIENDS":
+                try:
+                    follow = get_object_or_404(Follow, follower=author, following=post.author)
+                except:
+                    return HttpResponse(status=403)
+                if follow.is_friend():
+                    return HttpResponse(status=403)
+
+        if post.visibility == "PRIVATE":
+            if post.author != author:
+                return HttpResponse(status=403)
+
+        return PostSerializer(post).data
     elif request.method == 'PUT':
         return edit_post(request, post_id)
     elif request.method == 'DELETE':

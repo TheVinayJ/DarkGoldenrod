@@ -1,7 +1,10 @@
 import datetime
 import sys
 
+from django.contrib.auth.models import User
 from django.utils import timezone
+from rest_framework.test import APITestCase, APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 sys.path.append('../node')
 
@@ -82,19 +85,18 @@ class PostTests(TestCase):
             self.assertEqual(self.post.title, "Test Title")
             self.assertEqual(self.post.author.display_name, "Test Author")
 
-    def test_add_post(self):
-            response = self.client.get(reverse('add'), follow=True)
-            self.assertEqual(response.status_code, 200)
-            response = self.client.post(f'api/authors/{self.author.id}/posts', {'title': 'New Post',
-                                                            'body-text': 'Test Description',
-                                                            'visibility': 'PUBLIC',
-                                                            'contentType': 'text/plain',
-                                                            'content': 'Test Content',
-                                                            'description': 'Test Description',
-                                                            'author': self.author,
-                                                              })
-            self.assertEqual(response.status_code, 302)
-            self.assertTrue(Post.objects.filter(title="New Post").exists())
+    # def test_add_post(self):
+    #         response = self.client.get(reverse('add'), follow=True)
+    #         self.assertEqual(response.status_code, 200)
+    #         response = self.client.post(f'api/authors/{self.author.id}/posts', {'title': 'New Post',
+    #                                                         'visibility': 'PUBLIC',
+    #                                                         'contentType': 'text/plain',
+    #                                                         'content': 'Test Content',
+    #                                                         'description': 'Test Description',
+    #                                                         'author': self.author,
+    #                                                           })
+    #         self.assertEqual(response.status_code, 302)
+    #         self.assertTrue(Post.objects.filter(title="New Post").exists())
 
     def test_like_post(self):
         test_post_id = self.post.id
@@ -152,3 +154,40 @@ class PostTests(TestCase):
             following=self.author)
         response = self.client.get(reverse('view_post', args=[self.friends_post.id]), follow=True)
         self.assertEqual(response.status_code, 200)
+
+class APIPostTests(APITestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = Author.objects.create_user(password='testpass', email='test@test.com', display_name='Test API')
+        self.refresh = RefreshToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.refresh.access_token}')
+        self.author = Author.objects.create(display_name="Test Author", email='testAuthor@test.com', password="password")
+        self.post = Post.objects.create(
+            title="Test Title",
+            description="Test Description",
+            contentType="text/plain",
+            text_content="Test Content",
+            author=self.author,
+            visibility="PUBLIC",
+            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+        )
+
+
+    def test_get_posts(self):
+        url = reverse('api_get_post_from_author', args=[self.author.id, self.post.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_add_post(self):
+        url = reverse('author_posts', args=[self.author.id])
+        response = self.client.post(url, data={'title': 'New Post',
+                                                'visibility': 'PUBLIC',
+                                                'contentType': 'text/plain',
+                                                'content': 'Test Content',
+                                                'description': 'Test Description',
+                                                'author': self.author,
+                                               })
+        print(response)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Post.objects.filter(title="New Post").exists())
