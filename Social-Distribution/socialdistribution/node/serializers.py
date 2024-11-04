@@ -8,23 +8,17 @@ import datetime
 from django.contrib.auth import authenticate
 
 class AuthorSerializer(serializers.ModelSerializer):
-
-    type = serializers.SerializerMethodField()
+    type = serializers.CharField(default='author')
     id = serializers.SerializerMethodField()
     host = serializers.SerializerMethodField()
     displayName = serializers.CharField(source='display_name')
+    github = serializers.CharField()
+    profileImage = serializers.SerializerMethodField()
     page = serializers.SerializerMethodField()
 
     class Meta:
         model = Author
-        fields = [
-            'github',
-            'profileImage',
-            'displayName',
-        ]
-
-    def get_type(self, obj):
-        return "author"
+        fields = ['type', 'id', 'host', 'displayName', 'github', 'profileImage', 'page']
 
     def get_id(self, obj):
         return f"http://darkgoldenrod/api/authors/{obj.id}"
