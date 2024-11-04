@@ -27,8 +27,9 @@ input {
     margin-bottom: 10px;
     padding: 5px;
     font-size: 16px;
-    border-radius: 5px;
+    border-radius: 8px;
     border: 1px solid lightgray;
+    box-shadow: 4px 4px 10px -6px darkgoldenrod;
     transition: box-shadow 0.3s ease-in-out, border 0.3s ease-in-out;
 }
 
@@ -64,9 +65,9 @@ button:hover {
 .form-container {
     display: flex;
     flex-direction: column;
-    border: 1px solid lightgrey;
+    border: 1px solid transparent;
     padding: 30px;
     border-radius: 20px;
     align-items: center;
-    box-shadow: darkgoldenrod 0px 0px 45px -20px;
+    box-shadow: darkgoldenrod 10px 10px 45px -25px;
 }
