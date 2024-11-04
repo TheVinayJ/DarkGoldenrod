@@ -188,6 +188,5 @@ class APIPostTests(APITestCase):
                                                 'description': 'Test Description',
                                                 'author': self.author,
                                                })
-        print(response)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Post.objects.filter(title="New Post").exists())
