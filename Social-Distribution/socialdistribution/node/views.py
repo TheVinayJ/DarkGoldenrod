@@ -7,7 +7,6 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-from zope.component.testfiles.components import content
 
 # from node.serializers import serializer
 
@@ -759,6 +758,7 @@ def follow_author(follower, following):
         return JsonResponse({'message': 'Follow relationship already exists'}, status=400)
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
+@api_view(['GET','POST'])
 @permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
