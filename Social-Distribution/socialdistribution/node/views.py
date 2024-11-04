@@ -587,6 +587,7 @@ def follow_author(follower, following):
         return JsonResponse({'message': 'Follow relationship already exists'}, status=400)
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
@@ -743,6 +744,8 @@ def display_feed(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+
+    
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 

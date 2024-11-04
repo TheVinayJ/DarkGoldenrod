@@ -2,11 +2,13 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
     {% load static %}
 </head>
+
 <body>
     <h2>Login</h2>
     <form id="login-form" method="POST">
@@ -22,7 +24,7 @@
 
         <button type="submit">Login</button>
     </form>
-    
+
     <p>Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>.</p>
 
     <div id="error-message" style="color: red;"></div>
@@ -30,4 +32,5 @@
     <!-- Include the minified JS file -->
     <script src="{% static 'authentication.min.js' %}"></script>
 </body>
+
 </html>
