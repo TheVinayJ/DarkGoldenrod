@@ -110,7 +110,7 @@ class APISignupViewTest(APITestCase):
             data=json.dumps(data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 400)  # HTTP 400 BAD REQUEST
+        self.assertEqual(response.status_code, 400)
 
         # Parse JSON response
         response_data = response.json()
@@ -131,7 +131,7 @@ class APISignupViewTest(APITestCase):
             'email': 'testuser@example.com',
             'display_name': 'Test User',
             'password': 'password123',
-            'confirm_password': 'differentpassword',  # Mismatch
+            'confirm_password': 'differentpassword',
             'next': '/node/'
         }
         response = self.client.post(
@@ -139,7 +139,7 @@ class APISignupViewTest(APITestCase):
             data=json.dumps(data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 400)  # HTTP 400 BAD REQUEST
+        self.assertEqual(response.status_code, 400)
 
         # Parse JSON response
         response_data = response.json()

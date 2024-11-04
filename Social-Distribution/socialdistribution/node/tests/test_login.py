@@ -11,6 +11,7 @@ class LoginViewTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.login_url = reverse('api_login')
+        self.profile_url = lambda author_id: reverse('profile', kwargs={'author_id': author_id})
 
         # Create a user for testing login
         self.test_user = User.objects.create_user(
@@ -33,10 +34,12 @@ class LoginViewTest(TestCase):
             data=json.dumps(data),  
             content_type='application/json'  
         )
-        self.assertEqual(response.status_code, 200)  # HTTP 200 OK
+        self.assertEqual(response.status_code, 200) 
 
         # Parse JSON response
         response_data = response.json()
+        
+        print(response_data)
 
         # Check response content
         self.assertIn('message', response_data)
@@ -65,7 +68,7 @@ class LoginViewTest(TestCase):
             data=json.dumps(data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 400)  # HTTP 400 BAD REQUEST
+        self.assertEqual(response.status_code, 400)
 
         # Parse JSON response
         response_data = response.json()
@@ -87,7 +90,7 @@ class LoginViewTest(TestCase):
             data=json.dumps(data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 400)  # HTTP 400 BAD REQUEST
+        self.assertEqual(response.status_code, 400)
 
         # Parse JSON response
         response_data = response.json()
@@ -109,7 +112,7 @@ class LoginViewTest(TestCase):
             data=json.dumps(data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 400)  # HTTP 400 BAD REQUEST
+        self.assertEqual(response.status_code, 400)
 
         # Parse JSON response
         response_data = response.json()
@@ -136,7 +139,7 @@ class LoginViewTest(TestCase):
             data=json.dumps(data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 200)  # HTTP 200 OK
+        self.assertEqual(response.status_code, 200)
 
         # Verify that the cookies are set
         self.assertIn('access_token', response.cookies)
