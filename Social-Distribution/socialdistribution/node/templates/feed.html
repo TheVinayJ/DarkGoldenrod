@@ -2,6 +2,11 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/feed.css' %}">
+{% endblock %}
+
 {% block content %}
 <h1 class="feed-title">Your Feed</h1>
 

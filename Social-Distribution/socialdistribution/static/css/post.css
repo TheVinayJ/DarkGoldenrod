@@ -1,0 +1,215 @@
+/* Container */
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    margin-top: 10px;
+    padding: 20px;
+}
+
+/* Title Container */
+.title-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.title-left h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.title-right .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.title-right a.btn,
+.title-right button.btn {
+    font-size: 14px;
+    padding: 5px 10px;
+    /* Ensure consistent display */
+    display: inline-block;
+    margin: 0;
+}
+
+.post-item {
+    background-color: #fff;
+    border: 1px solid #dbdbdb;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+
+/* Post Meta */
+.post-meta {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* Post Image */
+.post-image img {
+    width: 100%;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+/* Post Content */
+.post-content {
+    margin-bottom: 20px;
+}
+
+/* Post Actions */
+.post-actions {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+}
+
+.post-actions .btn {
+    margin-right: 10px;
+    padding: 5px 10px;
+}
+
+.post-actions .likes-count {
+    font-size: 14px;
+    color: #555;
+}
+
+/* Comments Section */
+.comments-section {
+    background-color: #fff;
+    border: 1px solid #dbdbdb;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.comments-section h2 {
+    margin-bottom: 8px;
+}
+
+.comment-list {
+    list-style: none;
+    padding: 0;
+}
+
+.comment-list li {
+    border-bottom: 1px solid #dbdbdb;
+    padding: 10px 0;
+}
+
+.comment-list li:last-child {
+    border-bottom: none;
+}
+
+.comment-meta {
+    font-size: 14px;
+    color: #555;
+    padding: 5px 0;
+}
+
+.comment-actions {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.comment-actions .btn {
+    padding: 5px 10px;
+    margin-right: 10px;
+}
+
+.likes-count {
+    font-size: 14px;
+    color: #555;
+}
+
+.comments-section label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.comments-section textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid lightgray;
+    border-radius: 5px;
+    resize: vertical;
+}
+
+/* Update Comment Input Container */
+.comment-input-container {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #dbdbdb;
+    padding-top: 10px;
+}
+
+/* Style for the Textarea to Look Like an Input Box */
+#comment-text {
+    flex: 1;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 20px;
+    background-color: #f0f0f0;
+    outline: none;
+    resize: vertical;
+    font-size: 14px;
+}
+
+/* Style Placeholder Text */
+#comment-text::placeholder {
+    color: #999;
+}
+
+/* Hide Scrollbar */
+#comment-text::-webkit-scrollbar {
+    display: none;
+}
+
+/* Submit Button */
+#submit-comment {
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: darkgoldenrod;
+    color: #f0f0f0;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    display: none; /* Initially hidden */
+}
+
+
+
+/* Button Styles */
+.btn {
+    padding: 5px 10px;
+    background-color: darkgoldenrod;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: transform 0.4s ease-in-out, box-shadow 0.3s ease-in-out;
+    text-decoration: none;
+}
+
+.btn:hover {
+    transform: scale(1.05);
+    box-shadow: darkgoldenrod 0px 0px 20px -5px;
+}
+
+.small-btn {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.post-meta,
+.comment-meta,
+.likes-count {
+    color: #555;
+}

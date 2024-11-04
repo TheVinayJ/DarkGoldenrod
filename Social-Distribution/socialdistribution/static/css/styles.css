@@ -47,7 +47,6 @@ input:focus {
 }
 
 button {
-    margin-top: 20px;
     padding: 10px;
     background-color: darkgoldenrod;
     color: white;
@@ -89,17 +88,23 @@ a:hover::after {
 
 /* Navigation bar */
 nav {
-    background-color: darkgoldenrod;
+    background-color: #fff;
     border-bottom: 1px solid #dbdbdb;
     padding: 10px 0;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 100;
 }
 
 nav ul {
     display: flex;
     justify-content: space-around;
+    align-items: center;
     list-style-type: none;
+    max-width: 600px;
+    margin: 0 auto;
 }
-
 nav a {
     font-weight: bold;
     color: black
