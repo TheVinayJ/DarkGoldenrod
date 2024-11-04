@@ -230,7 +230,8 @@ def delete_post(request, post_id):
         messages.success(request, "Post has been deleted.")
         return redirect('index')
 
-
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def local_api_like(request, id):
     liked_post = get_object_or_404(Post, id=id)
     current_author = get_author(request)
@@ -247,7 +248,7 @@ def local_api_like(request, id):
             "profileImage": current_author.profile_image.url if current_author.profile_image else None,
         },
         "published" : datetime.datetime.now(),
-        "id":f"http://darkgoldenrod/api/authors/{current_author.id}/liked/166",
+        "id":f"http://darkgoldenrod/api/authors/{current_author.id}/liked/{PostLike.objects.count() + 1}",
         "object": f"http://darkgoldenrod/authors/{liked_post.author.id}/posts/{liked_post.id}"
 
     }
@@ -266,28 +267,36 @@ def local_api_like(request, id):
     return redirect('view_post', args=[id])
 
 
-def post_like(request, id):
+def post_like(post, liker):
     """
-    Method for liking a post given an ID
+    Method for liking a post given an post_id
     If already liked by requesting author, unlike
     """
-    author = get_author(request)
-    post = get_object_or_404(Post, pk=id)
+    # author = get_author(request)
+    split_post = post.split('/')
+    post_id = split_post[-1] # Get last item in list after split
+    post = get_object_or_404(Post, pk=post_id)
+    liker_id = liker["id"].split('/')
+    author = Author.objects.filter(id=liker_id[-1])
     if PostLike.objects.filter(owner=post, liker=author).exists():
         PostLike.objects.filter(owner=post, liker=author).delete()
     else:
         new_like = PostLike(owner=post, liker=author)
         new_like.save()
-    return(redirect(f'/node/posts/{id}/'))
+    return(redirect(f'/node/posts/{post_id}/'))
 
-def comment_like(request, id):
+def comment_like(comment, liker):
     """
     Method for liking a comment given comment ID
     if already liked by requesting author, removes the like
     """
-    author = get_author(request)
-    comment = get_object_or_404(Comment, pk=id)
-    post = get_object_or_404(Post, pk=comment.post.id)
+    # author = get_author(request)
+    comment_id = comment.split('/')
+    comment_id = comment_id[-1]
+    comment = get_object_or_404(Comment, pk=comment_id)
+    post = comment.post
+    liker_id = liker["id"].split('/')
+    author = Author.objects.filter(id=liker_id[-1])
     if CommentLike.objects.filter(owner=comment, liker=author).exists():
         CommentLike.objects.filter(owner=comment, liker=author).delete()
     else:
@@ -624,7 +633,12 @@ def inbox(request, author_id):
                 print("Follow request type detected")
                 return follow_author(follower, following)
             if body['type'] == 'like':
-                return post_like()
+                post_or_comment = body['object']
+                liker = body['author']
+                if '/posts/' in post_or_comment:
+                    return post_like(post_or_comment, liker)
+                else:   # Comment like
+                    return comment_like(post_or_comment, liker)
             # Add additional handling for other types (e.g., post, like, comment) as needed
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
