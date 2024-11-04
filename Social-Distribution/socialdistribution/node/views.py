@@ -186,7 +186,7 @@ def author_posts(request, author_id):
     """
     author = get_author(request)
     if request.method == 'POST':
-        create_post(request, author)
+        return create_post(request, author)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
@@ -801,11 +801,11 @@ def upload_image(request):
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
-        get_post(request, post_id)
+        return get_post(request, post_id)
     elif request.method == 'PUT':
-        edit_post(request, post_id)
+        return edit_post(request, post_id)
     elif request.method == 'DELETE':
-        delete_post(request, post_id)
+        return delete_post(request, post_id)
 
 @api_view(['GET'])
 def get_post(request, post_id):
