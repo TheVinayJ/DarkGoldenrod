@@ -10,7 +10,7 @@ urlpatterns = [
     path("node/", views.display_feed, name="index"),
     path("node/add/", views.editor, name="add"),
     path("node/posts/<int:post_id>/", views.view_post, name="view_post"),
-    path("node/posts/<int:id>/like/", views.post_like, name="like"),
+    path("node/posts/<int:id>/like/", views.local_api_like, name="like"),
     path("node/posts/<int:id>/likecomment/", views.comment_like, name="comment_like"),
     path('node/posts/<int:id>/add_comment/', views.add_comment, name="add_comment"),
     path('node/authors/', views.authors_list, name='authors'),
@@ -48,11 +48,16 @@ urlpatterns = [
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
     path('api/user-info/', UserInfoView.as_view(), name='user_info'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
     path('api/posts/<int:post_id>', views.get_post, name='get_post'),
     path('api/authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
     path('api/authors/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
     # path('api/authors/<int:author_id>/posts/<inv:post_id>/likes', views.get_post_likes, name='get_post_likes'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
+    path('api/posts/<str:post_id>/likes/', views.get_post_likes_by_id, name='post_likes_by_id'),
+    path('api/authors/<str:author_id>/posts/<str:post_id>/comments/<str:comment_id>/likes/', views.get_comment_likes, name='get_comment_likes'),
+    path('api/liked/<path:like_id>/', views.get_like, name='get_like'),
+    
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

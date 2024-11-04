@@ -14,7 +14,7 @@ from zope.component.testfiles.components import content
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
-from .serializers import AuthorProfileSerializer, PostSerializer
+from .serializers import AuthorProfileSerializer, PostSerializer, LikeSerializer, LikesSerializer, AuthorSerializer
 import datetime
 import requests
 import os
@@ -229,35 +229,157 @@ def delete_post(request, post_id):
         messages.success(request, "Post has been deleted.")
         return redirect('index')
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def local_api_like(request, id):
+    liked_post = get_object_or_404(Post, id=id)
+    current_author = get_author(request)
 
-def post_like(request, id):
+    like_data = {
+        "type": "like",
+        "author": AuthorSerializer(current_author).data,
+        "object": f"http://darkgoldenrod/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
+        "published": datetime.datetime.now(),
+    }
+    
+    serializer = LikeSerializer(data=like_data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    like_object = serializer.data
+
+    inbox_url = request.build_absolute_uri(reverse('inbox', args=[liked_post.author.id]))
+    
+    try:
+        response = request.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
+        response.raise_for_status()
+
+        return Response({"message": "Like sent to inbox"}, status=status.HTTP_201_CREATED)
+    except request.ReqestException as e:
+        return Response({"error": f"Failed to send like to inbox: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+def post_like(data):
     """
-    Method for liking a post given an ID
+    Method for liking a post given an post_id
     If already liked by requesting author, unlike
     """
-    author = get_author(request)
-    post = get_object_or_404(Post, pk=id)
+    # author = get_author(request)
+    post_url = data['object']
+    split_post = post_url.split('/')
+    post_id = split_post[-1] # Get last item in list after split
+    post = get_object_or_404(Post, pk=post_id)
+    liker = data['author']
+    liker_id = liker["id"].split('/')[-1]
+    author = get_object_or_404(Author, id=liker_id)
     if PostLike.objects.filter(owner=post, liker=author).exists():
         PostLike.objects.filter(owner=post, liker=author).delete()
+        return Response({"message": "Post Like removed"}, status=status.HTTP_200_OK)
     else:
         new_like = PostLike(owner=post, liker=author)
         new_like.save()
-    return(redirect(f'/node/posts/{id}/'))
+        return Response({"message": "Post Like created"}, status=status.HTTP_201_CREATED)
 
-def comment_like(request, id):
+
+def comment_like(data):
     """
     Method for liking a comment given comment ID
     if already liked by requesting author, removes the like
     """
-    author = get_author(request)
-    comment = get_object_or_404(Comment, pk=id)
-    post = get_object_or_404(Post, pk=comment.post.id)
+    # author = get_author(request)
+    comment_url = data['object']
+    comment_id = comment.split('/')
+    comment_id = comment_id[-1]
+    comment = get_object_or_404(Comment, pk=comment_id)
+    
+    liker = data['author']
+    liker_id = liker["id"].split('/')[-1]
+    author = get_object_or_404(Author, id=liker_id)
     if CommentLike.objects.filter(owner=comment, liker=author).exists():
         CommentLike.objects.filter(owner=comment, liker=author).delete()
+        return Response({"message": "Comment Like removed"}, status=status.HTTP_200_OK)
     else:
         new_like = CommentLike(owner=comment, liker=author)
         new_like.save()
-    return(redirect(f'/node/posts/{post.id}/'))
+        return Response({"message": "Comment Like created"}, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post_likes(request, author_id, post_id):
+    post = get_object_or_404(Post, id=post_id, author__id=author_id)
+    
+    page_number = int(request.GET.get('page', 1))
+    size = int(request.GET.get('size', 50))
+    
+    serializer = LikesSerializer(
+        post,
+        context={
+            'page_number': page_number,
+            'size': size,
+            'request': request
+        }
+    )
+    
+    return Response(serializer.data)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post_likes_by_id(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    
+    return redirect('get_post_likes', 
+                   author_id=post.author.id, 
+                   post_id=post.id)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_comment_likes(request, author_id, post_id, comment_id):
+    """
+    GET: Retrieve all likes for a comment
+    URL: ://service/api/authors/{AUTHOR_ID}/posts/{POST_ID}/comments/{COMMENT_ID}/likes
+    """
+    comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, post__author__id=author_id)
+    
+    page_number = int(request.GET.get('page', 1))
+    size = int(request.GET.get('size', 50))
+    
+    serializer = LikesSerializer(
+        comment,  # Pass the comment instance
+        context={
+            'page_number': page_number,
+            'size': size,
+            'request': request
+        }
+    )
+    
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_like(request, like_id):
+    """
+    GET: Retrieve a single like by its FQID
+    URL: ://service/api/liked/{LIKE_FQID}
+    """
+    try:
+        split_like = like_id.split('/')
+        like_exact_id = split_like[-1] 
+        author_id = split_like[1] 
+        
+        like = None
+        author = get_object_or_404(Author, id=author_id)
+        
+        if PostLike.objects.filter(object_id=like_exact_id, liker=author).exists():
+            like = get_object_or_404(PostLike, object_id=like_exact_id, liker=author)
+        elif CommentLike.objects.filter(object_id=like_exact_id, liker=author).exists():
+            like = get_object_or_404(CommentLike, object_id=like_exact_id, liker=author)
+        else:
+            return Response({"error": "Like not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = LikeSerializer(like)
+        return Response(serializer.data)
+        
+    except (IndexError, ValueError):
+        return Response({"error": "Invalid like ID format"}, status=status.HTTP_400_BAD_REQUEST)
 
 def add_comment(request, id):
     """
@@ -586,6 +708,20 @@ def inbox(request, author_id):
                 following = body['object']
                 print("Follow request type detected")
                 return follow_author(follower, following)
+            if body['type'] == 'like':
+                
+                liker = body['author']
+                serializer = LikeSerializer(data=body)
+                if not serializer.is_valid():
+                    return Response(
+                        serializer.errors, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                post_or_comment = body['object']
+                if '/posts/' in post_or_comment:
+                    return post_like(body)
+                else:   # Comment like
+                    return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
