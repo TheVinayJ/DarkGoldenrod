@@ -2,24 +2,22 @@ import sys
 
 sys.path.append('../node')
 
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 from django.core import signing
 from http.client import responses
-from django.utils import timezone
+
 from django.core import signing
 from django.urls import reverse
+
 from node.models import Author, Post, Follow, Comment, PostLike, CommentLike
 from django.test import TestCase, Client
 from node import views
-from rest_framework_simplejwt.tokens import AccessToken
-import datetime
-from rest_framework.test import APIClient
 
 # Create your tests here.
 class ProfileTests(TestCase):
     def setUp(self):
-        self.author1 = Author.objects.create(id=1, display_name="Test Author1", description="Test Description", github="torvalds", email='author1@test.com', password='password')
+        self.author1 = Author.objects.create(id=1, display_name="Test Author1", description="Test Description", github="torvalds", email='author1@test.com')
         self.author2 = Author.objects.create(id=2, display_name="Test Author2", email='author2@test.com')
         # author 2 is following author 1 (but is not followed back)
         self.follow1 = Follow.objects.create(follower="http://darkgoldenrod/api/authors/"+ str(self.author2.id),
@@ -32,7 +30,7 @@ class ProfileTests(TestCase):
             description="Description 1",
             text_content="Content 1",
             author=self.author1,
-            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+            # published='2023-10-18T10:00:00Z',
             visibility="PUBLIC"
         )
         self.post2 = Post.objects.create(
@@ -40,7 +38,7 @@ class ProfileTests(TestCase):
             description="Description 2",
             text_content="Content 2",
             author=self.author1,
-            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+            # published='2024-10-19T10:00:00Z',
             visibility="PUBLIC"
         )
 
@@ -49,11 +47,11 @@ class ProfileTests(TestCase):
             description="Happy New Millennium",
             text_content="Content 3",
             author=self.author1,
-            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+            # published='2000-01-01T10:00:00Z',
             visibility="FRIENDS" # friends only post
         )
 
-        self.client = APIClient()
+        self.client = Client()
 
     def tearDown(self):
         # Written with aid of Microsoft Copilot, Oct. 2024
@@ -63,30 +61,25 @@ class ProfileTests(TestCase):
         Author.objects.all().delete()
         self.client.cookies.clear()
 
-    def set_jwt_token(self, author):
-        response = self.client.post(reverse('login'), {'email': author.email, 'password': author.password})
-        self.assertEqual(response.status_code, 200)
-
-        # Create a JWT token for the given author
-        token = AccessToken.for_user(author)
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + str(token))
+    def set_signed_id(self, author):
+        signed_id = signing.dumps(author.id)
+        self.client.cookies['id'] = signed_id
 
     def testAuthorContent(self):
-        self.set_jwt_token(self.author1)
-        response = self.client.post(reverse('login'), {'email': self.author1.email, 'password': self.author1.password, 'next':"/node/"})
+        self.set_signed_id(self.author1)
         response = self.client.get(reverse('profile', args=[self.author1.id]))
         # make sure author's info displayed correct
         self.assertContains(response, "Test Author1")  # Check display name
         self.assertContains(response, "Test Description")  # Check description
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
     def testGithubActivity(self):
-        self.set_jwt_token(self.author1)
+        self.set_signed_id(self.author1)
         response = self.client.get(reverse('profile', args=[self.author1.id]))
         self.assertTrue(response.context['activity']) # make sure GitHub section not empty
 
     def testEditProfile(self):
-        self.set_jwt_token(self.author1)
+        self.set_signed_id(self.author1)
 
         new_data = {
             'display_name': 'Updated Author',
@@ -100,7 +93,7 @@ class ProfileTests(TestCase):
         self.assertEqual(response.status_code, 302) # new edited data successfully moved
 
     def testPostOrder(self):
-        self.set_jwt_token(self.author1)
+        self.set_signed_id(self.author1)
 
         response = self.client.get(reverse('profile', args=[self.author1.id]))
         posts = response.context['posts']
@@ -109,7 +102,7 @@ class ProfileTests(TestCase):
         self.assertEqual(posts[1], self.post2)  # older post
 
     def testFriendPostVisibility(self):
-        self.set_jwt_token(self.author2)
+        self.set_signed_id(self.author2)
 
         response = self.client.get(
             reverse('profile', args=[self.author1.id]))  # viewing their author1(who does not follow back) profile
@@ -169,5 +162,5 @@ class FollowTests(TestCase):
         self.client.cookies['id'] = signed_id
 
         response = self.client.post(reverse('follow_requests', args=[self.author1.id]))
-        self.assertContains(response, '<a href="/api/2/profile/">Test Author2</a>')
+        self.assertContains(response, '<a href="/node/2/profile/">Test Author2</a>')
         self.assertEqual(response.status_code, 200)
