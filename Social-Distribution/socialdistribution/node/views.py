@@ -805,3 +805,9 @@ def api_get_post_from_author(request, author_id, post_id):
         return edit_post(request, post_id)
     elif request.method == 'DELETE':
         return delete_post(request, post_id)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post(request, post_id):
+    post = get_object_or_404(Post, pk=request.GET.get('post_id'))
+    return PostSerializer(post).data
