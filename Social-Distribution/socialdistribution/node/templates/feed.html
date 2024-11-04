@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block content %}
-<h1>Feed</h1>
+<h1 class="feed-title">Your Feed</h1>
 
 
 <div class="filter-options">
@@ -19,8 +19,18 @@
 <ul class="post-list">
     {% for post in page_obj %}
     <li class="post-item">
-        <!-- Post title and metadata -->
-        <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
+
+        <div class="title-container">
+            <!-- Title on the Left -->
+            <div class="title-left">
+                <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
+            </div>
+            <!-- Author and Date on the Right -->
+            <div class="title-right">
+                <p>By {{ post.author.display_name }} on {{ post.published|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
 
         {% if post.image_content_url %}
         <img src="{{ post.image_content_url }}" alt="Post Image">
@@ -29,12 +39,10 @@
         {% if post.shared_by %}
         <!-- This is a repost -->
         <p>{{ post.description }}</p>
-        <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
         <p>Reposted by {{ post.shared_by.display_name }}</p>
         {% else %}
         <!-- Normal post -->
         <p>{{ post.description }}</p>
-        <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
         {% endif %}
         
         <!-- Rendered Markdown Content -->

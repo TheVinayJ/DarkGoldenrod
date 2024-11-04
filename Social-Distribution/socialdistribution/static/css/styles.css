@@ -86,3 +86,21 @@ a:hover {
 a:hover::after {
     width: 100%;
 }
+
+/* Navigation bar */
+nav {
+    background-color: darkgoldenrod;
+    border-bottom: 1px solid #dbdbdb;
+    padding: 10px 0;
+}
+
+nav ul {
+    display: flex;
+    justify-content: space-around;
+    list-style-type: none;
+}
+
+nav a {
+    font-weight: bold;
+    color: black
+} 

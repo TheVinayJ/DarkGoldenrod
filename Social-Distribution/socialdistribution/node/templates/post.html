@@ -7,13 +7,13 @@
     <h1>{{ post.title }}</h1>
     <p>{{ post.description }}</p>
     {% if post.image_content %}
-    <img src="{{ post.image_content.url }}" alt="Post Image">
+    <img src="{{ post.image_content.url }}" alt="Post Image" width="600px" height="auto">
     {% endif %}
     <p>By {{ post.author.display_name }} on {{ post.published|date:"F j, Y, g:i a" }}</p>
     <div class="post-content">
         {% if post.contentType == "text/plain" or post.contentType == "text/markdown" %}
         {{ post.text_content|linebreaks }}
-        {% else %}
+        {% elif post.image_content %}
         <img src="{{ post.image_content.url }}" alt="{{ post.title }}">
         {% endif %}
     </div>

@@ -130,7 +130,7 @@ class Post(models.Model):
     description = models.TextField()  # Posts need a short description
     contentType = models.CharField(max_length=50, default="text/plain")
     text_content = models.TextField(blank=True)  # Text post content (optional)
-    image_content = models.ImageField(upload_to='images/postImages', blank=True, null=True)
+    image_content = models.ImageField(upload_to='images/postImages', default=None, blank=True, null=True)
     published = models.DateTimeField()
     visibility = models.CharField(
         max_length=50,
