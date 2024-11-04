@@ -7,7 +7,9 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView
-# from node.serializers import serializer
+
+from urllib3 import request
+
 
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
@@ -28,6 +30,8 @@ from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
+import ssl
+import certifi
 
 
 def api_authors_list(request):
@@ -150,6 +154,42 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
+def create_post(request, author):
+    contentType = request.POST["contentType"]
+    if contentType != "image":
+        print(request.POST)
+        content = request.POST.getlist("content")
+        print(content)
+        if contentType == 'plain':
+            content = content[0]
+        elif contentType == 'markdown':
+            content = content[1]
+        contentType = 'text/' + contentType
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    text_content=content,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    else:
+        image = request.FILES["content"]
+        file_suffix = os.path.splitext(image.name)[1]
+        contentType = request.POST["contentType"]
+        contentType += '/' + file_suffix[1:]
+        post = Post(title=request.POST["title"],
+                    description=request.POST["description"],
+                    image_content=image,
+                    contentType=contentType,
+                    visibility=request.POST["visibility"],
+                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                    author=author,
+                    )
+        post.save()
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_posts(request, author_id):
@@ -158,32 +198,7 @@ def author_posts(request, author_id):
     """
     author = get_author(request)
     if request.method == 'POST':
-        contentType = request.POST["contentType"]
-        if contentType != "image":
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        text_content=request.POST["content"],
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        else:
-            image = request.FILES["content"]
-            file_suffix = os.path.splitext(image.name)[1]
-            contentType = request.POST["contentType"]
-            contentType += '/' + file_suffix[1:]
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        image_content=image,
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
-            post.save()
-        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
+        return create_post(request, author)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
@@ -215,29 +230,73 @@ def delete_post(request, post_id):
         messages.success(request, "Post has been deleted.")
         return redirect('index')
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def local_api_like(request, id):
+    liked_post = get_object_or_404(Post, id=id)
+    current_author = get_author(request)
 
-def post_like(request, id):
+    like_object = {
+        "type" : "like",
+        "author" : {
+            "type":"author",
+            "id":f"http://darkgoldenrod/api/authors/{current_author.id}",
+            "page":current_author.page,
+            "host":"http://darkgoldenrod/api/",
+            "displayName":current_author.display_name,
+            "github": current_author.github,
+            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+        },
+        "published" : datetime.datetime.now(),
+        "id":f"http://darkgoldenrod/api/authors/{current_author.id}/liked/{PostLike.objects.count() + 1}",
+        "object": f"http://darkgoldenrod/authors/{liked_post.author.id}/posts/{liked_post.id}"
+
+    }
+    inbox_url = request.build_absolute_uri(reverse('inbox', args=[current_author.id]))
+    response = request.post(inbox_url, json=like_object)
+
+    if response.status_code in [200, 201]:
+        print("Sent Like request")
+        print(f"Sent to: {inbox_url}")
+        print(f"Response URL: {response.url}")
+        messages.success(request, "Follow request sent successfully.")
+    else:
+        print("Failed to send Follow request")
+        messages.error(request, "Failed to send follow request. Please try again.")
+
+    return redirect('view_post', args=[id])
+
+
+def post_like(post, liker):
     """
-    Method for liking a post given an ID
+    Method for liking a post given an post_id
     If already liked by requesting author, unlike
     """
-    author = get_author(request)
-    post = get_object_or_404(Post, pk=id)
+    # author = get_author(request)
+    split_post = post.split('/')
+    post_id = split_post[-1] # Get last item in list after split
+    post = get_object_or_404(Post, pk=post_id)
+    liker_id = liker["id"].split('/')
+    author = Author.objects.filter(id=liker_id[-1])
     if PostLike.objects.filter(owner=post, liker=author).exists():
         PostLike.objects.filter(owner=post, liker=author).delete()
     else:
         new_like = PostLike(owner=post, liker=author)
         new_like.save()
-    return(redirect(f'/node/posts/{id}/'))
+    return(redirect(f'/node/posts/{post_id}/'))
 
-def comment_like(request, id):
+def comment_like(comment, liker):
     """
     Method for liking a comment given comment ID
     if already liked by requesting author, removes the like
     """
-    author = get_author(request)
-    comment = get_object_or_404(Comment, pk=id)
-    post = get_object_or_404(Post, pk=comment.post.id)
+    # author = get_author(request)
+    comment_id = comment.split('/')
+    comment_id = comment_id[-1]
+    comment = get_object_or_404(Comment, pk=comment_id)
+    post = comment.post
+    liker_id = liker["id"].split('/')
+    author = Author.objects.filter(id=liker_id[-1])
     if CommentLike.objects.filter(owner=comment, liker=author).exists():
         CommentLike.objects.filter(owner=comment, liker=author).delete()
     else:
@@ -392,7 +451,8 @@ def retrieve_github(user):
     # Me: How to retrieve public github activity of a user, based on their username, to display in an html
     # OpenAI ChatGPT 40 mini generated:
     # Starts here
-    conn = http.client.HTTPSConnection("api.github.com")
+    context = ssl.create_default_context(cafile=certifi.where())
+    conn = http.client.HTTPSConnection("api.github.com", context=context)
     headers = {
         'User-Agent': 'node'
     }
@@ -572,6 +632,13 @@ def inbox(request, author_id):
                 following = body['object']
                 print("Follow request type detected")
                 return follow_author(follower, following)
+            if body['type'] == 'like':
+                post_or_comment = body['object']
+                liker = body['author']
+                if '/posts/' in post_or_comment:
+                    return post_like(post_or_comment, liker)
+                else:   # Comment like
+                    return comment_like(post_or_comment, liker)
             # Add additional handling for other types (e.g., post, like, comment) as needed
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
@@ -609,6 +676,7 @@ def follow_author(follower, following):
         return JsonResponse({'message': 'Follow relationship already exists'}, status=400)
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
@@ -763,6 +831,8 @@ def display_feed(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+
+    
     # Render the feed template and pass the posts as context
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
@@ -800,8 +870,28 @@ def upload_image(request):
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
-        return view_post(request, post_id)
+        return get_post(request, post_id)
     elif request.method == 'PUT':
         return edit_post(request, post_id)
     elif request.method == 'DELETE':
         return delete_post(request, post_id)
+
+@api_view(['GET'])
+def get_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    author = get_author(request)
+
+    if post.author != author:  # if user that is not the creator is attempting to view
+        if post.visibility == "FRIENDS":
+            try:
+                follow = get_object_or_404(Follow, follower=author, following=post.author)
+            except:
+                return HttpResponse(status=403)
+            if follow.is_friend():
+                return HttpResponse(status=403)
+
+    if post.visibility == "PRIVATE":
+        if post.author != author:
+            return HttpResponse(status=403)
+
+    return PostSerializer(post).data

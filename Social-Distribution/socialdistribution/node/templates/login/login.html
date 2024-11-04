@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
     {% load static %}
     <link rel="stylesheet" href="{% static "css/login.css" %}">
 </head>
+
 <body>
     <div class="form-container">
         <h2>Login</h2>
@@ -20,8 +22,10 @@
             <!-- Ensure 'next' is correctly captured -->
             <input type="hidden" id="next" name="next" value="{{ next|default:'/node/' }}">
 
+
             <button type="submit">Login</button>
         </form>
+
 
         <p>Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>.</p>
 
@@ -30,4 +34,5 @@
     <!-- Include the minified JS file -->
     <script src="{% static 'authentication.min.js' %}"></script>
 </body>
+
 </html>

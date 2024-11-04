@@ -15,7 +15,6 @@
         {{ post.text_content|linebreaks }}
         {% elif post.image_content %}
         <img src="{{ post.image_content.url }}" alt="{{ post.title }}">
-        {% endif %}
     </div>
 
     {% if author and author.id == post.author.id and post.text_content != "Public Github Activity" %}

@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Edit Profile</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static "css/styles.css" %}">
 </head>
 <body>
     <a href="{% url 'profile' user.id %}">&lt; Go Back</a>

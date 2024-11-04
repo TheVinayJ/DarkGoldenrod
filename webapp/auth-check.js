@@ -1,6 +1,6 @@
 async function checkAuthAndRedirect() {
     try {
-        const response = await fetch('/node/api/user-info/', {
+        const response = await fetch('/api/user-info/', {
             method: 'GET',
             credentials: 'include', // Include cookies
             redirect: 'manual'      // Handle redirects manually

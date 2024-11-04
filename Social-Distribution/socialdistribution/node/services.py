@@ -5,6 +5,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# This class was generated from OpenAI, ChatGPT o1-mini
+# Prompt: 'Can you make a class to connect to a remote node?'
 class RemoteNodeService:
     @staticmethod
     def connect_to_node(node_id):
