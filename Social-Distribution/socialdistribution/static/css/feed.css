@@ -1,0 +1,118 @@
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.feed-title {
+    margin: 0 0 15px;
+}
+
+/* Post list */
+.post-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.title-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+}
+
+.title-left {
+    flex: 1;
+}
+
+.title-right {
+    text-align: right;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.post-item {
+    background-color: #fff;
+    border: 1px solid #dbdbdb;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.post-item a{
+    color: black;
+}
+
+.post-item h2 {
+    font-size: 18px;
+    padding: 10px;
+    border-bottom: 1px solid #dbdbdb;
+}
+
+.post-item p {
+    padding: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.post-item img {
+    width: 100%;
+    height: auto;
+}
+
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+}
+
+.post-actions a {
+    font-weight: bold;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.pagination a {
+    margin: 0 5px;
+    text-decoration: none;
+}
+
+.pagination .current {
+    font-weight: bold;
+}
+
+/* Filter options */
+.filter-options {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding: 8px;
+    border: 1px solid darkgoldenrod;
+    border-radius: 30px;
+    /* font-weight: bold; */
+}
+
+.filter-options a {
+    margin: 0 10px;
+}
+
+.filter-options a.active {
+    font-weight: bold;
+}
+
+.container {
+    margin-top: 60px;
+}
+
+.post-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin-bottom: 10px;
+}
+
