@@ -26,7 +26,7 @@ urlpatterns = [
 
     path("node/<int:author_id>/profile/", views.profile, name='profile'),
     path("node/<int:author_id>/profile/edit", views.view_edit_profile, name='profile_edit'),
-    path("api/<int:author_id>/profile/edit", views.edit_profile, name='api_profile_edit'),
+    path("node/api/<int:author_id>/profile/edit", views.edit_profile, name='api_profile_edit'),
 
     path('node/upload-avatar/', views.edit_profile, name='upload_avatar'),
     path('node/login/', login.login, name='login'),

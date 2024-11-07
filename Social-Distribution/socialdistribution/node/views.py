@@ -114,6 +114,8 @@ def editor(request):
     """
     return render(request, "editor.html")
 
+@api_view(['GET', 'POST', 'PUT'])
+@permission_classes([IsAuthenticated])
 def edit_post(request, post_id):
     author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
@@ -377,6 +379,8 @@ def get_like(request, like_id):
     except (IndexError, ValueError):
         return Response({"error": "Invalid like ID format"}, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def add_comment(request, id):
     """
     Add a comment to a question
