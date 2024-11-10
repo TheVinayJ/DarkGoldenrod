@@ -17,8 +17,9 @@ urlpatterns = [
     path('node/authors/follow/<int:author_id>/', views.local_api_follow, name='follow_author'),  # New URL for follow action
     path('node/authors/unfollow/<int:author_id>/', views.unfollow_author, name='unfollow_author'),
     ### SUGGESTION: Maybe we should change the profile path to authors/<int:user_id>/profile/
-    path("node/<int:author_id>/followers/", views.followers_following, name='followers'),
-    path("node/<int:author_id>/followings/", views.followers_following, name='followings'),
+    path("node/<int:author_id>/followers/", views.followers_following_friends, name='followers'),
+    path("node/<int:author_id>/followings/", views.followers_following_friends, name='followings'),
+    path("node/<int:author_id>/friends/", views.followers_following_friends, name='friends'),
 
     path('node/<int:author_id>/follower_requests/', views.follow_requests, name='follow_requests'),
     path('node/<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
