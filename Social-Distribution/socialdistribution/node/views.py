@@ -30,7 +30,8 @@ from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
 
-
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def api_authors_list(request):
     page = int(request.GET.get('page', 1))  # Number of pages to include
     size = int(request.GET.get('size', 10))  # Number of records per page\
