@@ -1,0 +1,150 @@
+from django.test import TestCase
+from django.urls import reverse
+from rest_framework.test import APIClient
+from node.models import Author, Follow, AllowedNode
+from base64 import b64encode
+from urllib.parse import quote  # for URL encoding
+
+class FollowersApiTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        
+        # Create an Author instance as the user for 'added_by' in AllowedNode
+        self.admin_user = Author.objects.create_user(
+            email="admin@example.com",
+            display_name="Admin User",
+            password="adminpass"
+        )
+
+        # Create an AllowedNode instance associated with this Author
+        # Use raw password here, let the model's save method handle hashing
+        self.node = AllowedNode.objects.create(
+            url="http://localhost:8000/",
+            username="nodeuser",
+            password="nodepassword",
+            is_active=True
+        )
+
+        # Create two authors for testing
+        self.author_1 = Author.objects.create(
+            email=f"user1@example.com",
+            password=f"strongpassword@1",
+            display_name=f"Test author 1",
+            github=f"http://github.com/1",
+            profile_image=f"http://imagehost.com/author1.png",
+            page=f"http://localhost:8000/authors/1",
+            host="http://localhost:8000/api/"
+        )
+        
+        self.author_2 = Author.objects.create(
+            email=f"user2@example.com",
+            password=f"strongpassword@2",
+            display_name=f"Test author 2",
+            github=f"http://github.com/2",
+            profile_image=f"http://imagehost.com/author2.png",
+            page=f"http://localhost:8000/authors/2",
+            host="http://localhost:8000/api/"
+        )
+
+        # Set up Basic Auth headers
+        valid_credentials = b64encode(b'nodeuser:nodepassword').decode('utf-8')
+        self.auth_headers = {'HTTP_AUTHORIZATION': f'Basic {valid_credentials}'}
+
+    def test_get_followers_list(self):
+        """Test retrieving the list of followers for an author."""
+        # Add author_2 as a follower of author_1
+        Follow.objects.create(follower=self.author_2, following=self.author_1)
+
+        # Request followers list for author_1
+        url = f"/service/api/authors/{self.author_1.id}/followers"
+        response = self.client.get(url, **self.auth_headers)
+
+        # Assert response
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['type'], 'followers')
+        self.assertIn("followers", response.data)
+        self.assertEqual(len(response.data["followers"]), 1)
+        self.assertEqual(response.data["followers"][0]["id"], f"http://nodebbbb/api/authors/{self.author_2.id}")
+
+    def test_add_follower(self):
+        """Test adding a follower to an author."""
+        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        response = self.client.put(url, **self.auth_headers)
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+
+        # Verify in database
+        self.assertTrue(Follow.objects.filter(follower=self.author_2, following=self.author_1).exists())
+
+    def test_remove_follower(self):
+        """Test removing a follower from an author."""
+        # Add author_2 as a follower of author_1
+        Follow.objects.create(follower=self.author_2, following=self.author_1)
+
+        # Delete the follower relationship
+        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        response = self.client.delete(url, **self.auth_headers)
+
+        # Assert response
+        self.assertEqual(response.status_code, 204)
+
+        # Verify removal in database
+        self.assertFalse(Follow.objects.filter(follower=self.author_2, following=self.author_1).exists())
+
+    def test_check_if_follower(self):
+        """Test checking if a specific author is a follower of another author."""
+        # Add author_2 as a follower of author_1
+        Follow.objects.create(follower=self.author_2, following=self.author_1)
+
+        # Check if author_2 is a follower of author_1
+        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        response = self.client.get(url, **self.auth_headers)
+
+        # Assert response
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], f"http://nodebbbb/api/authors/{self.author_2.id}")
+
+    def test_check_if_not_follower(self):
+        """Test checking if a specific author is not a follower of another author."""
+        # Check if author_2 is a follower of author_1 without any follow relationship
+        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        response = self.client.get(url, **self.auth_headers)
+
+        # Assert response
+        self.assertEqual(response.status_code, 404)
+
+    def test_send_follow_request(self):
+        """Test sending a follow request to an author's inbox."""
+        follow_request_data = {
+            "type": "follow",
+            "summary": "Greg wants to follow Lara",
+            "actor": {
+                "type": "author",
+                "id": f"http://nodeaaaa/api/authors/{self.author_1.id}",
+                "host": "http://nodeaaaa/api/",
+                "displayName": "Greg Johnson",
+                "github": "http://github.com/gjohnson",
+                "profileImage": "https://i.imgur.com/k7XVwpB.jpeg",
+                "page": f"http://nodeaaaa/authors/{self.author_1.id}"
+            },
+            "object": {
+                "type": "author",
+                "id": f"http://nodebbbb/api/authors/{self.author_2.id}",
+                "host": "http://nodebbbb/api/",
+                "displayName": "Lara Croft",
+                "github": "http://github.com/laracroft",
+                "profileImage": "http://nodebbbb/api/authors/222/posts/217/image",
+                "page": f"http://nodebbbb/authors/{self.author_2.id}"
+            }
+        }
+
+        # Send follow request
+        url = f"/service/api/authors/{self.author_2.id}/inbox"
+        response = self.client.post(url, data=follow_request_data, content_type="application/json", **self.auth_headers)
+
+        # Assert response
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["summary"], "Greg wants to follow Lara")
+        self.assertEqual(response.data["actor"]["id"], f"http://nodeaaaa/api/authors/{self.author_1.id}")
+        self.assertEqual(response.data["object"]["id"], f"http://nodebbbb/api/authors/{self.author_2.id}")
