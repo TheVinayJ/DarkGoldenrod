@@ -451,6 +451,13 @@ def view_post(request, post_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request, author_id):
+    '''
+    Render the contents of profile of desired author
+    including author's posts, author's GitHub activity, and author's profile details
+    :param request:
+    :param author_id: id of author whose profile is currently being viewed
+    :return: html rendition of profile.html with the appropriate content
+    '''
     user = get_object_or_404(Author, id=author_id)
     current_author = get_author(request) # logged in author
     ownProfile = (user == current_author)
@@ -484,36 +491,6 @@ def profile(request, author_id):
     retrieve_github(user)
     github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
 
-    response_data = {
-        'user': {
-            'id': user.id,
-            'profile photo': user.profile_image,
-            'display name': user.display_name,
-            'description': user.description,
-            'github': user.github,
-        },
-        'posts': [
-            {
-                'id': post.id,
-                'title': post.title,
-                'description': post.description,
-                # 'content': post.content,
-                'published': post.published,
-                'visibility': post.visibility,
-            } for post in authors_posts
-        ],
-        'activity': [
-            {
-                'id': post.id,
-                'title': post.title,
-                'description': post.description,
-                # 'content': post.content,
-                'published': post.published,
-                'visibility': post.visibility,
-            } for post in github_posts
-        ],
-    }
-
     return render(request, "profile/profile.html", {
         'user': user,
         'posts': authors_posts,
@@ -524,6 +501,12 @@ def profile(request, author_id):
     })
 
 def retrieve_github(user):
+    '''
+    Retrieve GitHub public activity of author and create Post objects if there is any
+    Makes use of the api.github.com
+    :param user: Author object
+    :return: None
+    '''
     # 10/19/2024
     # Me: How to retrieve public github activity of a user, based on their username, to display in an html
     # OpenAI ChatGPT 40 mini generated:
@@ -579,6 +562,12 @@ def retrieve_github(user):
     # Ends here
 
 def view_edit_profile(request,author_id):
+    '''
+    Fetch logged in author's profile details and display them in editable inputs
+    :param request:
+    :param author_id: id of logged in author who is attempting to edit their own profile
+    :return: html rendition of edit_profile.html with the appropriate content
+    '''
     user = get_object_or_404(Author, id=author_id)
     serializer = AuthorProfileSerializer(user)
     return render(request, 'profile/edit_profile.html', {'user': serializer.data})
@@ -586,6 +575,13 @@ def view_edit_profile(request,author_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def edit_profile(request, author_id):
+    '''
+    Make the changes to the logged-in author's profile
+    Delete GitHub activity section of logged-in author's profile if they made a change to the GitHub field
+    :param request:
+    :param author_id: d of logged in author who is attempting to edit their own profile
+    :return: json of the fields of the AuthorProfileSerializer, where the fields are the changes made to the profile details
+    '''
     user = get_object_or_404(Author, id=author_id)
 
     if request.method == 'POST':
@@ -602,19 +598,29 @@ def edit_profile(request, author_id):
             return JsonResponse(serializer.data, status=200)
 
 @api_view(['GET'])
-def followers_following(request, author_id):
+def followers_following_friends(request, author_id):
+    '''
+    Display list of authors who are either, followers, followings, or friends of user whose profile is currently being viewed
+    :param request:
+    :param author_id: id of author whose profile is currently being viewed
+    :return: html rendition of follower_following.html with the appropriate content
+    '''
     profileUserUrl = "http://darkgoldenrod/api/authors/" + str(author_id)  # user of the profile
 
     # find a diff way to do this tbh
-    see_follower = request.GET.get('see_follower', 'true') == 'true'
-
-    if see_follower:
-        # Get all followers by checking the Follow model
-        users = Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
-        title = "Followers"
+    see_follower = request.GET.get('see_follower')
+    if see_follower is None:
+        follow_objects = Follow.objects.filter(follower=profileUserUrl, approved=True)
+        users = [person.following for person in follow_objects if person.is_friend()]
+        title = "Friends"
     else:
-        users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
-        title = "Followings"
+        if see_follower == "true":
+            # Get all followers by checking the Follow model
+            users = Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
+            title = "Followers"
+        else:
+            users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
+            title = "Followings"
 
     user_ids = [url.replace("http://darkgoldenrod/api/authors/", "") for url in users]
     user_authors = Author.objects.filter(id__in=user_ids)
@@ -802,12 +808,26 @@ def follow_requests(request, author_id):
     })
 
 def approve_follow(request, author_id, follower_id):
+    '''
+    Approve a submitted follow request, updating it's approved status
+    :param request:
+    :param author_id: id of author asking to be followed
+    :param follower_id: id of author who submitted follow request
+    :return: redirection to follow_requests view
+    '''
     follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
     follow_request.approved = True
     follow_request.save()
     return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
 def decline_follow(request, author_id, follower_id):
+    '''
+    Decline a submitted follow request and delete it from database
+    :param request:
+    :param author_id: id of author asking to be followed
+    :param follower_id: id of author who submitted follow request
+    :return: redirection to follow_requests view
+    '''
     follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
     follow_request.delete()
     return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
