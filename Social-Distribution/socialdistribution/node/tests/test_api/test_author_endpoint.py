@@ -350,3 +350,206 @@ class AuthorsApiTest(TestCase):
                     self.print_single_author_from_response(authors[i - 45], "test_get_authors_with_different_page")
                 self.fail()
             
+            
+    def test_get_single_author(self):
+        """Test get a single author from the database."""
+        DEBUG = False
+
+        # Send request with pagination parameters
+        response = self.client.get(
+            "http://localhost:8000/api/authors/1",
+            **self.auth_headers
+        )
+
+        print(response)
+        # Parse JSON response
+        response_data = response.json()
+        
+        # Check the response status code
+        self.assertEqual(response.status_code, 200, f"Expected status code 200, but got {response.status_code}")
+        
+        # Test type in response
+        self.assertIn(
+            'type',
+            response_data,
+            f"\nAuthor 1 is missing 'type' key"
+        )
+        self.assertEqual(
+        response_data['type'], 
+            'author', 
+            f"\nAuthor 1 type should be 'author'"
+        )
+                
+        # Test id in response
+        self.assertIn(
+            'id',
+            response_data,
+            f"\nAuthor 1 is missing 'id' key"
+        )
+        self.assertTrue(
+            str(response_data['id']).endswith(f"/api/authors/1"),
+            f"\nAuthor 1 id should end with '/api/authors/1', but response return '{response_data['id']}'"
+        )
+                
+        # Test host in response
+        self.assertIn(
+            'host',
+            response_data,
+            f"\nAuthor 1 is missing 'host' key"
+        )
+        self.assertEqual(
+            response_data['host'],
+            'http://localhost:8000/api/',
+            f"\nAuthor 1 host should be 'http://localhost:8000/api/', but response return '{response_data['host']}'"
+        )
+                
+        # Test displayName in response
+        self.assertIn(
+            'displayName',
+            response_data,
+            f"\n\nAuthor 1 is missing 'displayName' key"
+        )
+        self.assertEqual(
+            response_data['displayName'],
+            f"Test author 1",
+            f"\nAuthor 1 display name should be 'Test author 1', but response return '{response_data['displayName']}'"
+        )
+                
+        # Test github in response
+        self.assertIn(
+            'github',
+            response_data,
+            f"\nAuthor 1 is missing 'github' key"
+        )
+        self.assertEqual(
+            response_data['github'],
+            f"http://github.com/1",
+            f"\nAuthor 1 url should be 'http://github.com/1', but response return '{response_data['github']}'"
+        )
+
+        # Test profileImage in response
+        self.assertIn( 
+            'profileImage', 
+            response_data,
+            f"\nAuthor 1 is missing 'profileImage' key"
+        )
+                
+        # Test page in response
+        self.assertIn(
+            'page', 
+            response_data,
+            f"\nAuthor 1 is missing 'page' key"
+        )
+        self.assertTrue(
+            str(response_data['page']).endswith(f"/authors/1"),
+            f"\nAuthor 1 page should end with '/authors/1', but response return '{response_data['page']}'"
+        )
+        
+    
+    def test_put_author(self):
+        """Test updating an author's information."""
+        
+        DEBUG = False
+        
+        updated_data = {
+            "display_name": "Test author 1 - Updated",
+        }
+        
+        response = self.client.get(
+            "http://localhost:8000/api/authors/1",
+            data=updated_data,
+            content_type='application/json',
+            **self.auth_headers
+        )
+        
+        response_data = response.json()
+        
+        # Check the response status code
+        self.assertEqual(response.status_code, 200, f"Expected status code 200, but got {response.status_code}")
+        
+        response = self.client.get(
+            "http://localhost:8000/api/authors/1",
+            **self.auth_headers
+        )
+        
+        response_data = response.json()
+        
+        # Check the response status code
+        self.assertEqual(response.status_code, 200, f"Expected status code 200, but got {response.status_code}")
+        
+        # Test type in response
+        self.assertIn(
+            'type',
+            response_data,
+            f"\nAuthor 1 is missing 'type' key"
+        )
+        self.assertEqual(
+            response_data['type'], 
+            'author', 
+            f"\nAuthor 1 type should be 'author'"
+        )
+        
+        # Test id in response
+        self.assertIn(
+            'id',
+            response_data,
+            f"\nAuthor 1 is missing 'id' key"
+        )
+        self.assertTrue(
+            str(response_data['id']).endswith(f"/api/authors/1"),
+            f"\nAuthor 1 id should end with '/api/authors/1', but response return '{response_data['id']}'"
+        )
+                
+        # Test host in response
+        self.assertIn(
+            'host',
+            response_data,
+            f"\nAuthor 1 is missing 'host' key"
+        )
+        self.assertEqual(
+            response_data['host'],
+            'http://localhost:8000/api/',
+            f"\nAuthor 1 host should be 'http://localhost:8000/api/', but response return '{response_data['host']}'"
+        )
+                
+        # Test displayName in response
+        self.assertIn(
+            'displayName',
+            response_data,
+            f"\n\nAuthor 1 is missing 'displayName' key"
+        )
+        self.assertEqual(
+            response_data['displayName'],
+            f"Test author 1 - Updated",
+            f"\nAuthor 1 display name should be 'Test author 1', but response return '{response_data['displayName']}'"
+        )
+                
+        # Test github in response
+        self.assertIn(
+            'github',
+            response_data,
+            f"\nAuthor 1 is missing 'github' key"
+        )
+        self.assertEqual(
+            response_data['github'],
+            f"http://github.com/1",
+            f"\nAuthor 1 url should be 'http://github.com/1', but response return '{response_data['github']}'"
+        )
+
+        # Test profileImage in response
+        self.assertIn( 
+            'profileImage', 
+            response_data,
+            f"\nAuthor 1 is missing 'profileImage' key"
+        )
+                
+        # Test page in response
+        self.assertIn(
+            'page', 
+            response_data,
+            f"\nAuthor 1 is missing 'page' key"
+        )
+        self.assertTrue(
+            str(response_data['page']).endswith(f"/authors/1"),
+            f"\nAuthor 1 page should end with '/authors/1', but response return '{response_data['page']}'"
+        )
