@@ -10,25 +10,10 @@ class AuthorsApiTest(TestCase):
         # Initialize test client
         self.client = APIClient()
         
-        # Create an Author instance as the user for 'added_by' in AllowedNode
-        self.admin_user = Author.objects.create_user(
-            email="admin@example.com",
-            display_name="Admin User",
-            password="adminpass"
-        )
-
-        # Create an AllowedNode instance associated with this Author
-        # Use raw password here, let the model's save method handle hashing
-        self.node = AllowedNode.objects.create(
-            url="http://localhost:8000/",
-            username="nodeuser",
-            password="nodepassword",
-            is_active=True
-        )
+        self.authors = []
         
-        # Create several authors for pagination tests
-        self.authors = [
-            Author.objects.create(
+        for i in range(1, 51, 1):
+            self.authors.append(Author.objects.create(
                 email=f"user{i}@example.com",
                 password=f"strongpassword@{i}",
                 display_name=f"Test author {i}",
@@ -36,8 +21,14 @@ class AuthorsApiTest(TestCase):
                 profile_image=f"http://imagehost.com/author{i}.png",
                 page=f"http://localhost:8000/authors/{i}",
                 host="http://localhost:8000/api/"
-            ) for i in range(1,51,1)  # Creating 50 authors
-        ]
+            ))
+        
+        self.node = AllowedNode.objects.create(
+            url="http://localhost:8000/",
+            username="nodeuser",
+            password="nodepassword",
+            is_active=True
+        )
 
         # Set up authentication credentials
         auth_credentials = b64encode(b'nodeuser:nodepassword').decode('utf-8')
@@ -254,7 +245,7 @@ class AuthorsApiTest(TestCase):
 
         # Check the structure of the response data
         try:
-            self.assertEqual(len(response_data['authors']), 5, f"Expected 5 authors in the response (Test author 46-50 or index 45-49 in the database), but got {len(response_data['authors'])} authors from the response")
+            self.assertEqual(len(response_data['authors']), 5, f"Expected 5 authors in the response (Test author 45-49 in the database), but got {len(response_data['authors'])} authors from the response")
         except AssertionError as e:
             if DEBUG:
                 self.print_all_authors_from_response(response_data, "test_get_authors_with_different_page")
@@ -263,6 +254,8 @@ class AuthorsApiTest(TestCase):
         self.assertEqual(response_data['type'], "authors")
         
         authors = response_data['authors']
+        
+        self.print_all_authors_from_response(response_data, "test_get_authors_with_different_page")
         
         # Check the first author in the response
         
