@@ -33,8 +33,8 @@ from rest_framework import status
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_authors_list(request):
-    page = int(request.GET.get('page', 1))  # Number of pages to include
-    size = int(request.GET.get('size', 10))  # Number of records per page\
+    page = request.GET.get('page')  # Number of pages to include
+    size = request.GET.get('size')  # Number of records per page\
     query = request.GET.get('q', '')  # Search query
 
     # Filter authors based on the query if it exists
@@ -46,25 +46,37 @@ def api_authors_list(request):
         authors = Author.objects.all()
 
     # Use Paginator to split the queryset into pages
-    paginator = Paginator(authors, size)
+    if page is not None and size is not None:
+        page = int(page)  # Convert page to an integer
+        size = int(size)  # Convert size to an integer
+        paginator = Paginator(authors, size)
 
-    # Ensure the requested page doesn't exceed total number of pages
-    if page > paginator.num_pages:
-        page = paginator.num_pages
+        # Ensure the requested page doesn't exceed total number of pages
+        if page > paginator.num_pages:
+            page = paginator.num_pages
 
-    # Collect all authors up to the requested page
-    author_list = []
-    for i in range(1, page + 1):
-        current_page = paginator.page(i)
+        # Collect all authors up to the requested page
+        author_list = []
+        current_page = paginator.page(page)
         author_list.extend([{
             "type": "author",
             "id": f"http://darkgoldenrod/api/authors/{author.id}",
             "host": author.host,
-            "display_name": author.display_name,
+            "displayName": author.display_name,
             "github": author.github,
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
         } for author in current_page])
+    else:
+        author_list = [{
+            "type": "author",
+            "id": f"http://darkgoldenrod/api/authors/{author.id}",
+            "host": author.host,
+            "displayName": author.display_name,
+            "github": author.github,
+            "profileImage": author.profile_image.url if author.profile_image else '',
+            "page": author.page
+        } for author in authors]
 
     response_data = {
         "type": "authors",
