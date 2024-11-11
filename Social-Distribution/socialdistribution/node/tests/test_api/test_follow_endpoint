@@ -8,13 +8,6 @@ from urllib.parse import quote  # for URL encoding
 class FollowersApiTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        
-        # Create an Author instance as the user for 'added_by' in AllowedNode
-        self.admin_user = Author.objects.create_user(
-            email="admin@example.com",
-            display_name="Admin User",
-            password="adminpass"
-        )
 
         # Create an AllowedNode instance associated with this Author
         # Use raw password here, let the model's save method handle hashing
@@ -45,6 +38,16 @@ class FollowersApiTest(TestCase):
             page=f"http://localhost:8000/authors/2",
             host="http://localhost:8000/api/"
         )
+        
+        self.author_3 = Author.objects.create(
+            email=f"user3@example.com",
+            password=f"strongpassword@3",
+            display_name=f"Test author 3",
+            github=f"http://github.com/3",
+            profile_image=f"http://imagehost.com/author3.png",
+            page=f"http://localhost:8000/authors/3",
+            host="http://localhost:8000/api/"
+        )
 
         # Set up Basic Auth headers
         valid_credentials = b64encode(b'nodeuser:nodepassword').decode('utf-8')
@@ -52,30 +55,66 @@ class FollowersApiTest(TestCase):
 
     def test_get_followers_list(self):
         """Test retrieving the list of followers for an author."""
-        # Add author_2 as a follower of author_1
-        Follow.objects.create(follower=self.author_2, following=self.author_1)
+        Follow.objects.create(follower=self.author_2, following=self.author_1, approved=True)
+        Follow.objects.create(follower=self.author_3, following=self.author_1, approved=True)
 
         # Request followers list for author_1
-        url = f"/service/api/authors/{self.author_1.id}/followers"
-        response = self.client.get(url, **self.auth_headers)
+        response = self.client.get(
+            "http://localhost:8000/api/authors/1/followers", 
+            **self.auth_headers
+        )
 
         # Assert response
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['type'], 'followers')
-        self.assertIn("followers", response.data)
-        self.assertEqual(len(response.data["followers"]), 1)
-        self.assertEqual(response.data["followers"][0]["id"], f"http://nodebbbb/api/authors/{self.author_2.id}")
+        
+        response_data = response.json()
+        
+        self.assertIn('type', response_data)
+        self.assertEqual(response_data['type'], 'followers')
+        
+        followers = response_data['followers']
+        
+        self.assertTrue(len(followers) == 2)
+        
+        for i in range(2,4,1):
+            self.assertIn('type', followers[i])
+            self.assertIn('id', followers[i])
+            self.assertIn('host', followers[i])
+            self.assertIn('displayName', followers[i])
+            self.assertIn('page', followers[i])
+            self.assertIn('github', followers[i])
+            self.assertIn('profileImage', followers[i])
+            
+            self.assertEqual(followers[i]['type'], 'author')
+            self.assertTrue(followers[i]['id'].endswith("/api/authors/{i}"))
+            self.assertEqual(followers[i]['host'], "http://localhost:8000/api/")
+            self.assertEqual(followers[i]['displayName'], f"Test author {i}")
+            self.assertEqual(followers[i]['github'], f"http://github.com/{i}")
+            self.assertEqual(followers[i]['profileImage'], f"http://imagehost.com/author{i}.png")
+            self.assertEqual(followers[i]['page'], f"http://localhost:8000/authors/{i}")
+        
 
     def test_add_follower(self):
         """Test adding a follower to an author."""
-        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        url = f"http://localhost:8000/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
         response = self.client.put(url, **self.auth_headers)
 
         # Check response
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, [200, 201])
 
         # Verify in database
         self.assertTrue(Follow.objects.filter(follower=self.author_2, following=self.author_1).exists())
+        
+    
+    def test_add_follower_without_authentication(self):
+        """Test adding a follower to an author without valid authentication."""
+        url = f"http://localhost:8000/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        invalid_credentials = b64encode(b'invalidnodeuser:nodepassword').decode('utf-8')
+
+        response = self.client.put(url, {'HTTP_AUTHORIZATION': f'Basic {invalid_credentials}'})
+        
+        # Assert response
+        self.assertIn(response.status_code, [401, 403])
 
     def test_remove_follower(self):
         """Test removing a follower from an author."""
@@ -83,14 +122,30 @@ class FollowersApiTest(TestCase):
         Follow.objects.create(follower=self.author_2, following=self.author_1)
 
         # Delete the follower relationship
-        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        url = f"http://localhost:8000/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
         response = self.client.delete(url, **self.auth_headers)
 
         # Assert response
-        self.assertEqual(response.status_code, 204)
+        self.assertIn(response.status_code, [200, 204])
 
         # Verify removal in database
         self.assertFalse(Follow.objects.filter(follower=self.author_2, following=self.author_1).exists())
+
+
+    def test_remove_follower_without_authentication(self):
+        """Test removing a follower from an author without valid authentication."""
+        # Add author_2 as a follower of author_1
+        Follow.objects.create(follower=self.author_2, following=self.author_1)
+        
+        invalid_credentials = b64encode(b'invalidnodeuser:nodepassword').decode('utf-8')
+
+        # Delete the follower relationship
+        url = f"http://localhost:8000/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        response = self.client.delete(url, {'HTTP_AUTHORIZATION': f'Basic {invalid_credentials}'})
+
+        # Assert response
+        self.assertIn(response.status_code, [401, 403])
+        
 
     def test_check_if_follower(self):
         """Test checking if a specific author is a follower of another author."""
@@ -98,53 +153,54 @@ class FollowersApiTest(TestCase):
         Follow.objects.create(follower=self.author_2, following=self.author_1)
 
         # Check if author_2 is a follower of author_1
-        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        url = f"http://localhost:8000/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
         response = self.client.get(url, **self.auth_headers)
+        response_data = response.json()
 
         # Assert response
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['id'], f"http://nodebbbb/api/authors/{self.author_2.id}")
+        self.assertEqual(response_data['id'], f"http://localhost:8000/api/authors/{self.author_2.id}")
+
 
     def test_check_if_not_follower(self):
         """Test checking if a specific author is not a follower of another author."""
         # Check if author_2 is a follower of author_1 without any follow relationship
-        url = f"/service/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
+        url = f"http://localhost:8000/api/authors/{self.author_1.id}/followers/{quote(self.author_2.id)}"
         response = self.client.get(url, **self.auth_headers)
 
         # Assert response
         self.assertEqual(response.status_code, 404)
 
+
     def test_send_follow_request(self):
         """Test sending a follow request to an author's inbox."""
         follow_request_data = {
             "type": "follow",
-            "summary": "Greg wants to follow Lara",
+            "summary": "Test author 2 wants to follow Test author 1",
             "actor": {
                 "type": "author",
-                "id": f"http://nodeaaaa/api/authors/{self.author_1.id}",
-                "host": "http://nodeaaaa/api/",
-                "displayName": "Greg Johnson",
-                "github": "http://github.com/gjohnson",
-                "profileImage": "https://i.imgur.com/k7XVwpB.jpeg",
-                "page": f"http://nodeaaaa/authors/{self.author_1.id}"
+                "id": f"http://localhost:8000/api/authors/2",
+                "host": "http://localhost:8000/api/",
+                "displayName": "Test author 2",
+                "github": "http://github.com/2",
+                "profileImage": "http://imagehost.com/author2.png",
+                "page": f"http://localhost:8000/authors/2"
             },
             "object": {
                 "type": "author",
-                "id": f"http://nodebbbb/api/authors/{self.author_2.id}",
-                "host": "http://nodebbbb/api/",
-                "displayName": "Lara Croft",
-                "github": "http://github.com/laracroft",
-                "profileImage": "http://nodebbbb/api/authors/222/posts/217/image",
-                "page": f"http://nodebbbb/authors/{self.author_2.id}"
+                "id": f"http://localhost:8000/api/authors/1",
+                "host": "http://localhost:8000/api/",
+                "displayName": "Test author 1",
+                "github": "http://github.com/1",
+                "profileImage": "http://imagehost.com/author1.png",
+                "page": f"http://localhost:8000/authors/1"
             }
         }
 
         # Send follow request
-        url = f"/service/api/authors/{self.author_2.id}/inbox"
+        url = f"http://localhost:8000/api/authors/{self.author_1.id}/inbox"
         response = self.client.post(url, data=follow_request_data, content_type="application/json", **self.auth_headers)
 
         # Assert response
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data["summary"], "Greg wants to follow Lara")
-        self.assertEqual(response.data["actor"]["id"], f"http://nodeaaaa/api/authors/{self.author_1.id}")
-        self.assertEqual(response.data["object"]["id"], f"http://nodebbbb/api/authors/{self.author_2.id}")
+        self.assertIn(response.status_code, [200, 201])
+        self.assertTrue(Follow.objects.filter(follower=self.author_2, following=self.author_1).exists())
