@@ -157,3 +157,15 @@ class PostTests(TestCase):
             following=self.author)
         response = self.client.get(reverse('view_post', args=[self.friends_post.id]), follow=True)
         self.assertEqual(response.status_code, 200)
+
+    def test_add_post_API_call(self):
+        self.client.force_authenticate(user=self.author)
+        url = f'http://localhost:8000/api/authors/{self.author.id}/posts'
+        response = self.client.post(url, data={'title': 'API Title',
+                                                       'description': 'Test Description',
+                                                       'content': 'Test Content',
+                                                       'contentType': 'text/plain',
+                                                       'visibility': 'PUBLIC',
+                                                       'author': self.author,})
+        self.assertEqual(response.status_code, 303)
+        self.assertTrue(Post.objects.filter(title="API Title").exists())
