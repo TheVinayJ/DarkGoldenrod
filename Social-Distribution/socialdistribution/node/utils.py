@@ -45,8 +45,8 @@ def send_request_to_node(node_name, endpoint, method='GET', data=None):
         Send an HTTP request to a remote node.
 
         Parameters:
-            node_name: The name of the remote node.
-            endpoint: The endpoint to send the request to.
+            node_name: The name of the remote node (When we add the node to connect in admin panel, we will give it a name).
+            endpoint: The endpoint to send the request to. Example: /api/posts/
             method: {GET, POST, PUT, DELETE}
             data: data for POST or PUT requests
     '''
