@@ -41,6 +41,15 @@ def custom_exception_handler(exc, context):
     return response
 
 def send_request_to_node(node_name, endpoint, method='GET', data=None):
+    '''
+        Send an HTTP request to a remote node.
+
+        Parameters:
+            node_name: The name of the remote node.
+            endpoint: The endpoint to send the request to.
+            method: {GET, POST, PUT, DELETE}
+            data: data for POST or PUT requests
+    '''
     try:
         node = RemoteNode.objects.get(name=node_name, is_active=True)
     except RemoteNode.DoesNotExist:
