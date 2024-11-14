@@ -50,5 +50,9 @@ class GetObjectTests(TestCase):
             text="Test Comment",
         )
 
-        response = views.get_serialized_post(self.post)
-        self.assertEqual(response['comments']['count'], 1)
+        post = views.get_serialized_post(self.post)
+        self.assertEqual(post['comments']['count'], 1)
+
+        response = self.client.get(reverse('get_comments', args=[self.post.author.id, self.post.id]))
+        print(post)
+        self.assertTrue(response.json() == post['comments'])

@@ -1010,7 +1010,7 @@ def get_comments_from_post(request, post_url):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_comments(request, post_id):
+def get_comments(request, author_id, post_id):
     #TO-DO: Pagination/query handling
     # page_number = request.GET.get('page', 1)
     # size = request.GET.get('size', 5)
