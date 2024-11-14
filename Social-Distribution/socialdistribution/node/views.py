@@ -13,7 +13,8 @@ from django.views.generic import ListView
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
-from .serializers import AuthorProfileSerializer, PostSerializer, LikeSerializer, LikesSerializer, AuthorSerializer
+from .serializers import AuthorProfileSerializer, PostSerializer, LikeSerializer, LikesSerializer, AuthorSerializer, \
+    CommentsSerializer
 import datetime
 import requests
 import os
@@ -993,5 +994,32 @@ def api_get_post_from_author(request, author_id, post_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post(request, post_id):
-    post = get_object_or_404(Post, pk=request.GET.get('post_id'))
+    post = get_object_or_404(Post, pk=post_id)
+    author = get_object_or_404(Author, id=post.author_id)
+    if post.visibility == "FRIENDS":
+        follow = get_object_or_404(Follow, follower=author, following=post.author)
+        if not follow.is_friend():
+            return HttpResponse(403, 'Cannot view this post')
+    return JsonResponse(get_serialized_post(post), safe=False)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_comments_from_post(request, post_url):
+    post_id = post_url.split('/')[-1]
+    get_comments(request, post_id)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_comments(request, author_id, post_id):
+    #TO-DO: Pagination/query handling
+    # page_number = request.GET.get('page', 1)
+    # size = request.GET.get('size', 5)
+    post = get_object_or_404(Post, id=post_id)
+    # page = ((page_number - 1) * size)
+    # comments = post.comment_set.all()[page:page + size]
+    serializer = CommentsSerializer(post)
+    return JsonResponse(serializer.data, safe=False)
+
+
+def get_serialized_post(post):
     return PostSerializer(post).data

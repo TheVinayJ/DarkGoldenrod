@@ -1,6 +1,7 @@
 import datetime
 import sys
 
+from django.contrib.auth import login
 from django.utils import timezone
 
 sys.path.append('../node')
@@ -70,7 +71,6 @@ class PostTests(TestCase):
 
         signed_id = signing.dumps(self.author.id)
         self.client.cookies['id'] = signed_id
-
 
     def tearDown(self):
         # Written with aid of Microsoft Copilot, Oct. 2024

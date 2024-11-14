@@ -2,8 +2,7 @@
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-from django.utils.translation import gettext_lazy as _
-from .models import Author, RemoteNode, Post, Like, PostLike, CommentLike
+from .models import Author, RemoteNode, Post, Like, PostLike, CommentLike, Comment
 import datetime
 from django.contrib.auth import authenticate
 
@@ -30,7 +29,9 @@ class AuthorSerializer(serializers.ModelSerializer):
         return f"http://darkgoldenrod/{obj.id}/profile"
 
     def get_profileImage(self, obj):
-        return obj.profile_image
+        if obj.profile_image:
+            return obj.profile_image.url
+        return None
 
 class LikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
@@ -74,8 +75,8 @@ class LikesSerializer(serializers.Serializer):
     id = serializers.SerializerMethodField()
     page_number = serializers.IntegerField(default=1)
     size = serializers.IntegerField(default=50)
-    count = serializers.IntegerField()
-    src = LikeSerializer(many=True)
+    count = serializers.SerializerMethodField()
+    src = serializers.SerializerMethodField()
 
     def get_page(self, obj):
         if hasattr(obj, 'post'):  
@@ -109,6 +110,50 @@ class LikesSerializer(serializers.Serializer):
         likes_subset = likes[start:end]
         
         return LikeSerializer(likes_subset, many=True).data
+
+class CommentSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(default="comment")
+    author = AuthorSerializer()
+    comment = serializers.CharField(source='text')
+    contentType = serializers.CharField(default='text/markdown')
+    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    id = serializers.SerializerMethodField()
+    post = serializers.SerializerMethodField()
+    likes = LikesSerializer(source='*')
+
+    class Meta:
+        model = Comment
+        fields = ['type', 'author', 'comment', 'contentType', 'published', 'id', 'post', 'likes']
+
+    def get_id(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.author.id}/commented/{obj.id}"
+
+    def get_post(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.post.author.id}/posts/{obj.post.id}"
+
+
+class CommentsSerializer(serializers.Serializer):
+    # Microsoft Copilot, 2024. Aggregate of Comment serializer
+    type = serializers.CharField(default="comments")
+    page = serializers.SerializerMethodField()
+    id = serializers.SerializerMethodField()
+    page_number = serializers.IntegerField(default=1)
+    size = serializers.IntegerField(default=5)
+    count = serializers.SerializerMethodField()
+    src = serializers.SerializerMethodField()
+
+    def get_page(self, obj):
+        return f"http://darkgoldenrod/authors/{obj.author.id}/posts/{obj.id}"
+
+    def get_id(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/comments"
+
+    def get_count(self, obj):
+        return  Comment.objects.filter(post=obj).count()
+
+    def get_src(self, obj):
+        comments = Comment.objects.filter(post=obj).order_by('-published')
+        return CommentSerializer(comments, many=True).data
 
 class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()
@@ -149,6 +194,12 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_type(self, obj):
         return "post"
+
+    def get_comments(self, obj):
+        return CommentsSerializer(obj).data
+
+    def get_likes(self, obj):
+        return LikesSerializer(obj).data
 
 class SignupSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})

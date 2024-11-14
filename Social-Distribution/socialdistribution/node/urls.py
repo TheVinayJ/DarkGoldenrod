@@ -58,6 +58,8 @@ urlpatterns = [
     path('api/posts/<str:post_id>/likes/', views.get_post_likes_by_id, name='post_likes_by_id'),
     path('api/authors/<str:author_id>/posts/<str:post_id>/comments/<str:comment_id>/likes/', views.get_comment_likes, name='get_comment_likes'),
     path('api/liked/<path:like_id>/', views.get_like, name='get_like'),
+    path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
+    path('api/authors/<int:author_id>/posts/<int:post_id>/comments', views.get_comments, name='get_comments'),
     
 ]
 if settings.DEBUG:
