@@ -1000,7 +1000,7 @@ def get_post(request, post_id):
         follow = get_object_or_404(Follow, follower=author, following=post.author)
         if not follow.is_friend():
             return HttpResponse(403, 'Cannot view this post')
-    return get_serialized_post(post)
+    return JsonResponse(get_serialized_post(post), safe=False)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

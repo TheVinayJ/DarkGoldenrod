@@ -54,5 +54,25 @@ class GetObjectTests(TestCase):
         self.assertEqual(post['comments']['count'], 1)
 
         response = self.client.get(reverse('get_comments', args=[self.post.author.id, self.post.id]))
-        print(post)
         self.assertTrue(response.json() == post['comments'])
+
+    def test_get_post_with_like(self):
+
+        self.client.force_authenticate(user=self.user)
+
+        self.new_like = PostLike.objects.create(
+            liker=self.author,
+            owner=self.post,
+        )
+
+        post = views.get_serialized_post(self.post)
+        self.assertEqual(post['likes']['count'], 1)
+
+        response = self.client.get(reverse('get_likes', args=[self.post.id]))
+        self.assertTrue(response.json() == post['likes'])
+
+    def test_get_post_endpoint(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(reverse('get_post', args=[self.post.id]))
+        self.assertEqual(response.status_code, 200)
