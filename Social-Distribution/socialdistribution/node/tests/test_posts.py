@@ -154,7 +154,3 @@ class PostTests(TestCase):
             following=self.author)
         response = self.client.get(reverse('view_post', args=[self.friends_post.id]), follow=True)
         self.assertEqual(response.status_code, 200)
-
-    def test_get_post_object(self):
-        response = views.get_serialized_post(self.post)
-        print(response)

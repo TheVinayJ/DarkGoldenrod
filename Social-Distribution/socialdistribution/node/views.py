@@ -1011,19 +1011,13 @@ def get_comments_from_post(request, post_url):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comments(request, post_id):
-    page_number = request.GET.get('page', 1)
-    size = request.GET.get('size', 5)
+    #TO-DO: Pagination/query handling
+    # page_number = request.GET.get('page', 1)
+    # size = request.GET.get('size', 5)
     post = get_object_or_404(Post, id=post_id)
-    page = ((page_number - 1) * size)
-    comments = post.comments.all()[page:page + size]
-    serializer = CommentsSerializer({
-        'type': 'comments',
-        'page': f"http://darkgoldenrod/authors/{post.author.id}/posts/{post.id}",
-        'id': f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}/comments",
-        'page_number': page_number,
-        'size': size,
-        'src': comments
-    })
+    # page = ((page_number - 1) * size)
+    # comments = post.comment_set.all()[page:page + size]
+    serializer = CommentsSerializer(post)
     return JsonResponse(serializer.data, safe=False)
 
 

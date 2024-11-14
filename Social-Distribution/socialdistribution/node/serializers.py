@@ -74,8 +74,8 @@ class LikesSerializer(serializers.Serializer):
     id = serializers.SerializerMethodField()
     page_number = serializers.IntegerField(default=1)
     size = serializers.IntegerField(default=50)
-    count = serializers.IntegerField()
-    src = LikeSerializer(many=True)
+    count = serializers.SerializerMethodField()
+    src = serializers.SerializerMethodField()
 
     def get_page(self, obj):
         if hasattr(obj, 'post'):  
@@ -139,7 +139,7 @@ class CommentsSerializer(serializers.Serializer):
     page_number = serializers.IntegerField(default=1)
     size = serializers.IntegerField(default=5)
     count = serializers.SerializerMethodField()
-    src = CommentSerializer(many=True)
+    src = serializers.SerializerMethodField()
 
     def get_page(self, obj):
         return f"http://darkgoldenrod/authors/{obj.author.id}/posts/{obj.id}"
@@ -148,9 +148,11 @@ class CommentsSerializer(serializers.Serializer):
         return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/comments"
 
     def get_count(self, obj):
-        return obj.comments.count()
+        return  Comment.objects.filter(post=obj).count()
 
-
+    def get_src(self, obj):
+        comments = Comment.objects.filter(post=obj).order_by('-published')
+        return CommentSerializer(comments, many=True).data
 
 class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()
@@ -193,10 +195,10 @@ class PostSerializer(serializers.ModelSerializer):
         return "post"
 
     def get_comments(self, obj):
-        return CommentsSerializer(obj.comments, many=True).data
+        return CommentsSerializer(obj).data
 
     def get_likes(self, obj):
-        return LikesSerializer(obj.likes, many=True).data
+        return LikesSerializer(obj).data
 
 class SignupSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
