@@ -4,6 +4,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from encrypted_model_fields.fields import EncryptedCharField
 from django.core.validators import URLValidator
+from solo.models import SingletonModel
 import django
 import datetime
 
@@ -185,3 +186,33 @@ class AllowedNode(models.Model):
     
     def __str__(self):
         return self.url
+    
+class RemoteNode(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="Friendly name for the remote node")
+    url = models.URLField(max_length=200, validators=[URLValidator()], help_text="URL of the remote node")
+    username = models.CharField(max_length=150, help_text="Username for authentication")
+    password = models.CharField(max_length=128, help_text="Password for authentication")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        # Hash the password before saving if it's new or changed
+        if self.pk is None or not self.password.startswith('pbkdf2_'):
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+    def check_password_custom(self, raw_password):
+        return check_password(raw_password, self.password)
+    
+class SiteSetting(SingletonModel):
+    user_approval_required = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Site Setting"
+
+    def __str__(self):
+        return "Site Settings"
