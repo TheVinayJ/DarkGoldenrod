@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 from rest_framework.reverse import reverse
-
+from django.utils.translation import gettext_lazy as _
 from .models import Author, RemoteNode, Post, Like, PostLike, CommentLike
 import datetime
 from django.contrib.auth import authenticate
@@ -191,6 +191,9 @@ class LoginSerializer(serializers.Serializer):
         if user is None:
             raise serializers.ValidationError("Invalid email or password.")
 
+        if not user.is_active:
+            raise serializers.ValidationError("Your account is pending approval.")
+        
         attrs['user'] = user
         return attrs
 

@@ -140,86 +140,34 @@ class AuthorsApiTest(TestCase):
         
         authors = response_data['authors']
         
-        # Check the first author in the response
-        
         for i in range(5):
             try:
                 # Test type in response
-                self.assertIn(
-                    'type',
-                    authors[i],
-                    f"\nAuthor {i + 1} is missing 'type' key"
-                )
-                self.assertEqual(
-                    authors[i]['type'], 
-                    'author', 
-                    f"\nAuthor {i + 1} type should be 'author'"
-                )
+                self.assertIn('type', authors[i], f"\nAuthor {i + 1} is missing 'type' key")
+                self.assertEqual(authors[i]['type'], 'author', f"\nAuthor {i + 1} type should be 'author'")
                 
                 # Test id in response
-                self.assertIn(
-                    'id',
-                    authors[i],
-                    f"\nAuthor {i + 1} is missing 'id' key"
-                )
-                self.assertTrue(
-                    authors[i]['id'].endswith(f"/api/authors/{i + 1}"),
-                    f"\nAuthor {i + 1} id should end with '/api/authors/{i + 1}', but response return '{authors[i]['id']}'"
-                )
+                self.assertIn('id', authors[i], f"\nAuthor {i + 1} is missing 'id' key")
+                self.assertTrue(authors[i]['id'].endswith(f"/api/authors/{i + 1}"), f"\nAuthor {i + 1} id should end with '/api/authors/{i + 1}', but response return '{authors[i]['id']}'")
                 
                 # Test host in response
-                self.assertIn(
-                    'host',
-                    authors[i],
-                    f"\nAuthor {i + 1} is missing 'host' key"
-                )
-                self.assertEqual(
-                    authors[i]['host'],
-                    'http://localhost:8000/api/',
-                    f"\nAuthor {i + 1} host should be 'http://localhost:8000/api/', but response return '{authors[i]['host']}'"
-                )
+                self.assertIn('host', authors[i], f"\nAuthor {i + 1} is missing 'host' key")
+                self.assertEqual(authors[i]['host'], 'http://localhost:8000/api/', f"\nAuthor {i + 1} host should be 'http://localhost:8000/api/', but response return '{authors[i]['host']}'")
                 
                 # Test displayName in response
-                self.assertIn(
-                    'displayName',
-                    authors[i],
-                    f"\n\nAuthor {i + 1} is missing 'displayName' key"
-                )
-                self.assertEqual(
-                    authors[i]['displayName'],
-                    f"Test author {i + 1}",
-                    f"\nAuthor {i + 1} display name should be 'Test author{i + 1}', but response return '{authors[i]['displayName']}'"
-                )
+                self.assertIn('displayName', authors[i], f"\n\nAuthor {i + 1} is missing 'displayName' key")
+                self.assertEqual(authors[i]['displayName'], f"Test author {i + 1}", f"\nAuthor {i + 1} display name should be 'Test author{i + 1}', but response return '{authors[i]['displayName']}'")
                 
                 # Test github in response
-                self.assertIn(
-                    'github',
-                    authors[i],
-                    f"\nAuthor {i + 1} is missing 'github' key"
-                )
-                self.assertEqual(
-                    authors[i]['github'],
-                    f"http://github.com/{i + 1}",
-                    f"\nAuthor {i + 1} url should be 'http://github.com/{i + 1}', but response return '{authors[i]['github']}'"
-                )
+                self.assertIn('github', authors[i], f"\nAuthor {i + 1} is missing 'github' key")
+                self.assertEqual(authors[i]['github'], f"http://github.com/{i + 1}", f"\nAuthor {i + 1} url should be 'http://github.com/{i + 1}', but response return '{authors[i]['github']}'")
                 
                 # Test profileImage in response
-                self.assertIn( 
-                    'profileImage', 
-                    authors[i],
-                    f"\nAuthor {i + 1} is missing 'profileImage' key"
-                )
+                self.assertIn('profileImage', authors[i], f"\nAuthor {i + 1} is missing 'profileImage' key")
                 
                 # Test page in response
-                self.assertIn(
-                    'page', 
-                    authors[i],
-                    f"\nAuthor {i + 1} is missing 'page' key"
-                )
-                self.assertTrue(
-                    str(authors[i]['page']).endswith(f"/authors/{i + 1}"),
-                    f"\nAuthor {i + 1} page should end with '/authors/{i + 1}', but response return '{authors[i]['page']}'"
-                )
+                self.assertIn('page', authors[i], f"\nAuthor {i + 1} is missing 'page' key")
+                self.assertTrue(str(authors[i]['page']).endswith(f"/authors/{i + 1}"), f"\nAuthor {i + 1} page should end with '/authors/{i + 1}', but response return '{authors[i]['page']}'")
             except AssertionError as e:
                 if DEBUG:
                     self.print_single_author_from_response(authors[i], "test_get_authors_paginated")
