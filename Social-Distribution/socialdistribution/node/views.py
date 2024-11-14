@@ -170,36 +170,62 @@ def edit_post(request, post_id):
 def add_post(request, author_id):
     author = get_author(request)
     contentType = request.POST["contentType"]
-    if contentType != "image":
-        contentType = 'text/' + contentType
-        content = request.POST.getlist("content")
-        if contentType == 'text/plain':
-            content = content[0]
+    if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
+        # Check whether content is from AJAX or an external API call
+        # For AJAX formatting:
+        if contentType != "image":
+            contentType = 'text/' + contentType
+            content = request.POST.getlist("content")
+            if contentType == 'text/plain':
+                content = content[0]
+            else:
+                content = content[1]
+            post = Post(title=request.POST["title"],
+                        description=request.POST["description"],
+                        text_content=content,
+                        contentType=contentType,
+                        visibility=request.POST["visibility"],
+                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                        author=author,
+                        )
+            post.save()
         else:
-            content = content[1]
-        post = Post(title=request.POST["title"],
-                    description=request.POST["description"],
-                    text_content=content,
-                    contentType=contentType,
-                    visibility=request.POST["visibility"],
-                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                    author=author,
-                    )
-        post.save()
-    else:
-        image = request.FILES["content"]
-        file_suffix = os.path.splitext(image.name)[1]
-        contentType = request.POST["contentType"]
-        contentType += '/' + file_suffix[1:]
-        post = Post(title=request.POST["title"],
-                    description=request.POST["description"],
-                    image_content=image,
-                    contentType=contentType,
-                    visibility=request.POST["visibility"],
-                    published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                    author=author,
-                    )
-        post.save()
+            image = request.FILES["content"]
+            file_suffix = os.path.splitext(image.name)[1]
+            contentType = request.POST["contentType"]
+            contentType += '/' + file_suffix[1:]
+            post = Post(title=request.POST["title"],
+                        description=request.POST["description"],
+                        image_content=image,
+                        contentType=contentType,
+                        visibility=request.POST["visibility"],
+                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                        author=author,
+                        )
+            post.save()
+    else:   # Post creation for API spec
+        if 'image' in contentType:
+            post = Post(title=request.POST["title"],
+                        description=request.POST["description"],
+                        image_content=request.POST["image"],
+                        contentType=contentType,
+                        visibility=request.POST["visibility"],
+                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                        author=author,
+                        )
+            post.save()
+        else:
+            post = Post(title=request.POST["title"],
+                        description=request.POST["description"],
+                        text_content=request.POST["content"],
+                        contentType=contentType,
+                        visibility=request.POST["visibility"],
+                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                        author=author,
+                        )
+            post.save()
+    if author.host == 'http://darkgoldenrod/api':
+        pass    # Do something to send to other nodes
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
@@ -272,7 +298,7 @@ def local_api_like(request, id):
 
 def post_like(data):
     """
-    Method for liking a post given an post_id
+    Method for liking a post given a post_id
     If already liked by requesting author, unlike
     """
     # author = get_author(request)
