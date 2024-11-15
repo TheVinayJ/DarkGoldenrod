@@ -39,7 +39,7 @@ class AuthorManager(BaseUserManager):
 
 class Author(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
-    display_name = models.CharField(max_length=50, blank=True, unique=True)
+    display_name = models.CharField(max_length=50, unique=True, null=False)
     email = models.EmailField(max_length=50, unique=True)
     description = models.CharField(max_length=150, blank=True, null=True)
     host = models.CharField(max_length=50, blank=True, null=True, default='http://darkgoldenrod/api')
