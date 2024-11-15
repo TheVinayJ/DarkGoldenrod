@@ -1013,9 +1013,33 @@ def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
         return view_post(request, post_id)
     elif request.method == 'PUT':
-        return edit_post(request, post_id)
+        return edit_post_api(request, author_id, post_id)
     elif request.method == 'DELETE':
-        return delete_post(request, post_id)
+        return delete_post_api(request, author_id, post_id)
+
+def edit_post_api(request, author_id, post_id):
+    author = get_object_or_404(Author, id=author_id)
+    post = get_object_or_404(Post, id=post_id)
+    if post.author != author:
+        return HttpResponseForbidden("Post cannot be edited.")
+
+    post.title = request.PUT.get('title')
+    post.description = request.PUT.get('description')
+    if 'image' in post.contentType:
+        post.image_content = request.PUT.get('content')
+    else:
+        post.text_content = request.PUT.get('content')
+    post.save()
+    return JsonResponse(PostSerializer(post).data)
+
+def delete_post_api(request, author_id, post_id):
+    author = get_object_or_404(Author, id=author_id)
+    post = get_object_or_404(Post, id=post_id)
+    if post.author != author:
+        return HttpResponseForbidden("Post cannot be deleted.")
+
+    post.delete()
+    return HttpResponse('Post successfully deleted.', 201)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
