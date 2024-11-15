@@ -36,7 +36,7 @@
             console.log('Form Data:', formData);
 
             fetch(`/node/api/{{user.id}}/profile/edit`, {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                 },

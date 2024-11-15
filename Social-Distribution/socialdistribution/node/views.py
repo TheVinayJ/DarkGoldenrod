@@ -612,7 +612,7 @@ def view_edit_profile(request,author_id):
     serializer = AuthorProfileSerializer(user)
     return render(request, 'profile/edit_profile.html', {'user': serializer.data})
 
-@api_view(['POST'])
+@api_view(['GET','PUT'])
 @permission_classes([IsAuthenticated])
 def edit_profile(request, author_id):
     '''
@@ -623,19 +623,20 @@ def edit_profile(request, author_id):
     :return: json of the fields of the AuthorProfileSerializer, where the fields are the changes made to the profile details
     '''
     user = get_object_or_404(Author, id=author_id)
+    serializer = AuthorProfileSerializer(user, data=request.data)  # This should handle multipart/form-data
 
-    if request.method == 'POST':
-        original_github = user.github
-        serializer = AuthorProfileSerializer(user, data=request.data)  # This should handle multipart/form-data
+    original_github = user.github
 
-        if serializer.is_valid():
-            # Check for changes in GitHub username
-            if original_github != serializer.validated_data.get('github'):
-                Post.objects.filter(author=user, description="Public Github Activity").delete()
+    if serializer.is_valid():
+        # Check for changes in GitHub username
+        if original_github != serializer.validated_data.get('github'):
+            Post.objects.filter(author=user, description="Public Github Activity").delete()
 
-            serializer.save()
+        serializer.save()
 
-            return JsonResponse(serializer.data, status=200)
+        return JsonResponse(serializer.data, status=200)
+    else:
+        return JsonResponse(serializer.data, status=400)
 
 @api_view(['GET'])
 def followers_following_friends(request, author_id):
