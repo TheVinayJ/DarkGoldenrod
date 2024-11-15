@@ -116,7 +116,7 @@ class ProfileTests(TestCase):
     def test_api_successful_edit_profile(self):
         login = self.login(self.author1)
         if login.status_code == 200:
-            url = f'/node/api/{self.author1.id}/profile/edit'
+            url = f'/api/authors/{self.author1.id}'
             edit_changes = {"display_name": "New Display Name",
                             "profile_image": None,
                             "description": "New Description",
@@ -133,7 +133,7 @@ class ProfileTests(TestCase):
     def test_api_unsuccessful_edit_profile(self):
         login = self.login(self.author1)
         if login.status_code == 200:
-            url = f'/node/api/{self.author1.id}/profile/edit'
+            url = f'/api/authors/{self.author1.id}'
             edit_changes = {"display_name": "",
                             "profile_image": None,
                             "description": "i want a blank display name",
