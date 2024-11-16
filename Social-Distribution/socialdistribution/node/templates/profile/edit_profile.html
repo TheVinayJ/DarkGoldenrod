@@ -30,28 +30,20 @@
     </form>
     <script>
     document.getElementById('saveButton').addEventListener('click', function() {
-        const formData = new FormData(document.getElementById('editProfileForm'));;
+        formData = new FormData(document.getElementById('editProfileForm'));;
         const userId = "{{ user.id }}";
 
-        requestBody = {
-                type: "author",
-                id: `http://darkgoldenrod/api/authors/${userId}`,
-                host: "http://darkgoldenrod/api/",
-                display_name: formData.get('display_name'),
-                github: formData.get('github') || "",
-                profile_image: formData.get("profile_image_url") || null,
-                page: `http://darkgoldenrod/api/authors/${formData.get('author_id')}/profile`
-            };
-
-        console.log("Request Body:", requestBody);
+        formData.append('type', 'author');
+        formData.append('id', `http://darkgoldenrod/api/authors/${userId}`);
+        formData.append('host', 'http://darkgoldenrod/api/');
+        formData.append('page', `http://darkgoldenrod/api/authors/${userId}/profile`);
 
         fetch("{% url 'single_author' user.id %}", {
             method: 'PUT',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: formData
         })
         .then(response => {
             if (response.ok) {

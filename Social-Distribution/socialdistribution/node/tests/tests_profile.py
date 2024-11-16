@@ -3,18 +3,11 @@ import sys
 
 sys.path.append('../node')
 
-from django.test import TestCase, Client
-from django.urls import reverse
-from django.core import signing
-from http.client import responses
-
-from django.core import signing
 from django.urls import reverse
 from django.utils import timezone
 from node.models import Post, Follow, Comment, PostLike, CommentLike
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
-from node import views
 import datetime
 
 User = get_user_model()
@@ -116,7 +109,7 @@ class ProfileTests(TestCase):
     def test_api_successful_edit_profile(self):
         login = self.login(self.author1)
         if login.status_code == 200:
-            url = f'/api/authors/{self.author1.id}'
+            url = f'/api/authors/{self.author1.id}/'
             edit_changes = {"display_name": "New Display Name",
                             "profile_image": None,
                             "description": "New Description",
@@ -133,7 +126,7 @@ class ProfileTests(TestCase):
     def test_api_unsuccessful_edit_profile(self):
         login = self.login(self.author1)
         if login.status_code == 200:
-            url = f'/api/authors/{self.author1.id}'
+            url = f'/api/authors/{self.author1.id}/'
             edit_changes = {"display_name": "",
                             "profile_image": None,
                             "description": "i want a blank display name",

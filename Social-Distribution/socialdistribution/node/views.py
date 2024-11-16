@@ -615,7 +615,8 @@ def api_single_author(request, author_id):
             "displayName": user.display_name,
             "github": "http://github.com/"+user.github,
             "profileImage": user.profile_image.url if user.profile_image else None,
-            "page": f"http://darkgoldenrod/api/authors/{user.id}/profile"
+            "page": f"http://darkgoldenrod/api/authors/{user.id}/profile",
+            "description": user.description,
         }
         return JsonResponse(author_data, status=200)
 
@@ -636,9 +637,10 @@ def api_single_author(request, author_id):
                 "displayName": user.display_name,
                 "github": "http://github.com/" + user.github,
                 "profileImage": user.profile_image.url if user.profile_image else None,
-                "page": f"http://darkgoldenrod/api/authors/{user.id}/profile"
+                "page": f"http://darkgoldenrod/api/authors/{user.id}/profile",
+                "description": user.description,
             }
-            return JsonResponse(serializer.data, status=200)
+            return JsonResponse(author_data, status=200)
         else:
             error_data = {
                 "message": "Invalid edit made.",
@@ -678,7 +680,7 @@ def followers_following_friends(request, author_id):
             # Get all followers by checking the Follow model
             users = Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
             title = "Followers"
-        else:
+        elif see_follower == 'false':
             users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
             title = "Followings"
 
