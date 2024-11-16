@@ -55,7 +55,7 @@ class LogoutViewTest(APITestCase):
             format='json'
         )
         self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
-        print(logout_response)
+        # print(logout_response)
         # Parse JSON response
         response_data = logout_response.json()
 

@@ -54,20 +54,20 @@ class AuthorFollowTest(TestCase):
         # Written with aid of Microsoft Copilot, Oct. 2024
         self.client.cookies.clear()
 
-    # def test_follow_author(self):
-    #     login = self.login(self.author1)
-    #     if login.status_code == 200:
-    #
-    #         # Author1 follows Author2
-    #         response = self.client.post(reverse('follow_author', args=[self.author2.id]))
-    #         self.assertEqual(response.status_code, 302)  # Should redirect on successful follow
-    #
-    #         # Check that a Follow object is created
-    #         follow_exists = Follow.objects.filter(
-    #             follower="http://darkgoldenrod/api/authors/" + str(self.author1.id),
-    #             following="http://darkgoldenrod/api/authors/" + str(self.author2.id)
-    #         ).exists()
-    #         self.assertTrue(follow_exists)  # Follow relationship should exist
+    def test_follow_author(self):
+        login = self.login(self.author1)
+        if login.status_code == 200:
+
+            # Author1 follows Author2
+            response = self.client.post(reverse('follow_author', args=[self.author2.id]))
+            self.assertEqual(response.status_code, 302)  # Should redirect on successful follow
+
+            # Check that a Follow object is created
+            follow_exists = Follow.objects.filter(
+                follower="http://darkgoldenrod/api/authors/" + str(self.author1.id),
+                following="http://darkgoldenrod/api/authors/" + str(self.author2.id)
+            ).exists()
+            self.assertTrue(follow_exists)  # Follow relationship should exist
 
     def test_unfollow_author(self):
         login = self.login(self.author1)
@@ -91,24 +91,24 @@ class AuthorFollowTest(TestCase):
             ).exists()
             self.assertFalse(follow_exists)  # Follow relationship should no longer exist
 
-    # def test_ui_follow_button_display(self):
-    #     login = self.login(self.author1)
-    #     if login.status_code == 200:
-    #
-    #         # Check if follow button appears when author1 is not following author2
-    #         response = self.client.get(reverse('authors'))
-    #         self.assertContains(response, 'Follow')  # Should contain follow button text
-    #
-    #         # Now follow author2
-    #         Follow.objects.create(
-    #             follower="http://darkgoldenrod/api/authors/" + str(self.author1.id),
-    #             following="http://darkgoldenrod/api/authors/" + str(self.author2.id),
-    #             approved=True,
-    #         )
-    #
-    #         # Check if unfollow button appears when author1 is following author2
-    #         response = self.client.get(reverse('authors'))
-    #         self.assertContains(response, 'Unfollow')  # Should contain unfollow button text
+    def test_ui_follow_button_display(self):
+        login = self.login(self.author1)
+        if login.status_code == 200:
+
+            # Check if follow button appears when author1 is not following author2
+            response = self.client.get(reverse('authors'))
+            self.assertContains(response, 'Follow')  # Should contain follow button text
+
+            # Now follow author2
+            Follow.objects.create(
+                follower="http://darkgoldenrod/api/authors/" + str(self.author1.id),
+                following="http://darkgoldenrod/api/authors/" + str(self.author2.id),
+                approved=True,
+            )
+
+            # Check if unfollow button appears when author1 is following author2
+            response = self.client.get(reverse('authors'))
+            self.assertContains(response, 'Unfollow')  # Should contain unfollow button text
 
     def test_ui_friends_display(self):
         '''

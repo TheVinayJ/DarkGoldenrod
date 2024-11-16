@@ -2,7 +2,6 @@ from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from node.models import SiteSetting
 import json
 
 # The tests in this file and the helper function was written and debugged with OpenAI, ChatGPT o1-mini
@@ -13,7 +12,6 @@ class APISignupViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.signup_url = reverse('api_signup')
-        SiteSetting.objects.create(user_approval_required=False)
 
     def test_signup_success(self):
         """
@@ -29,8 +27,9 @@ class APISignupViewTest(APITestCase):
         response = self.client.post(
             self.signup_url,
             data,
-            format='json',
+            format='json'
         )
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         response_data = response.json()
 

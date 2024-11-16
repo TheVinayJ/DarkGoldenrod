@@ -27,6 +27,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
@@ -89,6 +90,7 @@ def api_authors_list(request):
     return JsonResponse(response_data)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def authors_list(request):
     query = request.GET.get('q', '')
     page = request.GET.get('page', 1)
@@ -101,14 +103,20 @@ def authors_list(request):
     if query:
         api_url += f'&q={query}'
 
+
+    user = get_author(request)
+    access_token = AccessToken.for_user(user)
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+
     # Make the GET request to the API endpoint
-    response = requests.get(api_url)
+    response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
     # print("Response: ", response)
     # print("Response text: ", response.text)
     # print("Response body: ", response.json())
     
     authors = response.json().get('authors', []) if response.status_code == 200 else []
-    
 
     for author in authors:
         author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
@@ -607,18 +615,26 @@ def retrieve_github(user):
 @permission_classes([IsAuthenticated])
 def api_single_author(request, author_id):
     user = get_object_or_404(Author, id=author_id)
+
     if request.method == 'GET':
-        author_data = {
-            "type": "author",
-            "id": f"http://darkgoldenrod/api/authors/"+str(user.id),
-            "host": f"http://darkgoldenrod/api/",
-            "displayName": user.display_name,
-            "github": "http://github.com/"+user.github,
-            "profileImage": user.profile_image.url if user.profile_image else None,
-            "page": f"http://darkgoldenrod/api/authors/{user.id}/profile",
-            "description": user.description,
-        }
-        return JsonResponse(author_data, status=200)
+        if user is None:
+            print("a?")
+            nonexistent_author = {
+                "message": "This user does not exist",
+            }
+            return JsonResponse(nonexistent_author, status=404)
+        else:
+            author_data = {
+                "type": "author",
+                "id": f"http://darkgoldenrod/api/authors/"+str(user.id),
+                "host": f"http://darkgoldenrod/api/",
+                "displayName": user.display_name,
+                "github": "http://github.com/" + user.github if user.github else "",
+                "profileImage": user.profile_image.url if user.profile_image else None,
+                "page": f"http://darkgoldenrod/authors/{user.id}/profile",
+                "description": user.description if user.description else "",
+            }
+            return JsonResponse(author_data, status=200)
 
     if request.method == 'PUT':
         serializer = AuthorProfileSerializer(user, data=request.data)
