@@ -30,6 +30,7 @@ from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
+from urllib.parse import unquote
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1050,3 +1051,77 @@ def get_comments(request, author_id, post_id):
 
 def get_serialized_post(post):
     return PostSerializer(post).data
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def followers_view(request, author_id, follower_id=None):
+    author = get_object_or_404(Author, id=author_id)
+
+    if request.method == 'GET':
+        if follower_id:
+            # Decode the follower_id URL (assuming it's a URL-encoded ID)
+            decoded_follower_id = unquote(follower_id)
+            # Attempt to find the follower by their URL field, assuming `url_field` holds the unique URL
+            id = decoded_follower_id.split('/')[-1]
+            host = decoded_follower_id.replace(f'/authors/{id}', '')
+            follower = Author.objects.filter(host=host, id=id).first()
+            if not follower:
+                return JsonResponse({"error": "Not Found"}, status=404)
+
+            # Construct the JSON response manually
+            return JsonResponse({
+                "type": "author",
+                "id": f"{follower.host}/authors/{follower.id}",
+                "host": follower.host,
+                "displayName": follower.display_name,
+                "page": follower.page,
+                "github": follower.github,
+                "profileImage": follower.profile_image.url if follower.profile_image else ''
+            })
+
+        else:
+            # Get all followers and manually construct the response
+            followers_data = []
+            followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id}", approved=True)
+            followers = list(followers.values_list('follower', flat=True))
+            for follower_url in followers:
+                id = follower_url.split('/')[-1]
+                host = follower_url.replace(f'/authors/{id}', '')
+                follower = Author.objects.filter(host=host, id=id).first()
+
+                followers_data.append({
+                    "type": "author",
+                    "id": f"{follower.host}/authors/{follower.id}",
+                    "host": follower.host,
+                    "displayName": follower.display_name,
+                    "page": follower.page,
+                    "github": follower.github,
+                    "profileImage": follower.profile_image.url if follower.profile_image else ''
+                })
+
+            return JsonResponse({
+                "type": "followers",
+                "followers": followers_data
+            })
+
+    elif request.method == 'PUT':
+        if follower_id:
+            # Decode the follower_id URL (assuming it's a URL-encoded ID)
+            decoded_follower_id = unquote(follower_id)
+            Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}/authors/{author.id}", defaults={'approved': True})
+            return JsonResponse({"status": "follow request approved"}, status=201)
+        else:
+            return JsonResponse({"error": "Missing foreign author ID"}, status=400)
+
+    elif request.method == 'DELETE':
+        if follower_id:
+            # Decode the follower_id URL (assuming it's a URL-encoded ID)
+            decoded_follower_id = unquote(follower_id)
+            try:
+                follow_instance = Follow.objects.get(follower=decoded_follower_id, following=f"{author.host}/authors/{author.id}")
+                follow_instance.delete()
+                return JsonResponse({"status": "follow relationship deleted"}, status=204)
+            except Follow.DoesNotExist:
+                return JsonResponse({"error": "Follow relationship not found"}, status=404)
+        else:
+            return JsonResponse({"error": "Missing foreign author ID"}, status=400)

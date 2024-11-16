@@ -47,6 +47,7 @@ class AuthorListViewTest(TestCase):
 
     def test_view_url_exists_at_desired_location(self):
         response = self.signup_and_login()  # Ensure the user is signed up and logged in first
+        self.assertEqual(response.status_code, 200)
         if response.status_code == 200:
             response = self.client.get('/node/authors/')
             self.assertEqual(response.status_code, 200)
