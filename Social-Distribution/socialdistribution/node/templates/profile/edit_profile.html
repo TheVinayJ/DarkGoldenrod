@@ -28,34 +28,37 @@
         <button type="button" id="saveButton">Save</button>
     
     </form>
-
     <script>
-        document.getElementById('saveButton').addEventListener('click', function() {
-            const formData = new FormData(document.getElementById('editProfileForm'));
+    document.getElementById('saveButton').addEventListener('click', function() {
+        formData = new FormData(document.getElementById('editProfileForm'));;
+        const userId = "{{ user.id }}";
 
-            console.log('Form Data:', formData);
+        formData.append('type', 'author');
+        formData.append('id', `http://darkgoldenrod/api/authors/${userId}`);
+        formData.append('host', 'http://darkgoldenrod/api/');
+        formData.append('page', `http://darkgoldenrod/api/authors/${userId}/profile`);
 
-            fetch(`/node/api/{{user.id}}/profile/edit`, {
-                method: 'PUT',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                },
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Network response was not ok.');
-            })
-            .then(data => {
-                window.location.href = `/node/{{user.id}}/profile`;
-            })
-            .catch(error => {
-                console.error('Error:', error); // Handle errors
-                alert('Error updating profile.'); // Example of error message
-            });
+        fetch("{% url 'single_author' user.id %}", {
+            method: 'PUT',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                // Redirect to the profile page after successful PUT request
+                window.location.href = "{% url 'profile' user.id %}";
+            } else {
+                return response.json().then(errorData => {
+                    console.error('Error:', errorData);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Request failed', error);
         });
-    </script>
+    });
+</script>
 </body>
 </html>

@@ -3,18 +3,12 @@ import sys
 
 sys.path.append('../node')
 
-from django.test import TestCase, Client
-from django.urls import reverse
-from django.core import signing
-from http.client import responses
-
-from django.core import signing
 from django.urls import reverse
 from django.utils import timezone
 from node.models import Post, Follow, Comment, PostLike, CommentLike
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
-from node import views
+from node.views import retrieve_github
 import datetime
 
 User = get_user_model()
@@ -116,11 +110,9 @@ class ProfileTests(TestCase):
     def test_api_successful_edit_profile(self):
         login = self.login(self.author1)
         if login.status_code == 200:
-            url = f'/node/api/{self.author1.id}/profile/edit'
+            url = f'/api/authors/{self.author1.id}/'
             edit_changes = {"display_name": "New Display Name",
-                            "profile_image": None,
                             "description": "New Description",
-                            "github": ""
                             }
             response = self.client.put(url, edit_changes, content_type='application/json')
             self.assertEqual(response.status_code, 200)
@@ -128,12 +120,43 @@ class ProfileTests(TestCase):
             self.author1.refresh_from_db()
             self.assertEqual(self.author1.display_name, 'New Display Name')
             self.assertEqual(self.author1.description, 'New Description')
+
+    def test_api_successful_update_github_edit_profile(self):
+        login = self.login(self.author1)
+        if login.status_code == 200:
+            url = f'/api/authors/{self.author1.id}/'
+            edit_changes = {"display_name": "Test Author1",
+                            "github": "tianah703"
+                            }
+            response = self.client.put(url, edit_changes, content_type='application/json')
+            self.assertEqual(response.status_code, 200)
+
+            self.author1.refresh_from_db()
+            self.assertEqual(self.author1.github, "tianah703")
+            retrieve_github(self.author1)
+
+            posts = Post.objects.filter(author=self.author1, description="Public Github Activity")
+            for post in posts:
+                self.assertIn("tianah703", post.text_content)
+
+
+    def test_api_successful_remove_github_edit_profile(self):
+        login = self.login(self.author1)
+        if login.status_code == 200:
+            url = f'/api/authors/{self.author1.id}/'
+            edit_changes = {"display_name": "Test Author1",
+                            "github": ""
+                            }
+            response = self.client.put(url, edit_changes, content_type='application/json')
+            self.assertEqual(response.status_code, 200)
+
+            self.author1.refresh_from_db()
             self.assertEqual(Post.objects.filter(author=self.author1, description="Public Github Activity").count(), 0)
 
     def test_api_unsuccessful_edit_profile(self):
         login = self.login(self.author1)
         if login.status_code == 200:
-            url = f'/node/api/{self.author1.id}/profile/edit'
+            url = f'/api/authors/{self.author1.id}/'
             edit_changes = {"display_name": "",
                             "profile_image": None,
                             "description": "i want a blank display name",
@@ -141,3 +164,36 @@ class ProfileTests(TestCase):
                             }
             response = self.client.put(url, edit_changes, content_type='application/json')
             self.assertEqual(response.status_code, 400)
+
+    def test_api_retrieval_profile(self):
+        login = self.login(self.author1)
+        if login.status_code == 200:
+            url = f'/api/authors/{self.author1.id}/'
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            expected_data = {
+                "type": "author",
+                "id": f"http://darkgoldenrod/api/authors/{self.author1.id}",
+                "host": "http://darkgoldenrod/api/",
+                "displayName": "Test Author1",
+                "github": "http://github.com/torvalds",
+                "profileImage": None,
+                "page": f"http://darkgoldenrod/authors/{self.author1.id}/profile",
+            }
+
+            response_data = response.json()
+
+            self.assertEqual(response_data['type'], expected_data['type'])
+            self.assertEqual(response_data['id'], expected_data['id'])
+            self.assertEqual(response_data['host'], expected_data['host'])
+            self.assertEqual(response_data['displayName'], expected_data['displayName'])
+            self.assertEqual(response_data['github'], expected_data['github'])
+            self.assertEqual(response_data['profileImage'], expected_data['profileImage'])
+            self.assertEqual(response_data['page'], expected_data['page'])
+
+    def test_api_retrieval_nonexistent_profile(self):
+        login = self.login(self.author1)
+        if login.status_code == 200:
+            url = f'/api/authors/3/'
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 404)

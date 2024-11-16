@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+
 from django.views.generic import ListView
 
 # from node.serializers import serializer
@@ -26,11 +27,14 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
 from urllib.parse import unquote
+from rest_framework.parsers import JSONParser
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -88,6 +92,7 @@ def api_authors_list(request):
     return JsonResponse(response_data)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def authors_list(request):
     query = request.GET.get('q', '')
     page = request.GET.get('page', 1)
@@ -100,14 +105,20 @@ def authors_list(request):
     if query:
         api_url += f'&q={query}'
 
+
+    user = get_author(request)
+    access_token = AccessToken.for_user(user)
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+
     # Make the GET request to the API endpoint
-    response = requests.get(api_url)
+    response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
     # print("Response: ", response)
     # print("Response text: ", response.text)
     # print("Response body: ", response.json())
     
     authors = response.json().get('authors', []) if response.status_code == 200 else []
-    
 
     for author in authors:
         author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
@@ -602,7 +613,60 @@ def retrieve_github(user):
             )
     # Ends here
 
-def view_edit_profile(request,author_id):
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def api_single_author(request, author_id):
+    user = get_object_or_404(Author, id=author_id)
+
+    if request.method == 'GET':
+        if user is None:
+            print("a?")
+            nonexistent_author = {
+                "message": "This user does not exist",
+            }
+            return JsonResponse(nonexistent_author, status=404)
+        else:
+            author_data = {
+                "type": "author",
+                "id": f"http://darkgoldenrod/api/authors/"+str(user.id),
+                "host": f"http://darkgoldenrod/api/",
+                "displayName": user.display_name,
+                "github": "http://github.com/" + user.github if user.github else "",
+                "profileImage": user.profile_image.url if user.profile_image else None,
+                "page": f"http://darkgoldenrod/authors/{user.id}/profile",
+                "description": user.description if user.description else "",
+            }
+            return JsonResponse(author_data, status=200)
+
+    if request.method == 'PUT':
+        serializer = AuthorProfileSerializer(user, data=request.data)
+
+        original_github = user.github
+
+        if serializer.is_valid():
+            if original_github != serializer.validated_data.get('github'):
+                Post.objects.filter(author=user, description="Public Github Activity").delete()
+
+            serializer.save()
+            author_data = {
+                "type": "author",
+                "id": f"http://darkgoldenrod/api/authors/" + str(user.id),
+                "host": f"http://darkgoldenrod/api/",
+                "displayName": user.display_name,
+                "github": "http://github.com/" + user.github,
+                "profileImage": user.profile_image.url if user.profile_image else None,
+                "page": f"http://darkgoldenrod/api/authors/{user.id}/profile",
+                "description": user.description,
+            }
+            return JsonResponse(author_data, status=200)
+        else:
+            error_data = {
+                "message": "Invalid edit made.",
+                'errors': serializer.errors,
+            }
+            return JsonResponse(error_data, status=400)
+
+def edit_profile(request,author_id):
     '''
     Fetch logged in author's profile details and display them in editable inputs
     :param request:
@@ -612,32 +676,6 @@ def view_edit_profile(request,author_id):
     user = get_object_or_404(Author, id=author_id)
     serializer = AuthorProfileSerializer(user)
     return render(request, 'profile/edit_profile.html', {'user': serializer.data})
-
-@api_view(['GET','PUT'])
-@permission_classes([IsAuthenticated])
-def edit_profile(request, author_id):
-    '''
-    Make the changes to the logged-in author's profile
-    Delete GitHub activity section of logged-in author's profile if they made a change to the GitHub field
-    :param request:
-    :param author_id: d of logged in author who is attempting to edit their own profile
-    :return: json of the fields of the AuthorProfileSerializer, where the fields are the changes made to the profile details
-    '''
-    user = get_object_or_404(Author, id=author_id)
-    serializer = AuthorProfileSerializer(user, data=request.data)  # This should handle multipart/form-data
-
-    original_github = user.github
-
-    if serializer.is_valid():
-        # Check for changes in GitHub username
-        if original_github != serializer.validated_data.get('github'):
-            Post.objects.filter(author=user, description="Public Github Activity").delete()
-
-        serializer.save()
-
-        return JsonResponse(serializer.data, status=200)
-    else:
-        return JsonResponse(serializer.data, status=400)
 
 @api_view(['GET'])
 def followers_following_friends(request, author_id):
@@ -660,7 +698,7 @@ def followers_following_friends(request, author_id):
             # Get all followers by checking the Follow model
             users = Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
             title = "Followers"
-        else:
+        elif see_follower == 'false':
             users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
             title = "Followings"
 
@@ -1015,9 +1053,32 @@ def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
         return view_post(request, post_id)
     elif request.method == 'PUT':
-        return edit_post(request, post_id)
+        return edit_post_api(request, author_id, post_id)
     elif request.method == 'DELETE':
-        return delete_post(request, post_id)
+        return delete_post_api(request, author_id, post_id)
+
+def edit_post_api(request, author_id, post_id):
+    author = get_object_or_404(Author, id=author_id)
+    post = get_object_or_404(Post, id=post_id)
+    if post.author != author:
+        return HttpResponseForbidden("Post cannot be edited.")
+
+    data = request.data
+    post.title = data.get('title', post.title)
+    serializer = PostSerializer(post, data=data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(PostSerializer(post).data)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+def delete_post_api(request, author_id, post_id):
+    author = get_object_or_404(Author, id=author_id)
+    post = get_object_or_404(Post, id=post_id)
+    if post.author != author:
+        return HttpResponseForbidden("Post cannot be deleted.")
+
+    post.delete()
+    return HttpResponse('Post successfully deleted.', 201)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -27,7 +27,7 @@ class PostsApiTest(TestCase):
             title="Public Post",
             description="A public post description",
             contentType="text/plain",
-            content="This is a public post",
+            text_content="This is a public post",
             author=self.author,
             published=timezone.now(),
             visibility="PUBLIC",
@@ -38,7 +38,7 @@ class PostsApiTest(TestCase):
             title="Friends-Only Post",
             description="A friends-only post description",
             contentType="text/plain",
-            content="This is a friends-only post",
+            text_content="This is a friends-only post",
             author=self.author,
             published=timezone.now(),
             visibility="FRIENDS",
@@ -144,3 +144,16 @@ class PostsApiTest(TestCase):
         self.assertEqual(created_post.description, new_post_data["description"])
         self.assertEqual(created_post.content, new_post_data["content"])
         self.assertEqual(created_post.visibility, new_post_data["visibility"])
+
+    def test_edit_post(self):
+        self.client.force_authenticate(user=self.author)
+        url = f"/api/authors/{self.author.id}/posts/{self.public_post.id}"
+        new_post_data = {
+            "title": "Edited Post Title",
+            "description": "Edited post description",
+            "content": "Edited content"
+        }
+        response = self.client.put(url, data=new_post_data, format='json', **self.auth_headers)
+        self.public_post.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.public_post.title, "Edited Post Title")
