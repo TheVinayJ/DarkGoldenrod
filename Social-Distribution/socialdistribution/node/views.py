@@ -1045,14 +1045,13 @@ def edit_post_api(request, author_id, post_id):
     if post.author != author:
         return HttpResponseForbidden("Post cannot be edited.")
 
-    post.title = request.PUT.get('title')
-    post.description = request.PUT.get('description')
-    if 'image' in post.contentType:
-        post.image_content = request.PUT.get('content')
-    else:
-        post.text_content = request.PUT.get('content')
-    post.save()
-    return JsonResponse(PostSerializer(post).data)
+    data = request.data
+    post.title = data.get('title', post.title)
+    serializer = PostSerializer(post, data=data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(PostSerializer(post).data)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def delete_post_api(request, author_id, post_id):
     author = get_object_or_404(Author, id=author_id)
