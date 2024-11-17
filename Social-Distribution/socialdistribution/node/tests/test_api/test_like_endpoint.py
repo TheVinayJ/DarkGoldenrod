@@ -28,7 +28,7 @@ class LikesApiTest(TestCase):
             title="Sample Post",
             description="This is a sample post description",
             contentType="text/plain",
-            content="Sample post content",
+            text_content="Sample post content",
             author=self.author_1,
             published=timezone.now(),
             visibility="PUBLIC",
@@ -36,8 +36,7 @@ class LikesApiTest(TestCase):
 
         # Create a sample comment on the post by author_2
         self.comment = Comment.objects.create(
-            comment="This is a sample comment",
-            contentType="text/markdown",
+            text="This is a sample comment",
             author=self.author_2,
             post=self.post,
             published=timezone.now(),
