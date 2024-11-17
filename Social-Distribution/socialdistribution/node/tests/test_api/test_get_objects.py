@@ -8,20 +8,20 @@ sys.path.append('../node')
 
 from django.test import TestCase
 from django.urls import reverse
+from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from node.models import Post, Comment, PostLike, CommentLike, Author
 from node.serializers import PostSerializer
 from node import views
 
+User = get_user_model()
+
 class GetObjectTests(TestCase):
     def setUp(self):
 
-        self.user = Author.objects.create(display_name='testuser', password='password', email='email@test.com')
         self.client = APIClient()
-
-        self.author = Author.objects.create(display_name="Test Author",
-                                            email='testAuthor@test.com',
-                                            password='password')
+        self.user = User.objects.create_user(id=1, display_name="Test Author1", description="Test Description", github="torvalds", email="author1@test.com", password="pass")
+        self.author = User.objects.create_user(id=2, display_name="Test Author2", email="author2@test.com", password="pass")
 
         self.post = Post.objects.create(
             title="Test Title",
