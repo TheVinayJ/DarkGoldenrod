@@ -1,6 +1,6 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
-from node.models import Author, Post  # Assuming models for Author and Post exist
+from node.models import Author, Post, AllowedNode
 from base64 import b64encode
 import json
 from django.utils import timezone
@@ -17,9 +17,16 @@ class PostsApiTest(TestCase):
             github="http://github.com/testauthor",
             profile_image="https://i.imgur.com/k7XVwpB.jpeg"
         )
+        
+        self.node = AllowedNode.objects.create(
+            url="http://localhost:8000/",
+            username="nodeuser",
+            password="nodepassword",
+            is_active=True
+        )
 
         # Set up Basic Auth headers
-        valid_credentials = b64encode(b'author@example.com:password').decode('utf-8')
+        valid_credentials = b64encode(b'nodeuser:nodepassword').decode('utf-8')
         self.auth_headers = {'HTTP_AUTHORIZATION': f'Basic {valid_credentials}'}
 
         # Create a sample public post
@@ -46,18 +53,21 @@ class PostsApiTest(TestCase):
 
     def test_get_public_post(self):
         """Test retrieving a public post by its ID."""
-        url = f"/service/api/authors/{self.author.id}/posts/{self.public_post.id}"
+        url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
         response = self.client.get(url)
 
         # Assert response
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['type'], "post")
         self.assertEqual(response.data['title'], self.public_post.title)
+        self.assertEqual(response.data['id'], self.public_post.id)
+        self.assertEqual(response.data['page'], "http://localhost:8000/authors/1/posts/1")
+        self.assertEqual(response.data['published'], self.public_post.published)
         self.assertEqual(response.data['visibility'], "PUBLIC")
 
     def test_get_friends_post_requires_authentication(self):
         """Test retrieving a friends-only post requires authentication."""
-        url = f"/service/api/authors/{self.author.id}/posts/{self.friends_post.id}"
+        url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.friends_post.id}"
         response = self.client.get(url)
 
         # Assert response without authentication returns 403
@@ -74,7 +84,7 @@ class PostsApiTest(TestCase):
 
     def test_update_post(self):
         """Test updating an existing post (requires authentication as author)."""
-        url = f"/service/api/authors/{self.author.id}/posts/{self.public_post.id}"
+        url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
         updated_data = {
             "title": "Updated Public Post Title",
             "description": "Updated description",
@@ -94,7 +104,7 @@ class PostsApiTest(TestCase):
 
     def test_delete_post(self):
         """Test deleting a post (requires authentication as author)."""
-        url = f"/service/api/authors/{self.author.id}/posts/{self.public_post.id}"
+        url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
         response = self.client.delete(url, **self.auth_headers)
 
         # Assert response
@@ -127,7 +137,7 @@ class PostsApiTest(TestCase):
 
     def test_create_new_post(self):
         """Test creating a new post for an author."""
-        url = f"/service/api/authors/{self.author.id}/posts/"
+        url = f"http://localhost:8000/api/authors/{self.author.id}/posts/"
         new_post_data = {
             "title": "New Post Title",
             "description": "New post description",

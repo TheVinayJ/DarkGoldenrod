@@ -1,6 +1,6 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
-from node.models import Author, Post, Comment, Like  # Assuming models for Author, Post, Comment, and Like exist
+from node.models import Author, Post, Comment, Like
 from base64 import b64encode
 from django.utils import timezone
 import json

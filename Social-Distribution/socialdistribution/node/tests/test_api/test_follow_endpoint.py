@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from node.models import Author, Follow, AllowedNode
 from base64 import b64encode
-from urllib.parse import quote  # for URL encoding
+from urllib.parse import quote
 
 class FollowersApiTest(TestCase):
     def setUp(self):

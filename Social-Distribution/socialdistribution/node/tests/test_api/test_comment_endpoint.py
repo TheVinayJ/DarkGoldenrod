@@ -1,6 +1,6 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
-from node.models import Author, Post, Comment  # Assuming models for Author, Post, and Comment exist
+from node.models import Author, Post, Comment
 from base64 import b64encode
 from django.utils import timezone
 import json
@@ -50,7 +50,7 @@ class CommentsApiTest(TestCase):
 
     def test_post_comment_to_inbox(self):
         """Test posting a comment to the author's inbox."""
-        inbox_url = f"/service/api/authors/{self.author_1.id}/inbox"
+        inbox_url = f"http://localhost:8000/api/authors/{self.author_1.id}/inbox/"
         comment_data = {
             "type": "comment",
             "author": {
@@ -74,7 +74,7 @@ class CommentsApiTest(TestCase):
 
     def test_get_comments_on_post(self):
         """Test retrieving comments on a specific post."""
-        comments_url = f"/service/api/authors/{self.author_1.id}/posts/{self.post.id}/comments"
+        comments_url = f"http://localhost:8000/api/authors/{self.author_1.id}/posts/{self.post.id}/comments/"
         response = self.client.get(comments_url)
 
         # Assert response
@@ -87,7 +87,7 @@ class CommentsApiTest(TestCase):
     def test_get_specific_comment(self):
         """Test retrieving a specific comment by its full ID."""
         encoded_comment_id = f"http://nodeaaaa/api/authors/{self.author_2.id}/commented/{self.comment.id}".replace("/", "%2F")
-        comment_url = f"/service/api/authors/{self.author_1.id}/posts/{self.post.id}/comments/{encoded_comment_id}"
+        comment_url = f"/service/api/authors/{self.author_1.id}/posts/{self.post.id}/comments/{encoded_comment_id}/"
 
         response = self.client.get(comment_url)
         
@@ -99,7 +99,7 @@ class CommentsApiTest(TestCase):
 
     def test_get_comments_by_author(self):
         """Test retrieving a list of comments made by a specific author."""
-        comments_list_url = f"/service/api/authors/{self.author_2.id}/commented"
+        comments_list_url = f"http://localhost:8000/api/authors/{self.author_2.id}/commented/"
 
         response = self.client.get(comments_list_url)
 
