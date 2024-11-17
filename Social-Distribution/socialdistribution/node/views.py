@@ -1159,13 +1159,12 @@ def api_get_post_from_author(request, author_id, post_id):
         return delete_post_api(request, author_id, post_id)
 
 def edit_post_api(request, author_id, post_id):
-    author = get_object_or_404(Author, id=author_id)
+    author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
     if post.author != author:
-        return HttpResponseForbidden("Post cannot be edited.")
+        return HttpResponseForbidden("Post cannot be edited.", status=403)
 
     data = request.data
-    post.title = data.get('title', post.title)
     serializer = PostSerializer(post, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
@@ -1173,13 +1172,13 @@ def edit_post_api(request, author_id, post_id):
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def delete_post_api(request, author_id, post_id):
-    author = get_object_or_404(Author, id=author_id)
+    author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
     if post.author != author:
-        return HttpResponseForbidden("Post cannot be deleted.")
+        return HttpResponseForbidden("Post cannot be deleted.", status=403)
 
     post.delete()
-    return HttpResponse('Post successfully deleted.', 201)
+    return HttpResponse('Post successfully deleted.', status=204)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
