@@ -892,7 +892,7 @@ def add_external_comment(request, author_id):
     if body['type'] == 'comments':
         for comment in body['src']:
             new_comment = Comment.objects.create()
-            serializer = CommentSerializer(new_comment, data=body)
+            serializer = CommentSerializer(new_comment, data=comment)
             if serializer.is_valid():
                 serializer.save()
                 return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
