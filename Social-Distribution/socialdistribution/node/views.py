@@ -549,6 +549,7 @@ def profile(request, author_id):
         visible_tags.append('FRIENDS') # show friend visibility posts
         if user==current_author: # if logged in user viewing own profile, show unlisted posts too
             visible_tags.append('UNLISTED')
+
     authors_posts = Post.objects.filter(author=user, visibility__in= visible_tags).exclude(description="Public Github Activity").order_by('-published') # most recent on top
     retrieve_github(user)
     github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')

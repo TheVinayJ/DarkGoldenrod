@@ -1,103 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
+<!-- With help from Chat-GPT 4o, OpenAI, 2024-10-20 -->
+{% extends 'base.html' %}
+{% load static %}
 
-<head>
-    <title>Username's Profile</title>
-    <meta charset="UTF-8">
-    {% load static %}
-    <link rel="stylesheet" href="{% static "css/login.css" %}">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin-left: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        a {
-            color: darkgoldenrod;
-            text-decoration: none;
-            margin-bottom: 5px ;
-            font-size: 17px;
-            position: relative;
-        }
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
 
-        a:after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: -2px;
-            width: 0;
-            height: 2px;
-            background-color: darkgoldenrod;
-            transition: width 0.3s ease-in-out;
-        }
-        a:hover {
-            color: goldenrod; /* Change text color on hover */
-        }
-        a:hover::after {
-            width: 100%;
-        }
-
-        form {
-            padding: 5px 10px;
-        }
-
-        .section {
-            display: none;
-            margin-bottom: 30px;
-            padding: 10px;
-            width: 80vw;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .active {
-            display: block;
-        }
-
-        .profileNameAndPhoto {
-            margin-top: 20px;
-            display: flex;
-        }
-
-        .profile-image {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            /* Make it circular */
-            margin-right: 20px;
-            padding-bottom: 10px;
-        }
-
-        .post-github {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .button-container {
-            display: flex;
-            flex-direction: row;
-        }
-        
-        button {
-            width: 200px;
-            height: 50px;
-        }
-
-    </style>
-    {% load static %}
-    <script src="{% static 'authentication.min.js' %}"></script>
-    <script src="{% static 'markdown-editor.min.js' %}"></script>
-</head>
-
-<body>
-    <a href="/node/">&lt; Go Back</a>
+{% block content %}
     <div class="profileNameAndPhoto">
-        <!--            TEMPORARY UNTIL DEFAULT PFP ACROSS ALL -->
         {% if user.profile_image %}
-        <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">
+            <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">
+        {% else %}
+            <!-- Default Profile Picture -->
+            <div class="profile-image">
+                <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 90 90">
+                    <g fill="none" fill-rule="evenodd">
+                        <path fill="#D6D6D6" d="M45 88c-11.049 0-21.18-2.003-29.021-8.634C6.212 71.105 0 58.764 0 45 0 20.187 20.187 0 45 0s45 20.187 45 45c0 13.765-6.212 26.105-15.979 34.366C66.181 85.998 56.049 88 45 88z"/>
+                        <path fill="#A5A4A4" d="M45 60.71c-11.479 0-20.818-9.339-20.818-20.817S33.521 19.075 45 19.075 65.817 28.414 65.817 39.893 56.479 60.71 45 60.71z"/>
+                        <path fill="#A5A4A4" d="M45 90c-10.613 0-20.922-3.773-29.028-10.625a1.5 1.5 0 01-.579-2.237C20.034 64.919 31.933 56.71 45 56.71s24.966 8.209 29.607 20.428a1.5 1.5 0 01-.579 2.237C65.922 86.227 55.613 90 45 90z"/>
+                    </g>
+                </svg>
+            </div>
         {% endif %}
         <h1>{{ user.display_name }}</h1>
     </div>
@@ -142,9 +66,11 @@
         
     {% endif %}
     
-    <h2>{{ user.description|default:"&nbsp;" }}</h2>
+    {% if user.description %}
+        <h2 class="desc">{{ user.description }}</h2>
+    {% endif %}
 
-    <div>
+    <div class="profile-links">
         <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
         <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
         <a href="{% url 'friends' user.id %}">Friends</a><br>
@@ -157,27 +83,48 @@
     
     <div id="posts" class="section active">
         {% if posts %}
-        <ul class="post-list">
-            {% for post in posts %}
-                {% include 'profile/post_in_profile.html' with post=post %}
-            {% endfor %}
-        </ul>
+            <ul class="post-list">
+                {% for post in posts %}
+                    <li class="post-item">
+                        <div class="title-container">
+                            <!-- Title on the Left -->
+                            <div class="title-left">
+                                <h2><a href="{% url 'view_post' post.id %}">{{ post.title }}</a></h2>
+                            </div>
+                            <!-- Author and Date on the Right -->
+                            <div class="title-right">
+                                <p>By {{ post.author.display_name }} on {{ post.published|date:"d/m/Y" }}</p>
+                            </div>
+                        </div>
+
+                        {% if post.image_content_url %}
+                            <img src="{{ post.image_content_url }}" alt="Post Image">
+                        {% endif %}
+
+                        <!-- Post Description -->
+                        <p>{{ post.description }}</p>
+
+                        <!-- Rendered Markdown Content -->
+                        {% if post.text_content %}
+                            <p class="markdown-output">
+                                {{ post.text_content|safe }}
+                            </p>
+                        {% endif %}
+
+                        <!-- Display likes and comments count -->
+                        <div class="post-actions">
+                            <p>Likes: {{ post.likes.count }} | Comments: {{ post.comments.count }}</p>
+                            <a href="{% url 'view_post' post.id %}#comments">Comment</a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
         {% else %}
-        <p>No posts available.</p>
+            <p>No posts available.</p>
         {% endif %}
     </div>
 
-    <div id="github" class="section">
-    {% if activity %}
-        <ul class="github_activity">
-            {% for event in activity %}
-                {% include 'profile/post_in_profile.html' with post=event %}
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No GitHub activity available.</p>
-    {% endif %}
-</div>
+{%block scripts%}
     <script>
         function showSection(sectionId) {
             // Hide all sections
@@ -193,5 +140,8 @@
             }
         }
         </script>
-    </body>
-</html>
+
+    <script src="{% static 'authentication.min.js' %}"></script>
+    <script src="{% static 'markdown-editor.min.js' %}"></script>
+{% endblock %}
+{% endblock %}
