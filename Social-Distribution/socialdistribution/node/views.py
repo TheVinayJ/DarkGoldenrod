@@ -879,6 +879,10 @@ def local_api_follow(request, author_id):
     return redirect('authors')
 
 def add_external_comment(request, author_id):
+    """
+    Adds comment objects from an API according to
+    either the 'comment' or 'comments' specification
+    """
     body = json.loads(request.body)
 
     if body['type'] == 'comment':   # Single comment
