@@ -137,10 +137,13 @@ def authors_list(request):
     for author in authors:
         author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
         author['id'] = author['id'].split('/')[-1] if author['linkable'] else author['id']
-        author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/'))[0])
-
+        print(author['id'])
+        print(author['id'].split('http://darkgoldenrod/apiauthors/'))
+        # COME BACK LATER TO FIGURE OUT THAT TYPO!
+        author['id_num']= int((author['id'].split('http://darkgoldenrod/apiauthors/')[1])[0])
+        print(author['id_num'])
         # find authors logged-in user is already following
-        # author['is_following'] = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/"+str(user.id), approved=True).exists()
+        author['is_following'] = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/"+str(user.id)).exists()
         # print(author['is_following'])
 
     context = {
@@ -1157,6 +1160,7 @@ def get_serialized_post(post):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
     author = get_object_or_404(Author, id=author_id)
     print("followers_view ran initial")
@@ -1215,8 +1219,10 @@ def followers_view(request, author_id, follower_id=None):
             })
 
     elif request.method == 'PUT':
+        print("HELLLLLLLLLLLLLLLO?")
         if follower_id:
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
+            print("did ti work")
             decoded_follower_id = unquote(follower_id)
             Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}", defaults={'approved': True})
             return JsonResponse({"status": "follow request approved"}, status=201)
