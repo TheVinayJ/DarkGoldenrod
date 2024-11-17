@@ -903,7 +903,8 @@ def local_api_follow(request, author_id):
     }
 
     # Send the POST request to the target author's inbox endpoint
-    inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
+    # inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
+    inbox_url = author_to_follow.url + "/inbox"
     access_token = AccessToken.for_user(current_author)
     headers = {
         'Authorization': f'Bearer {access_token}'
@@ -1046,11 +1047,21 @@ def unfollow_author(request, author_id):
     follow_exists = Follow.objects.filter(follower=current_author.url, following=author_to_unfollow.url).exists()
 
     if follow_exists:
-        # Create a new follow relationship
-        follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
-        # Delete the Follow object to unfollow the author
-        follow.delete()
+        api_url = request.build_absolute_uri(reverse('list_follower'))
+        access_token = AccessToken.for_user(current_author)
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        # Make the GET request to the API endpoint
+        response = requests.delete(api_url, headers=headers, cookies=request.COOKIES)
+
         messages.success(request, "You have successfully unfollowed this author.")
+
+        # Create a new follow relationship
+        # follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
+        # # Delete the Follow object to unfollow the author
+        # follow.delete()
+        # messages.success(request, "You have successfully unfollowed this author.")
 
     if not follow_exists:
         # Create a new follow relationship
