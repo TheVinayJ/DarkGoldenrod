@@ -45,11 +45,10 @@ class SignupView(generics.CreateAPIView):
 
 
         try:
-            author = serializer.save(commit=False)
+            #author = serializer.save(commit=False)
             
             if site_setting.user_approval_required:
-                author.is_active = False
-                author.save()
+                author = serializer.save(is_active=False)
 
                 # Prepare the response data without issuing an access token
                 response_data = {
@@ -60,8 +59,8 @@ class SignupView(generics.CreateAPIView):
                 response = JsonResponse(response_data, status=status.HTTP_201_CREATED)
                 return response
             else:
-                author.is_active = True
-                author = serializer.save()
+                author = serializer.save(is_active=True)
+                
                 access_token = AccessToken.for_user(author)
                 response_data = {
                     'message': 'Signup successful',
