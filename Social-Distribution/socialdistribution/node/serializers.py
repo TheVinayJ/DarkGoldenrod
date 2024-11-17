@@ -222,10 +222,12 @@ class SignupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Passwords must match."})
         return attrs
 
-    def create(self, validated_data):
+    def create(self, validated_data, **kwargs):
+        is_active = kwargs.pop('is_active', True)
         validated_data.pop('confirm_password')
         password = validated_data.pop('password')
         author = Author(**validated_data)
+        author.is_active = is_active
         author.set_password(password)
         author.save()  # Ensure the author is saved to the database
         return author

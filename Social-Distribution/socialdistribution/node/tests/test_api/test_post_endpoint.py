@@ -17,6 +17,13 @@ class PostsApiTest(TestCase):
             github="http://github.com/testauthor",
             profile_image="https://i.imgur.com/k7XVwpB.jpeg"
         )
+
+        self.other = Author.objects.create(
+            email="authorTwo@example.com",
+            display_name="Test Other",
+            github="http://github.com/testOther",
+            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
+        )
         
         self.node = AllowedNode.objects.create(
             url="http://localhost:8000/",
@@ -53,6 +60,8 @@ class PostsApiTest(TestCase):
 
     def test_get_public_post(self):
         """Test retrieving a public post by its ID."""
+        self.client.force_authenticate(user=self.author)
+
         url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
         response = self.client.get(url)
 
@@ -67,6 +76,8 @@ class PostsApiTest(TestCase):
 
     def test_get_friends_post_requires_authentication(self):
         """Test retrieving a friends-only post requires authentication."""
+        self.client.force_authenticate(user=self.author)
+
         url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.friends_post.id}"
         response = self.client.get(url)
 
@@ -82,37 +93,38 @@ class PostsApiTest(TestCase):
         self.assertEqual(response.data['title'], self.friends_post.title)
         self.assertEqual(response.data['visibility'], "FRIENDS")
 
-    def test_update_post(self):
-        """Test updating an existing post (requires authentication as author)."""
-        url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
-        updated_data = {
-            "title": "Updated Public Post Title",
-            "description": "Updated description",
-            "content": "Updated content for the public post",
-            "contentType": "text/plain",
-            "visibility": "PUBLIC",
-        }
-
-        response = self.client.put(url, data=json.dumps(updated_data), content_type="application/json", **self.auth_headers)
-
-        # Assert response
-        self.assertEqual(response.status_code, 200)
-        self.public_post.refresh_from_db()
-        self.assertEqual(self.public_post.title, updated_data["title"])
-        self.assertEqual(self.public_post.description, updated_data["description"])
-        self.assertEqual(self.public_post.content, updated_data["content"])
-
-    def test_delete_post(self):
-        """Test deleting a post (requires authentication as author)."""
-        url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
-        response = self.client.delete(url, **self.auth_headers)
-
-        # Assert response
-        self.assertEqual(response.status_code, 204)
-        self.assertFalse(Post.objects.filter(id=self.public_post.id).exists())
+    # def test_update_post(self):
+    #     """Test updating an existing post (requires authentication as author)."""
+    #     url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
+    #     updated_data = {
+    #         "title": "Updated Public Post Title",
+    #         "description": "Updated description",
+    #         "content": "Updated content for the public post",
+    #         "contentType": "text/plain",
+    #         "visibility": "PUBLIC",
+    #     }
+    #
+    #     response = self.client.put(url, data=json.dumps(updated_data), content_type="application/json", **self.auth_headers)
+    #
+    #     # Assert response
+    #     self.assertEqual(response.status_code, 200)
+    #     self.public_post.refresh_from_db()
+    #     self.assertEqual(self.public_post.title, updated_data["title"])
+    #     self.assertEqual(self.public_post.description, updated_data["description"])
+    #     self.assertEqual(self.public_post.content, updated_data["content"])
+    #
+    # def test_delete_post(self):
+    #     """Test deleting a post (requires authentication as author)."""
+    #     url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
+    #     response = self.client.delete(url, **self.auth_headers)
+    #
+    #     # Assert response
+    #     self.assertEqual(response.status_code, 204)
+    #     self.assertFalse(Post.objects.filter(id=self.public_post.id).exists())
 
     def test_get_recent_posts_paginated(self):
         """Test retrieving recent posts of an author (paginated)."""
+        self.client.force_authenticate(user=self.author)
         # Add extra posts for pagination
         for i in range(15):
             Post.objects.create(
@@ -137,6 +149,8 @@ class PostsApiTest(TestCase):
 
     def test_create_new_post(self):
         """Test creating a new post for an author."""
+        self.client.force_authenticate(user=self.author)
+
         url = f"http://localhost:8000/api/authors/{self.author.id}/posts/"
         new_post_data = {
             "title": "New Post Title",
@@ -155,6 +169,22 @@ class PostsApiTest(TestCase):
         self.assertEqual(created_post.content, new_post_data["content"])
         self.assertEqual(created_post.visibility, new_post_data["visibility"])
 
+    def test_forbidden_edits(self):
+        self.client.force_authenticate(user=self.other)
+        url = f"/api/authors/{self.author.id}/posts/{self.public_post.id}"
+        new_post_data = {
+            "title": "Edited Post Title",
+            "description": "Edited post description",
+            "content": "Edited content"
+        }
+        response = self.client.put(url, data=new_post_data, format='json', **self.auth_headers)
+        self.public_post.refresh_from_db()
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.public_post.title, "Public Post")
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Post.objects.filter(id=self.public_post.id).exists())
+
     def test_edit_post(self):
         self.client.force_authenticate(user=self.author)
         url = f"/api/authors/{self.author.id}/posts/{self.public_post.id}"
@@ -167,3 +197,10 @@ class PostsApiTest(TestCase):
         self.public_post.refresh_from_db()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.public_post.title, "Edited Post Title")
+
+    def test_delete_post_API(self):
+        self.client.force_authenticate(user=self.author)
+        url = f'/api/authors/{self.author.id}/posts/{self.public_post.id}'
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Post.objects.filter(id=self.public_post.id).exists())
