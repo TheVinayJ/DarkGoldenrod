@@ -35,9 +35,9 @@ from rest_framework import status
 from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
+NODES = []
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def api_authors_list(request):
     page = request.GET.get('page')  # Number of pages to include
     size = request.GET.get('size')  # Number of records per page\
@@ -66,7 +66,7 @@ def api_authors_list(request):
         current_page = paginator.page(page)
         author_list.extend([{
             "type": "author",
-            "id": f"http://darkgoldenrod/api/authors/{author.id}",
+            "id": f"{author.host}authors/{author.id}",
             "host": author.host,
             "displayName": author.display_name,
             "github": author.github,
@@ -76,7 +76,7 @@ def api_authors_list(request):
     else:
         author_list = [{
             "type": "author",
-            "id": f"http://darkgoldenrod/api/authors/{author.id}",
+            "id": f"{author.host}authors/{author.id}",
             "host": author.host,
             "displayName": author.display_name,
             "github": author.github,
@@ -94,13 +94,17 @@ def api_authors_list(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def authors_list(request):
-    query = request.GET.get('q', '')
-    page = request.GET.get('page', 1)
-    size = request.GET.get('size', 10)
+    query = request.GET.get('q', None)
+    page = request.GET.get('page', None)
+    size = request.GET.get('size', None)
 
     # Construct the URL for the API endpoint
     api_url = request.build_absolute_uri(reverse('api_authors_list'))
-    api_url += f'?page={page}&size={size}'
+    if (page and size) or query:
+        api_url[:-1]
+
+    if page and size:
+        api_url += f'?page={page}&size={size}'
 
     if query:
         api_url += f'&q={query}'
@@ -111,14 +115,24 @@ def authors_list(request):
     headers = {
         'Authorization': f'Bearer {access_token}'
     }
-
+    
     # Make the GET request to the API endpoint
+    responses = []
     response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+    responses.append(response)
+    for node in NODES:
+        if page and size:
+            response = requests.get(f"{node}authors?page={page}&size={size}", headers=headers)
+        else:
+            response = requests.get(f"{node}authors/", headers=headers)
+        responses.append(response)
     # print("Response: ", response)
     # print("Response text: ", response.text)
     # print("Response body: ", response.json())
     
-    authors = response.json().get('authors', []) if response.status_code == 200 else []
+    authors = []
+    for response in responses:
+        authors += response.json().get('authors', []) if response.status_code == 200 else []
 
     for author in authors:
         author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
@@ -791,6 +805,7 @@ def local_api_follow(request, author_id):
     return redirect('authors')
 
 @csrf_exempt
+@api_view(['POST'])
 def inbox(request, author_id):
     print("Inbox function ran")
     if request.method == 'POST':
@@ -1130,22 +1145,28 @@ def get_serialized_post(post):
 @api_view(['GET', 'PUT', 'DELETE'])
 def followers_view(request, author_id, follower_id=None):
     author = get_object_or_404(Author, id=author_id)
-
+    print("followers_view ran initial")
+    print("follower_id", follower_id)
     if request.method == 'GET':
         if follower_id:
+            print("followers_view ran")
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
             decoded_follower_id = unquote(follower_id)
             # Attempt to find the follower by their URL field, assuming `url_field` holds the unique URL
             id = decoded_follower_id.split('/')[-1]
-            host = decoded_follower_id.replace(f'/authors/{id}', '')
-            follower = Author.objects.filter(host=host, id=id).first()
+            host = decoded_follower_id.replace(f'authors/{id}', '')
+            print('id in function: ', id)
+            print('host in function: ', host)
+            follower = Author.objects.filter(host=host, id=int(id)).first()
             if not follower:
-                return JsonResponse({"error": "Not Found"}, status=404)
+                return JsonResponse({"error": "Not Found Follower"}, status=404)
+            elif not Follow.objects.filter(following=f"{author.host}authors/{author.id}", follower=f"{follower.host}authors/{follower.id}", approved=True).first():
+                return JsonResponse({"error": "Not a Follower of Author"}, status=404)
 
             # Construct the JSON response manually
             return JsonResponse({
                 "type": "author",
-                "id": f"{follower.host}/authors/{follower.id}",
+                "id": f"{follower.host}authors/{follower.id}",
                 "host": follower.host,
                 "displayName": follower.display_name,
                 "page": follower.page,
@@ -1156,16 +1177,17 @@ def followers_view(request, author_id, follower_id=None):
         else:
             # Get all followers and manually construct the response
             followers_data = []
-            followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id}", approved=True)
+            followers = Follow.objects.filter(following=f"{author.host}authors/{author.id}", approved=True)
             followers = list(followers.values_list('follower', flat=True))
+            print("followers in function", followers)
             for follower_url in followers:
                 id = follower_url.split('/')[-1]
-                host = follower_url.replace(f'/authors/{id}', '')
-                follower = Author.objects.filter(host=host, id=id).first()
+                host = follower_url.replace(f'authors/{id}', '')
+                follower = Author.objects.filter(host=host, id=int(id)).first()
 
                 followers_data.append({
                     "type": "author",
-                    "id": f"{follower.host}/authors/{follower.id}",
+                    "id": f"{follower.host}authors/{follower.id}",
                     "host": follower.host,
                     "displayName": follower.display_name,
                     "page": follower.page,
@@ -1182,7 +1204,7 @@ def followers_view(request, author_id, follower_id=None):
         if follower_id:
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
             decoded_follower_id = unquote(follower_id)
-            Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}/authors/{author.id}", defaults={'approved': True})
+            Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}", defaults={'approved': True})
             return JsonResponse({"status": "follow request approved"}, status=201)
         else:
             return JsonResponse({"error": "Missing foreign author ID"}, status=400)
@@ -1192,7 +1214,9 @@ def followers_view(request, author_id, follower_id=None):
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
             decoded_follower_id = unquote(follower_id)
             try:
-                follow_instance = Follow.objects.get(follower=decoded_follower_id, following=f"{author.host}/authors/{author.id}")
+                print("decode_follower_id: ", decoded_follower_id)
+                print("author_url: ", f"{author.host}authors/{author.id}")
+                follow_instance = Follow.objects.get(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}")
                 follow_instance.delete()
                 return JsonResponse({"status": "follow relationship deleted"}, status=204)
             except Follow.DoesNotExist:

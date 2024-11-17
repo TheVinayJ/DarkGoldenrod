@@ -6,6 +6,7 @@ from rest_framework import routers
 from rest_framework_simplejwt.views import TokenRefreshView
 from .login import SignupView, LoginView, LogoutView, UserInfoView
 
+
 urlpatterns = [
     path("node/", views.display_feed, name="index"),
     path("node/add/", views.editor, name="add"),
@@ -43,6 +44,7 @@ urlpatterns = [
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
     path('api/authors/', views.api_authors_list, name='api_authors_list'),    
+    path('api/authors', views.api_authors_list, name='api_authors_list'),    
     path('api/signup/', SignupView.as_view(), name='api_signup'),
     path('api/login/', LoginView.as_view(), name='api_login'),
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
@@ -60,7 +62,7 @@ urlpatterns = [
     path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
     path('api/authors/<int:author_id>/posts/<int:post_id>/comments', views.get_comments, name='get_comments'),
     path('api/authors/<int:author_id>/followers', views.followers_view, name='list_all_followers'),
-    path('api/authors/<int:author_id>/followers/<str:follower_id>/', views.followers_view, name='list_follower'),
+    path('api/authors/<int:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
     path("api/authors/<int:author_id>/", views.api_single_author, name='single_author'),
 
     
