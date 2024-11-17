@@ -948,6 +948,20 @@ def add_external_comment(request, author_id):
 
     return JsonResponse('Failed to add comment(s)', status=status.HTTP_400_BAD_REQUEST)
 
+
+def add_external_post(request, author_id):
+    """
+    Add a post to the database from an inbox call
+    """
+    body = json.loads(request.body)
+    body['author'] = author_id
+    serializer = PostSerializer(data=body)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @csrf_exempt
 @api_view(['POST'])
 def inbox(request, author_id):
@@ -958,6 +972,7 @@ def inbox(request, author_id):
             # Parse the request body
             body = json.loads(request.body)
             print("Request body:", body)
+            print("Body type:", body['type'])
             if body['type'] == 'follow':
                 # Extract relevant information and call follow_author
                 follower = body['actor']
@@ -965,7 +980,6 @@ def inbox(request, author_id):
                 print("Follow request type detected")
                 return follow_author(follower, following)
             if body['type'] == 'like':
-
                 liker = body['author']
                 serializer = LikeSerializer(data=body)
                 if not serializer.is_valid():
@@ -980,11 +994,11 @@ def inbox(request, author_id):
                     return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
             if body['type'] == 'post':
-                return add_post(request, author_id)
+                return add_external_post(request, author_id)
             if body['type'] == 'comment' or body['type'] == 'comments':
                 return add_external_comment(request, author_id)
-        except (json.JSONDecodeError, KeyError):
-            return JsonResponse({'error': 'Invalid request format'}, status=400)
+        except (json.JSONDecodeError, KeyError) as e:
+            return JsonResponse({'error': str(e)}, status=400)
     
     return JsonResponse({'message': 'Method not allowed'}, status=405)
 

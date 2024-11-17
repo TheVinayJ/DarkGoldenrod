@@ -174,6 +174,30 @@ class PostsApiTest(TestCase):
     #     self.assertEqual(created_post.content, new_post_data["content"])
     #     self.assertEqual(created_post.visibility, new_post_data["visibility"])
 
+    def test_inbox_post(self):
+        self.client.force_authenticate(user=self.author)
+        url = f"http://localhost:8000/api/authors/{self.author.id}/inbox/"
+        data = {
+            "type": 'post',
+            'title': 'inbox title',
+            'description': 'inbox description',
+            'id': f'http://localhost:8000/api/authors/{self.author.id}/posts/2',
+            'page': f'http://localhost:8000/authors/{self.author.id}/posts/2',
+            'contentType': 'text/plain',
+            'content': 'inbox text',
+            'visibility': 'PUBLIC',
+            'author': AuthorSerializer(self.author).data,
+            'comments': {},
+            'likes':{},
+            'published': str(timezone.now()),
+        }
+        data = json.dumps(data)
+
+        response = self.client.post(url, data=data, content_type='application/json', **self.auth_headers)
+        print(response.content)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Post.objects.filter(title='inbox title').count(), 1)
+
     def test_forbidden_edits(self):
         self.client.force_authenticate(user=self.other)
         url = f"/api/authors/{self.author.id}/posts/{self.public_post.id}"
@@ -203,7 +227,7 @@ class PostsApiTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.public_post.title, "Edited Post Title")
 
-    def test_add_comment(self):
+    def test_add_comment_inbox(self):
         self.client.force_authenticate(user=self.author)
         url = f"http://localhost:8000/api/authors/{self.author.id}/inbox/"
         data = {
