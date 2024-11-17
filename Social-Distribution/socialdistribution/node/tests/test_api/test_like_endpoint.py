@@ -4,25 +4,20 @@ from node.models import Author, Post, Comment, Like
 from base64 import b64encode
 from django.utils import timezone
 import json
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class LikesApiTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
         # Create test authors
-        self.author_1 = Author.objects.create(
-            email="author1@example.com",
-            display_name="Author One",
-            github="http://github.com/authorone",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
+        self.author_1 = User.objects.create_user(id=1, display_name="Test Author1", description="Test Description",
+                                                github="torvalds", email="author1@test.com", password="pass")
 
-        self.author_2 = Author.objects.create(
-            email="author2@example.com",
-            display_name="Author Two",
-            github="http://github.com/authortwo",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
+        self.author_2 = User.objects.create_user(id=2, display_name="Test Author2", email="author2@test.com",
+                                                password="pass")
 
         # Set up Basic Auth headers
         valid_credentials = b64encode(b'author1@example.com:password').decode('utf-8')
@@ -33,7 +28,7 @@ class LikesApiTest(TestCase):
             title="Sample Post",
             description="This is a sample post description",
             contentType="text/plain",
-            content="Sample post content",
+            text_content="Sample post content",
             author=self.author_1,
             published=timezone.now(),
             visibility="PUBLIC",
@@ -41,8 +36,7 @@ class LikesApiTest(TestCase):
 
         # Create a sample comment on the post by author_2
         self.comment = Comment.objects.create(
-            comment="This is a sample comment",
-            contentType="text/markdown",
+            text="This is a sample comment",
             author=self.author_2,
             post=self.post,
             published=timezone.now(),

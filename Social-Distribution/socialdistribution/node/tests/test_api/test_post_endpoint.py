@@ -5,31 +5,26 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from node.models import Author, Post, AllowedNode, Comment
 from node.views import add_external_comment
+from django.contrib.auth import get_user_model
 from node.serializers import AuthorSerializer
 from base64 import b64encode
 import json
 from django.utils import timezone
 from datetime import timedelta
 
+User = get_user_model()
+
+
 class PostsApiTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
         # Create a test author
-        self.author = Author.objects.create(
-            email="author@example.com",
-            display_name="Test Author",
-            github="http://github.com/testauthor",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
+        self.author = User.objects.create_user(id=1, display_name="Test Author1", description="Test Description",
+                                                github="torvalds", email="author1@test.com", password="pass")
 
-        self.other = Author.objects.create(
-            email="authorTwo@example.com",
-            display_name="Test Other",
-            github="http://github.com/testOther",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
-        
+        self.other = User.objects.create_user(id=2, display_name="Test Author2", email="author2@test.com", password="pass")
+
         self.node = AllowedNode.objects.create(
             url="http://localhost:8000/",
             username="nodeuser",
@@ -174,6 +169,30 @@ class PostsApiTest(TestCase):
     #     self.assertEqual(created_post.content, new_post_data["content"])
     #     self.assertEqual(created_post.visibility, new_post_data["visibility"])
 
+    def test_inbox_post(self):
+        self.client.force_authenticate(user=self.author)
+        url = f"http://localhost:8000/api/authors/{self.author.id}/inbox/"
+        data = {
+            "type": 'post',
+            'title': 'inbox title',
+            'description': 'inbox description',
+            'id': f'http://localhost:8000/api/authors/{self.author.id}/posts/2',
+            'page': f'http://localhost:8000/authors/{self.author.id}/posts/2',
+            'contentType': 'text/plain',
+            'content': 'inbox text',
+            'visibility': 'PUBLIC',
+            'author': AuthorSerializer(self.author).data,
+            'comments': {},
+            'likes':{},
+            'published': str(timezone.now()),
+        }
+        data = json.dumps(data)
+
+        response = self.client.post(url, data=data, content_type='application/json', **self.auth_headers)
+        print(response.content)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Post.objects.filter(title='inbox title').count(), 1)
+
     def test_forbidden_edits(self):
         self.client.force_authenticate(user=self.other)
         url = f"/api/authors/{self.author.id}/posts/{self.public_post.id}"
@@ -203,7 +222,7 @@ class PostsApiTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.public_post.title, "Edited Post Title")
 
-    def test_add_comment(self):
+    def test_add_comment_inbox(self):
         self.client.force_authenticate(user=self.author)
         url = f"http://localhost:8000/api/authors/{self.author.id}/inbox/"
         data = {

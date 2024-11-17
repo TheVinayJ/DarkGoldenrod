@@ -147,13 +147,15 @@ def authors_list(request):
                 'profile_image': author['profileImage'],
             }
         )
+
+        author_from_db = Author.objects.filter(url=author['id']).first()
+
         print(author['id'])
+        # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
-        author['id'] = author['id'].split('/')[-1] if author['linkable'] else author['id']
         print(author['id'])
         print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
-        # COME BACK LATER TO FIGURE OUT THAT TYPO!
-        author['id_num']= int((author['id'].split(f'http://{request.get_host()}/api/authors/')[0])[0])
+        author['id_num'] = author_from_db.id
         print(author['id_num'])
         # find authors logged-in user is already following
         author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
@@ -901,7 +903,8 @@ def local_api_follow(request, author_id):
     }
 
     # Send the POST request to the target author's inbox endpoint
-    inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
+    # inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
+    inbox_url = author_to_follow.url + "/inbox"
     access_token = AccessToken.for_user(current_author)
     headers = {
         'Authorization': f'Bearer {access_token}'
@@ -946,6 +949,20 @@ def add_external_comment(request, author_id):
 
     return JsonResponse('Failed to add comment(s)', status=status.HTTP_400_BAD_REQUEST)
 
+
+def add_external_post(request, author_id):
+    """
+    Add a post to the database from an inbox call
+    """
+    body = json.loads(request.body)
+    body['author'] = author_id
+    serializer = PostSerializer(data=body)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @csrf_exempt
 @api_view(['POST'])
 def inbox(request, author_id):
@@ -956,6 +973,7 @@ def inbox(request, author_id):
             # Parse the request body
             body = json.loads(request.body)
             print("Request body:", body)
+            print("Body type:", body['type'])
             if body['type'] == 'follow':
                 # Extract relevant information and call follow_author
                 follower = body['actor']
@@ -963,7 +981,6 @@ def inbox(request, author_id):
                 print("Follow request type detected")
                 return follow_author(follower, following)
             if body['type'] == 'like':
-
                 liker = body['author']
                 serializer = LikeSerializer(data=body)
                 if not serializer.is_valid():
@@ -978,11 +995,11 @@ def inbox(request, author_id):
                     return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
             if body['type'] == 'post':
-                return add_post(request, author_id)
+                return add_external_post(request, author_id)
             if body['type'] == 'comment' or body['type'] == 'comments':
                 return add_external_comment(request, author_id)
-        except (json.JSONDecodeError, KeyError):
-            return JsonResponse({'error': 'Invalid request format'}, status=400)
+        except (json.JSONDecodeError, KeyError) as e:
+            return JsonResponse({'error': str(e)}, status=400)
     
     return JsonResponse({'message': 'Method not allowed'}, status=405)
 
@@ -1030,11 +1047,21 @@ def unfollow_author(request, author_id):
     follow_exists = Follow.objects.filter(follower=current_author.url, following=author_to_unfollow.url).exists()
 
     if follow_exists:
-        # Create a new follow relationship
-        follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
-        # Delete the Follow object to unfollow the author
-        follow.delete()
+        api_url = request.build_absolute_uri(reverse('list_follower'))
+        access_token = AccessToken.for_user(current_author)
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        # Make the GET request to the API endpoint
+        response = requests.delete(api_url, headers=headers, cookies=request.COOKIES)
+
         messages.success(request, "You have successfully unfollowed this author.")
+
+        # Create a new follow relationship
+        # follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
+        # # Delete the Follow object to unfollow the author
+        # follow.delete()
+        # messages.success(request, "You have successfully unfollowed this author.")
 
     if not follow_exists:
         # Create a new follow relationship
@@ -1057,6 +1084,8 @@ def follow_requests(request, author_id):
     return render(request, 'follow_requests.html', {
         'follow_authors': follower_authors,
         'author': current_author,
+        'cookies': request.COOKIES,
+        'access_token': AccessToken.for_user(current_author),
     })
 
 def approve_follow(request, author_id, follower_id):
@@ -1305,6 +1334,8 @@ def get_serialized_post(post):
 @permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
     author = get_object_or_404(Author, id=author_id)
+    follower_id = request.GET.get('follower_id')  # Get the follower_id from query params
+    follower_host = request.GET.get('follower')  # Get the follower_id from query params
     print("followers_view ran initial")
     print("follower_id", follower_id)
     if request.method == 'GET':
@@ -1361,12 +1392,14 @@ def followers_view(request, author_id, follower_id=None):
             })
 
     elif request.method == 'PUT':
-        print("HELLLLLLLLLLLLLLLO?")
         if follower_id:
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
-            print("did ti work")
             decoded_follower_id = unquote(follower_id)
-            Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}", defaults={'approved': True})
+            print(follower_id)
+            # print("decoded_follower_id: ", decoded_follower_id)
+            # print("author_url: ", f"{author.host}authors/{author.id}")
+            
+            Follow.objects.update_or_create(follower=follower_host+"/authors/{decoded_follower_id}", following=f"{author.host}authors/{author.id}", defaults={'approved': True})
             return JsonResponse({"status": "follow request approved"}, status=201)
         else:
             return JsonResponse({"error": "Missing foreign author ID"}, status=400)
