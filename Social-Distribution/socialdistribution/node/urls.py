@@ -6,6 +6,7 @@ from rest_framework import routers
 from rest_framework_simplejwt.views import TokenRefreshView
 from .login import SignupView, LoginView, LogoutView, UserInfoView
 
+
 urlpatterns = [
     path("node/", views.display_feed, name="index"),
     path("node/add/", views.editor, name="add"),
@@ -16,18 +17,17 @@ urlpatterns = [
     path('node/authors/', views.authors_list, name='authors'),
     path('node/authors/follow/<int:author_id>/', views.local_api_follow, name='follow_author'),  # New URL for follow action
     path('node/authors/unfollow/<int:author_id>/', views.unfollow_author, name='unfollow_author'),
-    ### SUGGESTION: Maybe we should change the profile path to authors/<int:user_id>/profile/
-    path("node/<int:author_id>/followers/", views.followers_following_friends, name='followers'),
-    path("node/<int:author_id>/followings/", views.followers_following_friends, name='followings'),
-    path("node/<int:author_id>/friends/", views.followers_following_friends, name='friends'),
 
-    path('node/<int:author_id>/follower_requests/', views.follow_requests, name='follow_requests'),
-    path('node/<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
-    path('node/<int:author_id>/follower_requests/decline/<int:follower_id>/', views.decline_follow, name='decline_follow'),
+    path("node/authors/<int:author_id>/followers/", views.followers_following_friends, name='followers'),
+    path("node/authors/<int:author_id>/followings/", views.followers_following_friends, name='followings'),
+    path("node/authors/<int:author_id>/friends/", views.followers_following_friends, name='friends'),
 
-    path("node/<int:author_id>/profile/", views.profile, name='profile'),
-    path("node/<int:author_id>/profile/edit", views.view_edit_profile, name='profile_edit'),
-    path("node/api/<int:author_id>/profile/edit", views.edit_profile, name='api_profile_edit'),
+    path('node/authors/<int:author_id>/follower_requests/', views.follow_requests, name='follow_requests'),
+    path('node/authors/<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
+    path('node/authors/<int:author_id>/follower_requests/decline/<int:follower_id>/', views.decline_follow, name='decline_follow'),
+
+    path("node/authors/<int:author_id>/profile/", views.profile, name='profile'),
+    path("node/authors/<int:author_id>/profile/edit", views.edit_profile, name='profile_edit'),
 
     path('node/upload-avatar/', views.edit_profile, name='upload_avatar'),
     path('node/login/', login.login, name='login'),
@@ -44,6 +44,7 @@ urlpatterns = [
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
     path('api/authors/', views.api_authors_list, name='api_authors_list'),    
+    path('api/authors', views.api_authors_list, name='api_authors_list'),    
     path('api/signup/', SignupView.as_view(), name='api_signup'),
     path('api/login/', LoginView.as_view(), name='api_login'),
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
@@ -60,6 +61,10 @@ urlpatterns = [
     path('api/liked/<path:like_id>/', views.get_like, name='get_like'),
     path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
     path('api/authors/<int:author_id>/posts/<int:post_id>/comments', views.get_comments, name='get_comments'),
+    path('api/authors/<int:author_id>/followers', views.followers_view, name='list_all_followers'),
+    path('api/authors/<int:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
+    path("api/authors/<int:author_id>/", views.api_single_author, name='single_author'),
+
     
 ]
 if settings.DEBUG:

@@ -9,12 +9,12 @@
         {% block styles %}{% endblock %}
     </head>
     <body>
-        <nav>
+        <nav class="main-nav">
             <ul>
                 <li><a href="/node/">Home</a></li>
                 <li><a href="/node/add">New Post</a></li>
-                {% if author_id %}
-                    <li><a href="{% url 'profile' author_id %}">Profile</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'profile' user.id %}">Profile</a></li>
                 {% else %}
                     <li><a href="{% url 'login' %}">Login</a></li>
                 {% endif %}

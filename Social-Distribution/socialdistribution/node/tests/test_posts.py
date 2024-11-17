@@ -3,6 +3,7 @@ import sys
 
 from django.contrib.auth import login
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 sys.path.append('../node')
 
@@ -66,7 +67,7 @@ class PostTests(TestCase):
             published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
         )
 
-        self.client = Client()
+        self.client = APIClient()
         self.client.login(username="testAuthor", password="password")
 
         signed_id = signing.dumps(self.author.id)
@@ -106,6 +107,7 @@ class PostTests(TestCase):
         self.assertTrue(PostLike.objects.filter(owner=self.post).exists())
 
     def test_unlike_post(self):
+        self.client.force_authenticate(user=self.author)
         test_post_id = self.post.id
         self.assertFalse(PostLike.objects.filter(owner=self.post).exists())
         response = self.client.post(reverse('like', args=[test_post_id]), follow=True)
@@ -115,14 +117,15 @@ class PostTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(PostLike.objects.filter(owner=self.post).exists())
 
-    # def test_add_comment(self):
-    #     test_post_id = self.post.id
-    #     self.assertFalse(Comment.objects.filter(post = self.post).count() > 1)
-    #     response = self.client.post(reverse('add_comment', args=[test_post_id]),
-    #                                 {'content': 'test comment'},
-    #                                 follow=True)
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertTrue(Comment.objects.filter(post = self.post).count() > 1)
+    def test_add_comment(self):
+        self.client.force_authenticate(user=self.author)
+        test_post_id = self.post.id
+        self.assertFalse(Comment.objects.filter(post = self.post).count() > 1)
+        response = self.client.post(reverse('add_comment', args=[test_post_id]),
+                                    {'content': 'test comment'},
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Comment.objects.filter(post = self.post).count() > 1)
 
     def test_like_comment(self):
         self.assertFalse(CommentLike.objects.filter(owner=self.comment).exists())
@@ -154,3 +157,15 @@ class PostTests(TestCase):
             following=self.author)
         response = self.client.get(reverse('view_post', args=[self.friends_post.id]), follow=True)
         self.assertEqual(response.status_code, 200)
+
+    def test_add_post_API_call(self):
+        self.client.force_authenticate(user=self.author)
+        url = f'http://localhost:8000/api/authors/{self.author.id}/posts'
+        response = self.client.post(url, data={'title': 'API Title',
+                                                       'description': 'Test Description',
+                                                       'content': 'Test Content',
+                                                       'contentType': 'text/plain',
+                                                       'visibility': 'PUBLIC',
+                                                       'author': self.author,})
+        self.assertEqual(response.status_code, 303)
+        self.assertTrue(Post.objects.filter(title="API Title").exists())
