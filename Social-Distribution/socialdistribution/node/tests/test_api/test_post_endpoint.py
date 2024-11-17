@@ -60,6 +60,8 @@ class PostsApiTest(TestCase):
 
     def test_get_public_post(self):
         """Test retrieving a public post by its ID."""
+        self.client.force_authenticate(user=self.author)
+
         url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.public_post.id}"
         response = self.client.get(url)
 
@@ -74,6 +76,8 @@ class PostsApiTest(TestCase):
 
     def test_get_friends_post_requires_authentication(self):
         """Test retrieving a friends-only post requires authentication."""
+        self.client.force_authenticate(user=self.author)
+
         url = f"http://localhost:8000/api/authors/{self.author.id}/posts/{self.friends_post.id}"
         response = self.client.get(url)
 
@@ -120,6 +124,7 @@ class PostsApiTest(TestCase):
 
     def test_get_recent_posts_paginated(self):
         """Test retrieving recent posts of an author (paginated)."""
+        self.client.force_authenticate(user=self.author)
         # Add extra posts for pagination
         for i in range(15):
             Post.objects.create(
@@ -144,6 +149,8 @@ class PostsApiTest(TestCase):
 
     def test_create_new_post(self):
         """Test creating a new post for an author."""
+        self.client.force_authenticate(user=self.author)
+
         url = f"http://localhost:8000/api/authors/{self.author.id}/posts/"
         new_post_data = {
             "title": "New Post Title",
