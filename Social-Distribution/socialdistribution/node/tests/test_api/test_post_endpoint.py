@@ -5,31 +5,26 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from node.models import Author, Post, AllowedNode, Comment
 from node.views import add_external_comment
+from django.contrib.auth import get_user_model
 from node.serializers import AuthorSerializer
 from base64 import b64encode
 import json
 from django.utils import timezone
 from datetime import timedelta
 
+User = get_user_model()
+
+
 class PostsApiTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
         # Create a test author
-        self.author = Author.objects.create(
-            email="author@example.com",
-            display_name="Test Author",
-            github="http://github.com/testauthor",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
+        self.author = User.objects.create_user(id=1, display_name="Test Author1", description="Test Description",
+                                                github="torvalds", email="author1@test.com", password="pass")
 
-        self.other = Author.objects.create(
-            email="authorTwo@example.com",
-            display_name="Test Other",
-            github="http://github.com/testOther",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
-        
+        self.other = User.objects.create_user(id=2, display_name="Test Author2", email="author2@test.com", password="pass")
+
         self.node = AllowedNode.objects.create(
             url="http://localhost:8000/",
             username="nodeuser",

@@ -4,25 +4,20 @@ from node.models import Author, Post, Comment
 from base64 import b64encode
 from django.utils import timezone
 import json
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class CommentsApiTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
         # Create a test author
-        self.author_1 = Author.objects.create(
-            email="author1@example.com",
-            display_name="Author One",
-            github="http://github.com/authorone",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
+        self.author1 = User.objects.create_user(id=1, display_name="Test Author1", description="Test Description",
+                                               github="torvalds", email="author1@test.com", password="pass")
 
-        self.author_2 = Author.objects.create(
-            email="author2@example.com",
-            display_name="Author Two",
-            github="http://github.com/authortwo",
-            profile_image="https://i.imgur.com/k7XVwpB.jpeg"
-        )
+        self.author2 = User.objects.create_user(id=2, display_name="Test Author2", email="author2@test.com",
+                                              password="pass")
 
         # Set up authentication headers
         valid_credentials = b64encode(b'author1@example.com:password').decode('utf-8')

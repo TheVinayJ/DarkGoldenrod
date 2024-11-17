@@ -25,4 +25,9 @@ GNU General Public License version 3
 
 The authors claiming copyright, if they wish to be known, can list their names here...
 
-* 
+* Vinay Joshi
+* Duy Bui Nguyen Khong
+* Tiana Huynh
+* Son Tran
+* Vinu Aravindh Ramesh
+* Aykhan Teymurlu
