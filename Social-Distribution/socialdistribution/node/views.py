@@ -94,6 +94,7 @@ def api_authors_list(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def authors_list(request):
+    print("Host: ", request.get_host())
     query = request.GET.get('q', None)
     page = request.GET.get('page', None)
     size = request.GET.get('size', None)
@@ -135,15 +136,27 @@ def authors_list(request):
         authors += response.json().get('authors', []) if response.status_code == 200 else []
 
     for author in authors:
-        author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
+        Author.objects.update_or_create(
+            url=author['id'],
+            defaults={
+                'url': author['id'],
+                'host': author['host'],
+                'display_name': author['displayName'],
+                'github': author['github'],
+                'page': author['page'],
+                'profile_image': author['profileImage'],
+            }
+        )
+        print(author['id'])
+        author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
         author['id'] = author['id'].split('/')[-1] if author['linkable'] else author['id']
         print(author['id'])
-        print(author['id'].split('http://darkgoldenrod/apiauthors/'))
+        print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
         # COME BACK LATER TO FIGURE OUT THAT TYPO!
-        author['id_num']= int((author['id'].split('http://darkgoldenrod/apiauthors/')[1])[0])
+        author['id_num']= int((author['id'].split(f'http://{request.get_host()}/api/authors/')[0])[0])
         print(author['id_num'])
         # find authors logged-in user is already following
-        author['is_following'] = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/"+str(user.id)).exists()
+        author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
         # print(author['is_following'])
 
     context = {
@@ -221,11 +234,11 @@ def edit_post(request, post_id):
             })
 
         post.save()
-        if author.host == 'http://darkgoldenrod/api':
+        if author.host == f'http://{request.get_host()}/api/':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
             for follower in followers:
-                processed_nodes = ['http://darkgoldenrod/api']
+                processed_nodes = [f'http://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
                     json_content = PostSerializer(post).data
                     send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)
@@ -297,11 +310,11 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
-    if author.host == 'http://darkgoldenrod/api':
+    if author.host == f'http://{request.get_host()}/api/':
         # Distribute posts to connected nodes
         followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
         for follower in followers:
-            processed_nodes = ['http://darkgoldenrod/api']
+            processed_nodes = [f'http://{request.get_host()}/api/']
             if follower.host not in processed_nodes:
                 json_content = PostSerializer(post).data
                 send_request_to_node(follower.host, follower.id +'/inbox', 'POST', json_content)
@@ -356,7 +369,7 @@ def local_api_like(request, id):
     like_data = {
         "type": "like",
         "author": AuthorSerializer(current_author).data,
-        "object": f"http://darkgoldenrod/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
+        "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
         "published": datetime.datetime.now(),
     }
     
@@ -586,22 +599,22 @@ def profile(request, author_id):
     ownProfile = (user == current_author)
 
     is_following = Follow.objects.filter( # if logged in author following the user
-        follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
-        following="http://darkgoldenrod/api/authors/" + str(author_id),
+        follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
+        following=f"http://{request.get_host()}/api/authors/" + str(author_id),
         approved=True,
     ).exists()
     if is_following:
         is_followback = Follow.objects.filter(  # ... see if user is following back
-            follower="http://darkgoldenrod/api/authors/" + str(author_id),
-            following="http://darkgoldenrod/api/authors/" + str(current_author.id),
+            follower=f"http://{request.get_host()}/api/authors/" + str(author_id),
+            following=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
             approved=True,
         ).exists()
         is_pending = False
     else:
         is_followback = False
         is_pending = Follow.objects.filter( # if logged in author following the user
-            follower="http://darkgoldenrod/api/authors/" + str(current_author.id),
-            following="http://darkgoldenrod/api/authors/" + str(author_id),
+            follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
+            following=f"http://{request.get_host()}/api/authors/" + str(author_id),
             approved=False,
         ).exists()
 
@@ -617,22 +630,22 @@ def profile(request, author_id):
 
     # Followers: people who follow the user
     followers_count = Follow.objects.filter(
-        following=f"http://darkgoldenrod/api/authors/{author_id}",
+        following=f"http://{request.get_host()}/api/authors/{author_id}",
         approved=True
     ).count()
 
     # Following: people the user follows
     following_count = Follow.objects.filter(
-        follower=f"http://darkgoldenrod/api/authors/{author_id}",
+        follower=f"http://{request.get_host()}/api/authors/{author_id}",
         approved=True
     ).count()
 
     # Friends: mutual follows
     friends_count = Follow.objects.filter(
-        follower=f"http://darkgoldenrod/api/authors/{author_id}",
+        follower=f"http://{request.get_host()}/api/authors/{author_id}",
         approved=True,
         following__in=Follow.objects.filter(
-            follower__in=[f"http://darkgoldenrod/api/authors/{author_id}"],
+            follower__in=[f"http://{request.get_host()}/api/authors/{author_id}"],
             approved=True
         ).values_list('following', flat=True)
     ).count()
@@ -726,13 +739,12 @@ def api_single_author(request, author_id):
         else:
             author_data = {
                 "type": "author",
-                "id": f"http://darkgoldenrod/api/authors/"+str(user.id),
-                "host": f"http://darkgoldenrod/api/",
+                "id": user.url,
+                "host": user.host,
                 "displayName": user.display_name,
                 "github": "http://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
-                "page": f"http://darkgoldenrod/authors/{user.id}/profile",
-                "description": user.description if user.description else "",
+                "page": user.page,
             }
             return JsonResponse(author_data, status=200)
 
@@ -748,13 +760,12 @@ def api_single_author(request, author_id):
             serializer.save()
             author_data = {
                 "type": "author",
-                "id": f"http://darkgoldenrod/api/authors/" + str(user.id),
-                "host": f"http://darkgoldenrod/api/",
+                "id": user.url,
+                "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github,
+                "github": "http://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
-                "page": f"http://darkgoldenrod/api/authors/{user.id}/profile",
-                "description": user.description,
+                "page": user.page,
             }
             return JsonResponse(author_data, status=200)
         else:
@@ -783,7 +794,8 @@ def followers_following_friends(request, author_id):
     :param author_id: id of author whose profile is currently being viewed
     :return: html rendition of follower_following.html with the appropriate content
     '''
-    profileUserUrl = "http://darkgoldenrod/api/authors/" + str(author_id)  # user of the profile
+    author = get_object_or_404(Author, id=author_id)
+    profileUserUrl = author.url  # user of the profile
 
     # find a diff way to do this tbh
     see_follower = request.GET.get('see_follower')
@@ -800,8 +812,7 @@ def followers_following_friends(request, author_id):
             users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
             title = "Followings"
 
-    user_ids = [url.replace("http://darkgoldenrod/api/authors/", "") for url in users]
-    user_authors = Author.objects.filter(id__in=user_ids)
+    user_authors = Author.objects.filter(url__in=users)
 
     # serialize
     author_data = [{'id': author.id, 'display_name': author.display_name} for author in user_authors]
@@ -844,8 +855,8 @@ def local_api_follow(request, author_id):
         "summary": f"{current_author.display_name} wants to follow {author_to_follow.display_name}",
         "actor": {
             "type": "author",
-            "id": f"http://darkgoldenrod/api/authors/{current_author.id}",
-            "host":"http://darkgoldenrod/api/",
+            "id": current_author.url,
+            "host": current_author.host,
             "displayName": current_author.display_name,
             "github": current_author.github,
             "profileImage": current_author.profile_image.url if current_author.profile_image else None,
@@ -853,8 +864,8 @@ def local_api_follow(request, author_id):
         },
         "object": {
             "type": "author",
-            "id": f"http://darkgoldenrod/api/authors/{author_to_follow.id}",
-            "host":"http://darkgoldenrod/api/",
+            "id": author_to_follow.url,
+            "host": author_to_follow.host,
             "displayName": author_to_follow.display_name,
             "github": author_to_follow.github,
             "profileImage": author_to_follow.profile_image.url if current_author.profile_image else None,
@@ -987,17 +998,17 @@ def follow_author(follower, following):
 @permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
-    author_to_unfollow = get_object_or_404(Author, id=author_id).id
+    author_to_unfollow = get_object_or_404(Author, id=author_id)
 
     # Get the logged-in author (assuming you have a user to author mapping)
-    current_author = get_author(request).id # Adjust this line to match your user-author mapping
+    current_author = get_author(request) # Adjust this line to match your user-author mapping
 
     # Check if the follow relationship already exists
-    follow_exists = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/" + str(current_author), following="http://darkgoldenrod/api/authors/" + str(author_to_unfollow)).exists()
+    follow_exists = Follow.objects.filter(follower=current_author.url, following=author_to_unfollow.url).exists()
 
     if follow_exists:
         # Create a new follow relationship
-        follow = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(current_author), following="http://darkgoldenrod/api/authors/" + str(author_to_unfollow))
+        follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
         # Delete the Follow object to unfollow the author
         follow.delete()
         messages.success(request, "You have successfully unfollowed this author.")
@@ -1012,12 +1023,12 @@ def unfollow_author(request, author_id):
 
 def follow_requests(request, author_id):
     current_author = get_object_or_404(Author, id=author_id)  # logged in author
-    current_follow_requests = Follow.objects.filter(following="http://darkgoldenrod/api/authors/" + str(current_author.id), approved=False)
+    current_follow_requests = Follow.objects.filter(following=current_author.url, approved=False)
     print(current_follow_requests)
     follower_authors = []
     for a_request in current_follow_requests:
-        follower_id = a_request.follower.replace("http://darkgoldenrod/api/authors/", "")
-        follower_author = get_object_or_404(Author, id=follower_id)
+        # follower_id = a_request.follower.replace("http://darkgoldenrod/api/authors/", "")
+        follower_author = get_object_or_404(Author, url=a_request.follower)
         follower_authors.append(follower_author)
 
     return render(request, 'follow_requests.html', {
@@ -1033,7 +1044,9 @@ def approve_follow(request, author_id, follower_id):
     :param follower_id: id of author who submitted follow request
     :return: redirection to follow_requests view
     '''
-    follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
+    follower_author = get_object_or_404(Author, id=follower_id)
+    current_author = get_object_or_404(Author, id=author_id)
+    follow_request = get_object_or_404(Follow, follower=follower_author.url, following=current_author.url)
     follow_request.approved = True
     follow_request.save()
     return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
@@ -1046,7 +1059,9 @@ def decline_follow(request, author_id, follower_id):
     :param follower_id: id of author who submitted follow request
     :return: redirection to follow_requests view
     '''
-    follow_request = get_object_or_404(Follow, follower="http://darkgoldenrod/api/authors/" + str(follower_id), following = "http://darkgoldenrod/api/authors/" + str(author_id))
+    follower_author = get_object_or_404(Author, id=follower_id)
+    current_author = get_object_or_404(Author, id=author_id)
+    follow_request = get_object_or_404(Follow, follower=follower_author.url, following=current_author.url)
     follow_request.delete()
     return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
 
@@ -1061,20 +1076,23 @@ def display_feed(request):
     """
 
     # Get the current user's full author URL
-    current_author = get_author(request).id
+    current_author = get_author(request)
 
     # Get filter option from URL query parameters (default is 'all')
     filter_option = request.GET.get('filter', 'all')
 
     # Get the authors that the current user is following
-    follow_objects = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/" + str(current_author), approved=True)
+    follow_objects = Follow.objects.filter(follower=current_author.url, approved=True)
 
 
     followings = list(follow_objects.values_list('following', flat=True))
-    cleaned_followings = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in followings]
+    following_authors = Author.objects.filter(url__in=followings)
+    cleaned_followings = following_authors.values_list('id', flat=True)
 
     friends = [follow.following for follow in follow_objects if follow.is_friend()]
-    cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
+    friends_authors = Author.objects.filter(url__in=friends)
+    cleaned_friends = friends_authors.values_list('id', flat=True)
+    # cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
 
 
     public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
@@ -1104,7 +1122,7 @@ def display_feed(request):
         })
     
     # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
-    # follower_url = "http://darkgoldenrod/api/authors/" + str(current_author)
+    # follower_url = current_author.url
     # print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
     # print(f'Author IDs: {followings}|')
     # print(f"Cleaned Author IDs: {cleaned_followings}|")
@@ -1205,11 +1223,11 @@ def edit_post_api(request, author_id, post_id):
     serializer = PostSerializer(post, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        if author.host == 'http://darkgoldenrod/api':
+        if author.host == f'http://{request.get_host()}/api/':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
             for follower in followers:
-                processed_nodes = ['http://darkgoldenrod/api']
+                processed_nodes = [f'http://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
                     json_content = PostSerializer(post).data
                     send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)

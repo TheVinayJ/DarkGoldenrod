@@ -39,10 +39,11 @@ class AuthorManager(BaseUserManager):
 
 class Author(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
+    url = models.CharField(max_length=255, unique=True, null=True)
     display_name = models.CharField(max_length=50, unique=True, null=False)
     email = models.EmailField(max_length=50, unique=True)
     description = models.CharField(max_length=150, blank=True, null=True)
-    host = models.CharField(max_length=50, blank=True, null=True, default='http://darkgoldenrod/api')
+    host = models.CharField(max_length=50, blank=True, null=True, default='http://127.0.0.1:8000/api/')
     github = models.CharField(max_length=50, blank=True, null=True)
     profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True)
     page = models.CharField(max_length=100, blank=True, null=True)
@@ -55,6 +56,13 @@ class Author(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['display_name']
+
+    def save(self, *args, **kwargs):
+        # Ensure the url is set when the instance is first created
+        if not self.url and self._state.adding:
+            super().save(*args, **kwargs)  # Save first to generate the auto-increment id
+            self.url = f"{self.host}authors/{self.id}"
+        super().save(*args, **kwargs)  # Save again to store the URL
 
     def __str__(self):
         return self.display_name

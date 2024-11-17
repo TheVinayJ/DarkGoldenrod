@@ -19,7 +19,7 @@ class AuthorAdmin(admin.ModelAdmin):
     # Customize the list display to show pending (inactive) users
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.filter(is_active=False)
+        return qs.filter(is_active=True)
     
 # Register your models here.
 admin.site.register(Author, AuthorAdmin)
