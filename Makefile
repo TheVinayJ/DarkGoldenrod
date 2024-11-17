@@ -17,3 +17,8 @@ run:
 	heroku run "python Social-Distribution/socialdistribution/manage.py diffsettings" --app darkgoldenrod
 	heroku run "python Social-Distribution/socialdistribution/manage.py migrate" --app darkgoldenrod
 	heroku run "python Social-Distribution/socialdistribution/manage.py createsuperuser" --app darkgoldenrod
+
+deploy:
+	git add .
+	git commit -m "Deploy"
+	git push heroku Development:main
