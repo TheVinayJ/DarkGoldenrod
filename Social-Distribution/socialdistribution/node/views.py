@@ -368,22 +368,29 @@ def local_api_like(request, id):
     liked_post = get_object_or_404(Post, id=id)
     current_author = get_author(request)
 
+    author_serializer = AuthorSerializer(current_author)
+    author_data = author_serializer.data
+
     like_data = {
         "type": "like",
-        "author": AuthorSerializer(current_author).data,
+        "author": author_data,
         "object": f"http://darkgoldenrod/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
         "published": datetime.datetime.now(),
     }
+
+    print("Like Data: ", like_data)
     
     serializer = LikeSerializer(data=like_data)
     if not serializer.is_valid():
+        print("Validation errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     like_object = serializer.data
 
     inbox_url = request.build_absolute_uri(reverse('inbox', args=[liked_post.author.id]))
     
     try:
-        response = request.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
+        response = requests.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
         response.raise_for_status()
 
         return Response({"message": "Like sent to inbox"}, status=status.HTTP_201_CREATED)
