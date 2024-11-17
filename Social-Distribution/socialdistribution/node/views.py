@@ -814,6 +814,8 @@ def inbox(request, author_id):
                 else:   # Comment like
                     return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
+            if body['type'] == 'post':
+                add_post(request, author_id)
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
     
