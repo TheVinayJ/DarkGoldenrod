@@ -18,4 +18,4 @@ init:
 deploy:
 	git add .
 	git commit -m "Deploy"
-	git push heroku Development:main
+	git push heroku main
