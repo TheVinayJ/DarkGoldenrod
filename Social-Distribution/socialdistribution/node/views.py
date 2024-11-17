@@ -29,7 +29,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.decorators import login_required
-from .utils import get_authenticated_user_id, AuthenticationFailed
+from .utils import get_authenticated_user_id, AuthenticationFailed, send_request_to_node
 from rest_framework.response import Response
 from rest_framework import status
 from urllib.parse import unquote
@@ -237,7 +237,14 @@ def add_post(request, author_id):
                         )
             post.save()
     if author.host == 'http://darkgoldenrod/api':
-        pass    # Do something to send to other nodes
+        # Distribute posts to connected nodes
+        followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
+        for follower in followers:
+            processed_nodes = ['http://darkgoldenrod/api']
+            if follower.host not in processed_nodes:
+                json_content = PostSerializer(post).data
+                send_request_to_node(follower.host, follower.id +'/inbox', 'POST', json_content)
+                processed_nodes.append(follower.host)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
@@ -446,6 +453,9 @@ def add_comment(request, id):
     # Get request contents
     author = get_author(request)
     text = request.POST["content"]
+
+    if not author:
+        return HttpResponseForbidden("You must be logged in to post a comment.")
 
 
     new_comment = Comment(post=post, text=text, author=author)
@@ -810,6 +820,8 @@ def inbox(request, author_id):
                 else:   # Comment like
                     return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
+            if body['type'] == 'post':
+                add_post(request, author_id)
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
     
