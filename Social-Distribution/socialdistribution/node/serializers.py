@@ -11,7 +11,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     host = serializers.SerializerMethodField()
     displayName = serializers.CharField(source='display_name')
-    github = serializers.CharField()
+    github = serializers.CharField(allow_null=True, allow_blank=True, default="")
     profileImage = serializers.SerializerMethodField()
     page = serializers.SerializerMethodField()
 
@@ -19,26 +19,52 @@ class AuthorSerializer(serializers.ModelSerializer):
         model = Author
         fields = ['type', 'id', 'host', 'displayName', 'github', 'profileImage', 'page']
 
+    # Claude AI
     def get_id(self, obj):
+        if isinstance(obj, dict):
+            # If obj is a dictionary, get id from displayName or id field
+            author_id = obj.get('id') 
+            if not author_id:
+                # Try to get from display_name or fallback
+                display_name = obj.get('display_name') or obj.get('displayName')
+                if display_name:
+                    # Find author by display name
+                    try:
+                        author = Author.objects.get(display_name=display_name)
+                        return f"http://darkgoldenrod/api/authors/{author.id}"
+                    except Author.DoesNotExist:
+                        return None
+            return author_id  # Return the id if it exists in dictionary
+        # If obj is an Author instance
         return f"http://darkgoldenrod/api/authors/{obj.id}"
 
     def get_host(self, obj):
+        if isinstance(obj, dict):
+            return obj.get('host', "http://darkgoldenrod/api")
         return "http://darkgoldenrod/api"
 
-    def get_page(self, obj):
-        return f"http://darkgoldenrod/{obj.id}/profile"
-
     def get_profileImage(self, obj):
+        if isinstance(obj, dict):
+            return obj.get('profileImage') or obj.get('profile_image')
         if obj.profile_image:
             return obj.profile_image.url
         return None
 
+    def get_page(self, obj):
+        if isinstance(obj, dict):
+            if 'page' in obj:
+                return obj['page']
+            # Try to construct page URL from id or display_name
+            author_id = obj.get('id', '').split('/')[-1]
+            return f"http://darkgoldenrod/{author_id}/profile"
+        return f"http://darkgoldenrod/{obj.id}/profile"
+
 class LikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = AuthorSerializer(source='liker')
-    object = serializers.URLField()
+    author = AuthorSerializer()
+    object = serializers.CharField()
     published = serializers.DateTimeField(default=datetime.datetime.now)
-    id = serializers.URLField()
+    id = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = PostLike  
@@ -53,7 +79,21 @@ class LikeSerializer(serializers.ModelSerializer):
             return PostLike
         return PostLike
     
+    def validate_object(self, value):
+        if not value:
+            raise serializers.ValidationError("Object URL cannot be empty")
+        return value
+    
     def to_representation(self, instance):
+        if isinstance(instance, dict):
+            return {
+                'type': 'like',
+                'author': instance['author'],
+                'object': instance['object'],
+                'published': instance['published'].isoformat() if isinstance(instance['published'], datetime.datetime) else instance['published'],
+                'id': instance.get('id', '')
+            }
+        
         data = super().to_representation(instance)
         model_class = self.get_model_class()
         
@@ -113,9 +153,9 @@ class LikesSerializer(serializers.Serializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default="comment")
-    author = AuthorSerializer()
+    author = AuthorSerializer(read_only=True)
     comment = serializers.CharField(source='text')
-    contentType = serializers.CharField(default='text/markdown')
+    contentType = serializers.CharField(default='text/plain')
     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()

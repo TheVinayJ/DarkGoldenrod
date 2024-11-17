@@ -202,38 +202,52 @@ def edit_post(request, post_id):
             })
 
         post.title = title
-        # post.text_content = description
+        post.description = description
         post.visibility = visibility
-        post.published = datetime.datetime.now()
+        post.published = timezone.now()
 
-        if contentType == 'plaintext':
-            content = request.POST.get('content')
+        if contentType == 'plain':
+            content = request.POST.get('plain-content')
+            if not content:
+                messages.error(request, "Content cannot be empty for Plaintext.")
+                return render(request, 'edit_post.html', {'post': post})
             post.contentType = 'text/plain'
             post.text_content = content
             post.image_content = None  # Remove image if switching from image to text
+
         elif contentType == 'markdown':
-            content = request.POST.get('content')
+            content = request.POST.get('markdown-content')
+            if not content:
+                messages.error(request, "Content cannot be empty for Markdown.")
+                return render(request, 'edit_post.html', {'post': post})
             post.contentType = 'text/markdown'
             post.text_content = content
-            post.image_content = ""  # Remove image if switching from image to text
+            post.image_content = None  # Remove image if switching from image to text
+
         elif contentType == 'image':
-            image = request.FILES.get('content')
+            image = request.FILES.get('image-content')
             if image:
                 file_suffix = os.path.splitext(image.name)[1][1:]  # Get file extension without dot
                 post.contentType = f'image/{file_suffix.lower()}'
                 post.image_content = image
-                post.text_content = ""  # Remove text if switching from text to image
+                post.text_content = None  # Remove text if switching from text to image
             else:
-                # If no new image is uploaded, keep the existing one
-                pass
+                # If no new image is uploaded, keep the existing image_content
+                if not post.image_content:
+                    messages.error(request, "No image uploaded and no existing image to retain.")
+                    return render(request, 'edit_post.html', {'post': post})
+                # Else, keep the existing image and contentType
         else:
             messages.error(request, "Invalid content type.")
-            return render(request, 'edit_post.html', {
-                'post': post,
-                'author_id': author.id,
-            })
+            return render(request, 'edit_post.html', {'post': post})
 
         post.save()
+        
+        print("contentType:", contentType)
+        print("plain_content:", request.POST.get('plain_content'))
+        print("markdown_content:", request.POST.get('markdown_content'))
+        print("image_content:", request.FILES.get('image_content'))
+
         if author.host == f'http://{request.get_host()}/api/':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
@@ -256,6 +270,7 @@ def edit_post(request, post_id):
 def add_post(request, author_id):
     author = get_author(request)
     contentType = request.POST["contentType"]
+    print(request.POST)
     if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
         # Check whether content is from AJAX or an external API call
         # For AJAX formatting:
@@ -350,8 +365,8 @@ def delete_post(request, post_id):
     author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
 
-    if post.author != author:
-        return HttpResponseForbidden("You are not allowed to delete this post.")
+    # if post.author != author:
+    #     return HttpResponseForbidden(f"You are not allowed to delete this post. Author: {post.author} but user: {author}")
 
     if request.method == 'POST':
         # Set the visibility to 'DELETED'
@@ -366,22 +381,29 @@ def local_api_like(request, id):
     liked_post = get_object_or_404(Post, id=id)
     current_author = get_author(request)
 
+    author_serializer = AuthorSerializer(current_author)
+    author_data = author_serializer.data
+
     like_data = {
         "type": "like",
-        "author": AuthorSerializer(current_author).data,
+        "author": author_data,
         "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
         "published": datetime.datetime.now(),
     }
+
+    print("Like Data: ", like_data)
     
     serializer = LikeSerializer(data=like_data)
     if not serializer.is_valid():
+        print("Validation errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     like_object = serializer.data
 
     inbox_url = request.build_absolute_uri(reverse('inbox', args=[liked_post.author.id]))
     
     try:
-        response = request.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
+        response = requests.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
         response.raise_for_status()
 
         return Response({"message": "Like sent to inbox"}, status=status.HTTP_201_CREATED)
@@ -905,7 +927,8 @@ def add_external_comment(request, author_id):
     body = json.loads(request.body)
 
     if body['type'] == 'comment':   # Single comment
-        new_comment = Comment.objects.create()
+        new_comment = Comment.objects.create(author_id=author_id,
+                                             post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
         serializer = CommentSerializer(new_comment, data=body)
         if serializer.is_valid():
             serializer.save()
@@ -914,7 +937,7 @@ def add_external_comment(request, author_id):
 
     if body['type'] == 'comments':
         for comment in body['src']:
-            new_comment = Comment.objects.create()
+            new_comment = Comment.objects.create(author_id=author_id, post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
             serializer = CommentSerializer(new_comment, data=comment)
             if serializer.is_valid():
                 serializer.save()
@@ -940,12 +963,12 @@ def inbox(request, author_id):
                 print("Follow request type detected")
                 return follow_author(follower, following)
             if body['type'] == 'like':
-                
+
                 liker = body['author']
                 serializer = LikeSerializer(data=body)
                 if not serializer.is_valid():
                     return Response(
-                        serializer.errors, 
+                        serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 post_or_comment = body['object']
@@ -955,9 +978,9 @@ def inbox(request, author_id):
                     return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
             if body['type'] == 'post':
-                add_post(request, author_id)
-            if 'comment' in body['type']:
-                add_external_comment(request, author_id)
+                return add_post(request, author_id)
+            if body['type'] == 'comment' or body['type'] == 'comments':
+                return add_external_comment(request, author_id)
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
     
