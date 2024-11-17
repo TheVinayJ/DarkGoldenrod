@@ -26,6 +26,27 @@
         <h1>{{ user.display_name }}</h1>
     </div>
 
+    <div class="profile-stats">
+        <div class="stat-item">
+            <a href="{% url 'followers' user.id %}?see_follower=true">
+                <span class="stat-count">{{ followers_count }}</span>
+                <span class="stat-label">Followers</span>
+            </a>
+        </div>
+        <div class="stat-item">
+            <a href="{% url 'followings' user.id %}?see_follower=false">
+                <span class="stat-count">{{ following_count }}</span>
+                <span class="stat-label">Following</span>
+            </a>
+        </div>
+        <div class="stat-item">
+            <a href="{% url 'friends' user.id %}">
+                <span class="stat-count">{{ friends_count }}</span>
+                <span class="stat-label">Friends</span>
+            </a>
+        </div>
+    </div>
+
     {% if ownProfile %}
         <div class="button-container">
         <form action="{% url 'profile_edit' user.id %}" method="get">
@@ -69,12 +90,6 @@
     {% if user.description %}
         <h2 class="desc">{{ user.description }}</h2>
     {% endif %}
-
-    <div class="profile-links">
-        <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
-        <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
-        <a href="{% url 'friends' user.id %}">Friends</a><br>
-    </div>
 
     <nav class="post-github">
         <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
