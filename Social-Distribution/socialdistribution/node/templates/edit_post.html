@@ -29,7 +29,8 @@
         <label>Content Type:</label>
         <div class="radio-group">
             <label>
-                <input type="radio" id="plaintext" name="contentType" value="plaintext" {% if post.contentType == 'text/plain' %}checked{% endif %}>
+                <h2>{{post.contentType}}</h2>
+                <input type="radio" id="plaintext" name="contentType" value="plain" {% if post.contentType == 'text/plain' %}checked{% endif %}>
                 Plaintext
             </label>
             <label>
@@ -44,7 +45,7 @@
     </div>
 
     <!-- Content input fields -->
-    <div id="plaintext-input" class="content-input" style="display: none;">
+    <div id="plain-input" class="content-input" style="display: none;">
         <div class="form-group">
             <label for="plaintext-editor">Content:</label>
             <textarea id="plaintext-editor" name="content" rows="10">{{ post.text_content }}</textarea>
@@ -126,26 +127,25 @@
         elem.addEventListener("change", updateContentInputDisplay);
     });
 
-    // Optional: If you want to handle the form submission via AJAX
+    
+    // document.getElementById('save-form').addEventListener('submit', async function(event) {
+    //     event.preventDefault();
+    //     let formData = new FormData(this);
+    //     let request = {
+    //         method: 'POST',
+    //         headers: {
+    //             'X-CSRFToken': getCSRFToken(),
+    //         },
+    //         credentials: "include",
+    //         body: formData
+    //     }
 
-    document.getElementById('edit-form').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        let formData = new FormData(this);
-        let request = {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCSRFToken(),
-            },
-            credentials: "include",
-            body: formData
-        }
-
-        let response = await fetch("{% url 'edit_post' post.id %}", request);
-        let responseData = await response.json();
-        if (responseData.url) {
-            window.location.href = responseData.url;
-        }
-    });
+    //     let response = await fetch("{% url 'edit_post' post.id %}", request);
+    //     let responseData = await response.json();
+    //     if (responseData.url) {
+    //         window.location.href = responseData.url;
+    //     }
+    // });
 
 </script>
 

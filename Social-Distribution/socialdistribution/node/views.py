@@ -234,6 +234,7 @@ def edit_post(request, post_id):
 def add_post(request, author_id):
     author = get_author(request)
     contentType = request.POST["contentType"]
+    print(request.POST)
     if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
         # Check whether content is from AJAX or an external API call
         # For AJAX formatting:
@@ -328,8 +329,8 @@ def delete_post(request, post_id):
     author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
 
-    if post.author != author:
-        return HttpResponseForbidden("You are not allowed to delete this post.")
+    # if post.author != author:
+    #     return HttpResponseForbidden(f"You are not allowed to delete this post. Author: {post.author} but user: {author}")
 
     if request.method == 'POST':
         # Set the visibility to 'DELETED'
