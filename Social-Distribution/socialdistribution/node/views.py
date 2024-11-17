@@ -147,13 +147,15 @@ def authors_list(request):
                 'profile_image': author['profileImage'],
             }
         )
+
+        author_from_db = Author.objects.filter(url=author['id']).first()
+
         print(author['id'])
         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
-        author['id'] = author['id'].split('/')[-1] if author['linkable'] else author['id']
         print(author['id'])
         print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
         # COME BACK LATER TO FIGURE OUT THAT TYPO!
-        author['id_num']= int((author['id'].split(f'http://{request.get_host()}/api/authors/')[0])[0])
+        author['id_num'] = author_from_db.id
         print(author['id_num'])
         # find authors logged-in user is already following
         author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
