@@ -6,6 +6,7 @@ from rest_framework import routers
 from rest_framework_simplejwt.views import TokenRefreshView
 from .login import SignupView, LoginView, LogoutView, UserInfoView
 
+
 urlpatterns = [
     path("node/", views.display_feed, name="index"),
     path("node/add/", views.editor, name="add"),
@@ -43,6 +44,7 @@ urlpatterns = [
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
     path('api/authors/', views.api_authors_list, name='api_authors_list'),    
+    path('api/authors', views.api_authors_list, name='api_authors_list'),    
     path('api/signup/', SignupView.as_view(), name='api_signup'),
     path('api/login/', LoginView.as_view(), name='api_login'),
     path('api/logout/', LogoutView.as_view(), name='api_logout'),

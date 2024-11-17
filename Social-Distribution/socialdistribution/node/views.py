@@ -35,9 +35,9 @@ from rest_framework import status
 from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
+NODES = []
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def api_authors_list(request):
     page = request.GET.get('page')  # Number of pages to include
     size = request.GET.get('size')  # Number of records per page\
@@ -66,7 +66,7 @@ def api_authors_list(request):
         current_page = paginator.page(page)
         author_list.extend([{
             "type": "author",
-            "id": f"http://darkgoldenrod/api/authors/{author.id}",
+            "id": f"{author.host}authors/{author.id}",
             "host": author.host,
             "displayName": author.display_name,
             "github": author.github,
@@ -76,7 +76,7 @@ def api_authors_list(request):
     else:
         author_list = [{
             "type": "author",
-            "id": f"http://darkgoldenrod/api/authors/{author.id}",
+            "id": f"{author.host}authors/{author.id}",
             "host": author.host,
             "displayName": author.display_name,
             "github": author.github,
@@ -94,13 +94,17 @@ def api_authors_list(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def authors_list(request):
-    query = request.GET.get('q', '')
-    page = request.GET.get('page', 1)
-    size = request.GET.get('size', 10)
+    query = request.GET.get('q', None)
+    page = request.GET.get('page', None)
+    size = request.GET.get('size', None)
 
     # Construct the URL for the API endpoint
     api_url = request.build_absolute_uri(reverse('api_authors_list'))
-    api_url += f'?page={page}&size={size}'
+    if (page and size) or query:
+        api_url[:-1]
+
+    if page and size:
+        api_url += f'?page={page}&size={size}'
 
     if query:
         api_url += f'&q={query}'
@@ -111,14 +115,24 @@ def authors_list(request):
     headers = {
         'Authorization': f'Bearer {access_token}'
     }
-
+    
     # Make the GET request to the API endpoint
+    responses = []
     response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+    responses.append(response)
+    for node in NODES:
+        if page and size:
+            response = requests.get(f"{node}authors?page={page}&size={size}", headers=headers)
+        else:
+            response = requests.get(f"{node}authors/", headers=headers)
+        responses.append(response)
     # print("Response: ", response)
     # print("Response text: ", response.text)
     # print("Response body: ", response.json())
     
-    authors = response.json().get('authors', []) if response.status_code == 200 else []
+    authors = []
+    for response in responses:
+        authors += response.json().get('authors', []) if response.status_code == 200 else []
 
     for author in authors:
         author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
