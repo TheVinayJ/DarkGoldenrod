@@ -61,7 +61,7 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class LikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = AuthorSerializer()
+    author = serializers.SerializerMethodField()
     object = serializers.CharField()
     published = serializers.DateTimeField(default=datetime.datetime.now)
     id = serializers.CharField(required=False, allow_blank=True)
@@ -83,6 +83,9 @@ class LikeSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Object URL cannot be empty")
         return value
+    
+    def get_author(self, obj):
+        return AuthorSerializer(obj.author).data
     
     def to_representation(self, instance):
         if isinstance(instance, dict):
