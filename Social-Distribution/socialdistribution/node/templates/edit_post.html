@@ -9,6 +9,14 @@
 {% endblock %}
 
 {% block content %}
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+
 <form enctype="multipart/form-data" id="save-form" method="POST" action="{% url 'edit_post' post.id %}">
     <h1>Edit Post</h1>
 
@@ -48,14 +56,14 @@
     <div id="plain-input" class="content-input" style="display: none;">
         <div class="form-group">
             <label for="plaintext-editor">Content:</label>
-            <textarea id="plaintext-editor" name="content" rows="10">{{ post.text_content }}</textarea>
+            <textarea id="plaintext-editor" name="plain-content" rows="10">{{ post.text_content }}</textarea>
         </div>
     </div>
 
     <div id="markdown-input" class="content-input" style="display: none;">
         <div class="form-group">
             <label for="markdown-editor">Content:</label>
-            <textarea id="markdown-editor" name="content" rows="10">{{ post.text_content }}</textarea>
+            <textarea id="markdown-editor" name="markdown-content" rows="10">{{ post.text_content }}</textarea>
         </div>
         <button id="convert-btn" type="button">Preview Markdown</button>
         <h3>Preview</h3>
@@ -65,7 +73,7 @@
     <div id="image-input" class="content-input" style="display: none;">
         <div class="form-group">
             <label for="image-upload">Upload Image:</label>
-            <input type="file" name="content" id="image-upload" accept="image/*">
+            <input type="file" name="image-content" id="image-upload" accept="image/*">
         </div>
         {% if post.image_content %}
             <img src="{{ post.image_content.url }}" alt="Current Image" style="max-width: 600px; height: auto;">
@@ -112,11 +120,11 @@
 
     // Function to update content input display based on selected content type
     function updateContentInputDisplay() {
-        const selectedContentType = document.querySelector('input[name="contentType"]:checked').value;
-        document.querySelectorAll(".content-input").forEach((inputElem) => {
-            inputElem.style.display = "none";
-        });
-        document.getElementById(`${selectedContentType}-input`).style.display = "block";
+    const selectedContentType = document.querySelector('input[name="contentType"]:checked').value;
+    document.querySelectorAll(".content-input").forEach((inputElem) => {
+        inputElem.style.display = "none";
+    });
+    document.getElementById(`${selectedContentType}-input`).style.display = "block";
     }
 
     // Initial call to set up the correct display

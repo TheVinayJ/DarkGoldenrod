@@ -35,11 +35,6 @@
                 <p>By {{ post.author.display_name }} on {{ post.published|date:"d/m/Y" }}</p>
             </div>
         </div>
-
-
-        {% if post.image_content_url %}
-        <img src="{{ post.image_content_url }}" alt="Post Image">
-        {% endif %}
         
         {% if post.shared_by %}
         <!-- This is a repost -->
@@ -49,11 +44,17 @@
         <!-- Normal post -->
         <p>{{ post.description }}</p>
         {% endif %}
-        
+
+        {% if post.image_content_url %}
+            <img src="{{ post.image_content_url }}" alt="Post Image">
+        {% endif %}
+
         <!-- Rendered Markdown Content -->
+        {% if post.text_content %}
         <p class="markdown-output">
             {{ post.text_content|safe }}
         </p>
+        {% endif %}
         
         <!-- Display likes and comments count -->
         <div class="post-actions">

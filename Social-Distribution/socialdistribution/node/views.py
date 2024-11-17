@@ -189,38 +189,52 @@ def edit_post(request, post_id):
             })
 
         post.title = title
-        # post.text_content = description
+        post.description = description
         post.visibility = visibility
-        post.published = datetime.datetime.now()
+        post.published = timezone.now()
 
-        if contentType == 'plaintext':
-            content = request.POST.get('content')
+        if contentType == 'plain':
+            content = request.POST.get('plain-content')
+            if not content:
+                messages.error(request, "Content cannot be empty for Plaintext.")
+                return render(request, 'edit_post.html', {'post': post})
             post.contentType = 'text/plain'
             post.text_content = content
             post.image_content = None  # Remove image if switching from image to text
+
         elif contentType == 'markdown':
-            content = request.POST.get('content')
+            content = request.POST.get('markdown-content')
+            if not content:
+                messages.error(request, "Content cannot be empty for Markdown.")
+                return render(request, 'edit_post.html', {'post': post})
             post.contentType = 'text/markdown'
             post.text_content = content
-            post.image_content = ""  # Remove image if switching from image to text
+            post.image_content = None  # Remove image if switching from image to text
+
         elif contentType == 'image':
-            image = request.FILES.get('content')
+            image = request.FILES.get('image-content')
             if image:
                 file_suffix = os.path.splitext(image.name)[1][1:]  # Get file extension without dot
                 post.contentType = f'image/{file_suffix.lower()}'
                 post.image_content = image
-                post.text_content = ""  # Remove text if switching from text to image
+                post.text_content = None  # Remove text if switching from text to image
             else:
-                # If no new image is uploaded, keep the existing one
-                pass
+                # If no new image is uploaded, keep the existing image_content
+                if not post.image_content:
+                    messages.error(request, "No image uploaded and no existing image to retain.")
+                    return render(request, 'edit_post.html', {'post': post})
+                # Else, keep the existing image and contentType
         else:
             messages.error(request, "Invalid content type.")
-            return render(request, 'edit_post.html', {
-                'post': post,
-                'author_id': author.id,
-            })
+            return render(request, 'edit_post.html', {'post': post})
 
         post.save()
+
+        print("contentType:", contentType)
+        print("plain_content:", request.POST.get('plain_content'))
+        print("markdown_content:", request.POST.get('markdown_content'))
+        print("image_content:", request.FILES.get('image_content'))
+
         if author.host == 'http://darkgoldenrod/api':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")

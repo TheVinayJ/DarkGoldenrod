@@ -55,6 +55,11 @@
     line-height: 1.5;
 }
 
+.markdown-output {
+    border: 1px solid #dbdbdb;
+    border-radius: 5px;
+}
+
 .post-item img {
     width: 100%;
     height: auto;
