@@ -221,6 +221,15 @@ def edit_post(request, post_id):
             })
 
         post.save()
+        if author.host == 'http://darkgoldenrod/api':
+            # Distribute posts to connected nodes
+            followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
+            for follower in followers:
+                processed_nodes = ['http://darkgoldenrod/api']
+                if follower.host not in processed_nodes:
+                    json_content = PostSerializer(post).data
+                    send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)
+                    processed_nodes.append(follower.host)
 
         return redirect('view_post', post_id=post.id)
 
@@ -1196,6 +1205,15 @@ def edit_post_api(request, author_id, post_id):
     serializer = PostSerializer(post, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
+        if author.host == 'http://darkgoldenrod/api':
+            # Distribute posts to connected nodes
+            followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
+            for follower in followers:
+                processed_nodes = ['http://darkgoldenrod/api']
+                if follower.host not in processed_nodes:
+                    json_content = PostSerializer(post).data
+                    send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)
+                    processed_nodes.append(follower.host)
         return JsonResponse(PostSerializer(post).data)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
