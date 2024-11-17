@@ -48,6 +48,7 @@ class AuthorListViewTest(TestCase):
         return response
 
     def test_view_url_exists_at_desired_location(self):
+
         login = self.login(self.author1)  # Ensure the user is signed up and logged in first
         if login.status_code == 200:
             response = self.client.get('/node/authors/')

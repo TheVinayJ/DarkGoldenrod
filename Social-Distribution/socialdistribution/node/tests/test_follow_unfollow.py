@@ -56,6 +56,7 @@ class AuthorFollowTest(TestCase):
 
     def test_follow_author(self):
         login = self.login(self.author1)
+        self.assertEqual(login.status_code, 200)
         if login.status_code == 200:
 
             # Author1 follows Author2
@@ -71,6 +72,7 @@ class AuthorFollowTest(TestCase):
 
     def test_unfollow_author(self):
         login = self.login(self.author1)
+        self.assertEqual(login.status_code, 200)
         if login.status_code == 200:
 
             # Manually create a follow relationship
