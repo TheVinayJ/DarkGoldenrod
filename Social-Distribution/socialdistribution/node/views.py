@@ -151,10 +151,10 @@ def authors_list(request):
         author_from_db = Author.objects.filter(url=author['id']).first()
 
         print(author['id'])
+        # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
         print(author['id'])
         print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
-        # COME BACK LATER TO FIGURE OUT THAT TYPO!
         author['id_num'] = author_from_db.id
         print(author['id_num'])
         # find authors logged-in user is already following
@@ -1084,6 +1084,8 @@ def follow_requests(request, author_id):
     return render(request, 'follow_requests.html', {
         'follow_authors': follower_authors,
         'author': current_author,
+        'cookies': request.COOKIES,
+        'access_token': AccessToken.for_user(current_author),
     })
 
 def approve_follow(request, author_id, follower_id):
@@ -1332,6 +1334,8 @@ def get_serialized_post(post):
 @permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
     author = get_object_or_404(Author, id=author_id)
+    follower_id = request.GET.get('follower_id')  # Get the follower_id from query params
+    follower_host = request.GET.get('follower')  # Get the follower_id from query params
     print("followers_view ran initial")
     print("follower_id", follower_id)
     if request.method == 'GET':
@@ -1388,12 +1392,14 @@ def followers_view(request, author_id, follower_id=None):
             })
 
     elif request.method == 'PUT':
-        print("HELLLLLLLLLLLLLLLO?")
         if follower_id:
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
-            print("did ti work")
             decoded_follower_id = unquote(follower_id)
-            Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}", defaults={'approved': True})
+            print(follower_id)
+            # print("decoded_follower_id: ", decoded_follower_id)
+            # print("author_url: ", f"{author.host}authors/{author.id}")
+            
+            Follow.objects.update_or_create(follower=follower_host+"/authors/{decoded_follower_id}", following=f"{author.host}authors/{author.id}", defaults={'approved': True})
             return JsonResponse({"status": "follow request approved"}, status=201)
         else:
             return JsonResponse({"error": "Missing foreign author ID"}, status=400)
