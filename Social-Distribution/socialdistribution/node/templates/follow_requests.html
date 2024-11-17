@@ -14,7 +14,7 @@
                         <a href="{% url 'profile' author_id=request_user.id %}">{{ request_user.display_name }}</a> wants to follow you.
                         <form method="POST" action="{% url 'approve_follow' author_id=author.id follower_id=request_user.id %}">
                             {% csrf_token %}
-                            <button type="submit">Approve</button>
+                            <button id="add follower" type="submit">Approve</button>
                         </form>
                         <form method="POST" action="{% url 'decline_follow' author_id=author.id follower_id=request_user.id  %}">
                             {% csrf_token %}
@@ -28,26 +28,27 @@
         </ul>
 
     <script>
-        // accept follower
-        fetch(`/api/authors/${author.id}/followers/${request_user.id}/approve/`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',
-                },
+         document.getElementById("add follower").addEventListener('click', function() {
+            // accept follower
+            fetch(`/api/authors/${author.id}/followers/${request_user.id}/approve/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok.');
             })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            }
-            throw new Error('Network response was not ok.');
-        })
-        .then(data => {
-             window.location.href = `/node/{{user.id}}/profile`;
-        })
-        .catch(error => {
-            console.error('Error:', error); // Handle error
-        });
+            .then(data => {
+                 window.location.href = `/node/{{user.id}}/profile`;
+            })
+            .catch(error => {
+                console.error('Error:', error); // Handle error
+            });
 
         // decline follower
         fetch(`/api/authors/${author.id}/followers/${request_user.id}/decline/`, {
