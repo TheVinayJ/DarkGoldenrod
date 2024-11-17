@@ -33,20 +33,22 @@
     <!-- Post Meta (Author and Date) -->
     <p class="post-meta">By {{ post.author.display_name }} on {{ post.published|date:"Y-m-d" }}</p>
 
+    <!-- Post Description -->
+    <p>{{ post.description }}</p>
+
+    <!-- Post Content -->
+    {% if post.text_content %}
+    <div class="post-content">
+        {{ post.text_content|linebreaks }}
+    </div>
+    {% endif %}
+
     <!-- Post Image -->
     {% if post.image_content %}
     <div class="post-image">
         <img src="{{ post.image_content.url }}" alt="">
     </div>
     {% endif %}
-
-    <!-- Post Description -->
-    <p>{{ post.description }}</p>
-
-    <!-- Post Content -->
-    <div class="post-content">
-        {{ post.text_content|linebreaks }}
-    </div>
 
     <!-- Like and Repost Buttons -->
     <div class="post-actions">

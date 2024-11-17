@@ -9,6 +9,14 @@
 {% endblock %}
 
 {% block content %}
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+
 <form enctype="multipart/form-data" id="save-form" method="POST" action="{% url 'edit_post' post.id %}">
     <h1>Edit Post</h1>
 
@@ -29,7 +37,8 @@
         <label>Content Type:</label>
         <div class="radio-group">
             <label>
-                <input type="radio" id="plaintext" name="contentType" value="plaintext" {% if post.contentType == 'text/plain' %}checked{% endif %}>
+                <h2>{{post.contentType}}</h2>
+                <input type="radio" id="plaintext" name="contentType" value="plain" {% if post.contentType == 'text/plain' %}checked{% endif %}>
                 Plaintext
             </label>
             <label>
@@ -44,17 +53,17 @@
     </div>
 
     <!-- Content input fields -->
-    <div id="plaintext-input" class="content-input" style="display: none;">
+    <div id="plain-input" class="content-input" style="display: none;">
         <div class="form-group">
             <label for="plaintext-editor">Content:</label>
-            <textarea id="plaintext-editor" name="content" rows="10">{{ post.text_content }}</textarea>
+            <textarea id="plaintext-editor" name="plain-content" rows="10">{{ post.text_content }}</textarea>
         </div>
     </div>
 
     <div id="markdown-input" class="content-input" style="display: none;">
         <div class="form-group">
             <label for="markdown-editor">Content:</label>
-            <textarea id="markdown-editor" name="content" rows="10">{{ post.text_content }}</textarea>
+            <textarea id="markdown-editor" name="markdown-content" rows="10">{{ post.text_content }}</textarea>
         </div>
         <button id="convert-btn" type="button">Preview Markdown</button>
         <h3>Preview</h3>
@@ -64,7 +73,7 @@
     <div id="image-input" class="content-input" style="display: none;">
         <div class="form-group">
             <label for="image-upload">Upload Image:</label>
-            <input type="file" name="content" id="image-upload" accept="image/*">
+            <input type="file" name="image-content" id="image-upload" accept="image/*">
         </div>
         {% if post.image_content %}
             <img src="{{ post.image_content.url }}" alt="Current Image" style="max-width: 600px; height: auto;">
@@ -111,11 +120,11 @@
 
     // Function to update content input display based on selected content type
     function updateContentInputDisplay() {
-        const selectedContentType = document.querySelector('input[name="contentType"]:checked').value;
-        document.querySelectorAll(".content-input").forEach((inputElem) => {
-            inputElem.style.display = "none";
-        });
-        document.getElementById(`${selectedContentType}-input`).style.display = "block";
+    const selectedContentType = document.querySelector('input[name="contentType"]:checked').value;
+    document.querySelectorAll(".content-input").forEach((inputElem) => {
+        inputElem.style.display = "none";
+    });
+    document.getElementById(`${selectedContentType}-input`).style.display = "block";
     }
 
     // Initial call to set up the correct display
@@ -126,26 +135,25 @@
         elem.addEventListener("change", updateContentInputDisplay);
     });
 
-    // Optional: If you want to handle the form submission via AJAX
+    
+    // document.getElementById('save-form').addEventListener('submit', async function(event) {
+    //     event.preventDefault();
+    //     let formData = new FormData(this);
+    //     let request = {
+    //         method: 'POST',
+    //         headers: {
+    //             'X-CSRFToken': getCSRFToken(),
+    //         },
+    //         credentials: "include",
+    //         body: formData
+    //     }
 
-    document.getElementById('edit-form').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        let formData = new FormData(this);
-        let request = {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCSRFToken(),
-            },
-            credentials: "include",
-            body: formData
-        }
-
-        let response = await fetch("{% url 'edit_post' post.id %}", request);
-        let responseData = await response.json();
-        if (responseData.url) {
-            window.location.href = responseData.url;
-        }
-    });
+    //     let response = await fetch("{% url 'edit_post' post.id %}", request);
+    //     let responseData = await response.json();
+    //     if (responseData.url) {
+    //         window.location.href = responseData.url;
+    //     }
+    // });
 
 </script>
 
