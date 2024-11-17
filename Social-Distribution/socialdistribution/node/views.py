@@ -29,7 +29,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.decorators import login_required
-from .utils import get_authenticated_user_id, AuthenticationFailed
+from .utils import get_authenticated_user_id, AuthenticationFailed, send_request_to_node
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import JSONParser
@@ -235,7 +235,12 @@ def add_post(request, author_id):
                         )
             post.save()
     if author.host == 'http://darkgoldenrod/api':
-        pass    # Do something to send to other nodes
+        # NOT TESTED AND NEEDS FIXING ESP REGARDING URL FORMATTING
+        followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
+        for follower in followers:
+            url = follower.host + follower.id + '/inbox'
+            json_content = PostSerializer(post).data
+            send_request_to_node(follower.host, follower.id +'/inbox', 'POST', json_content)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
