@@ -2,7 +2,11 @@ from django.test import TestCase
 from django.urls import reverse
 from node.models import Author, Follow, Post
 from datetime import datetime, timedelta
+from django.contrib.auth import get_user_model
 import hashlib
+import json
+
+User = get_user_model()
 
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-19
@@ -11,22 +15,22 @@ class FeedTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         # Create test authors
-        cls.author1 = Author.objects.create(
+        cls.author1 = User.objects.create_user(
             display_name="Author 1",
             email="author1@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
         )
-        cls.author2 = Author.objects.create(
+        cls.author2 = User.objects.create_user(
             display_name="Author 2",
             email="author2@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
         )
-        cls.author3 = Author.objects.create(
+        cls.author3 = User.objects.create_user(
             display_name="Author 3",
             email="author3@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
         )
-        cls.author4 = Author.objects.create(
+        cls.author4 = User.objects.create_user(
             display_name="Author 4",
             email="author4@example.com",
             password=hashlib.sha256("password123".encode()).hexdigest()
@@ -66,14 +70,15 @@ class FeedTest(TestCase):
     def login(self, author):
         login_data = {
             'email': author.email,
-            'password': author.password,
+            'password': hashlib.sha256("password123".encode()).hexdigest(),
             'next': '/node/'  # Optional, based on your frontend
         }
         response = self.client.post(
             reverse('api_login'),
-            data=login_data,  # Pass as dict; APIClient handles serialization
-            format='json'  # Automatically serializes to JSON
+            data=json.dumps(login_data),
+            content_type='application/json'
         )
+        self.assertEqual(response.status_code, 200)
         return response
 
     def test_all_filter(self):
@@ -179,18 +184,18 @@ class FeedTest(TestCase):
                 self.assertLess(content.index(posts_in_order[i]), content.index(posts_in_order[i + 1]))
 
 
-    # def test_reposts_filter(self):
-    #     # Log in as author1
-    #     self.login()
+    def test_reposts_filter(self):
+        # Log in as author1
+        login = self.login(self.author1)
+        if login.status_code == 200:
+            # Apply the "reposts" filter
+            response = self.client.get(reverse('following_feed') + '?filter=reposts')
+            self.assertEqual(response.status_code, 200)
 
-    #     # Apply the "reposts" filter
-    #     response = self.client.get(reverse('following_feed') + '?filter=reposts')
-    #     self.assertEqual(response.status_code, 200)
+            # Check that the feed contains reposts (Add repost creation logic in setup if needed)
+            # Example: self.assertContains(response, "Repost of: Original post by Author 2")
 
-    #     # Check that the feed contains reposts (Add repost creation logic in setup if needed)
-    #     # Example: self.assertContains(response, "Repost of: Original post by Author 2")
-
-    #     # Ensure original posts do not appear
-    #     self.assertNotContains(response, "Public post by Author 2")
-    #     self.assertNotContains(response, "Public post by Author 3")
+            # Ensure original posts do not appear
+            self.assertNotContains(response, "Public post by Author 2")
+            self.assertNotContains(response, "Public post by Author 3")
 

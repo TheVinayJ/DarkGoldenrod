@@ -147,6 +147,7 @@
     <div>
         <a href="{% url 'followers' user.id %}?see_follower=true">Followers</a><br>
         <a href="{% url 'followings' user.id %}?see_follower=false">Following</a><br>
+        <a href="{% url 'friends' user.id %}">Friends</a><br>
     </div>
 
     <nav class="post-github">

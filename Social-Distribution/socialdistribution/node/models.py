@@ -4,6 +4,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from encrypted_model_fields.fields import EncryptedCharField
 from django.core.validators import URLValidator
+from solo.models import SingletonModel
 import django
 import datetime
 
@@ -38,10 +39,10 @@ class AuthorManager(BaseUserManager):
 
 class Author(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
-    display_name = models.CharField(max_length=50, blank=True, unique=True)
+    display_name = models.CharField(max_length=50, unique=True, null=False)
     email = models.EmailField(max_length=50, unique=True)
     description = models.CharField(max_length=150, blank=True, null=True)
-    host = models.CharField(max_length=50, blank=True, null=True)
+    host = models.CharField(max_length=50, blank=True, null=True, default='http://darkgoldenrod/api')
     github = models.CharField(max_length=50, blank=True, null=True)
     profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True)
     page = models.CharField(max_length=100, blank=True, null=True)
@@ -57,39 +58,13 @@ class Author(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.display_name
-
-# class Author(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     display_name = models.CharField(max_length=50, blank=False, null=False)
-#     description = models.CharField(max_length=150, default="", blank=True, null=True)
-#     host = models.CharField(max_length=50, blank=True, null=True) # URL of host node
-#     github = models.CharField(max_length=50, blank=True, null=True) # URL of author's Github
-#     profile_image = models.ImageField(upload_to='images/profilePictures', default="null", blank=True, null=True)
-#     page = models.CharField(max_length=100, blank=True, null=True) # URL of user's HTML profile page
-#     friends = models.ManyToManyField('Author', blank=True)
-#     password = models.CharField(max_length=128)
-#     email = models.EmailField(max_length=50, default='example@example.com', unique=True)
-#     is_active = models.BooleanField(default=True)
-#     is_admin = models.BooleanField(default=False)
-#     is_staff = models.BooleanField(default=False)  # Required for admin interface
-
-#     def __str__(self):
-#         return self.display_name
     
-#     def save(self, *args, **kwargs):
-#         # Hash the password if it's not already hashed
-#         if not self.pk or Author.objects.get(pk=self.pk).password != self.password:
-#             self.password = make_password(self.password)
-#         super().save(*args, **kwargs)
-
-#     def check_password_custom(self, raw_password):
-#         return check_password(raw_password, self.password)
     
 class RemoteNode(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="Friendly name for the remote node")
     url = models.URLField(max_length=200, validators=[URLValidator()], help_text="URL of the remote node")
     username = models.CharField(max_length=150, help_text="Username for authentication")
-    password = EncryptedCharField(max_length=128, help_text="Password for authentication")  # Encrypted field
+    password = models.CharField(max_length=128, help_text="Password for authentication")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -98,12 +73,13 @@ class RemoteNode(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        # Hash the password if it's not already hashed
-        if not self.pk or RemoteNode.objects.get(pk=self.pk).password != self.password:
+        # Only hash the password if it is not already hashed
+        if self.password and not self.password.startswith('pbkdf2_'):
             self.password = make_password(self.password)
         super().save(*args, **kwargs)
 
     def check_password_custom(self, raw_password):
+        # Checks if the given raw_password matches the hashed password
         return check_password(raw_password, self.password)
     
 
@@ -175,3 +151,68 @@ class Follow(models.Model):
     def is_friend(self):
         # Check if the following author follows back the follower
         return Follow.objects.filter(follower=self.following, following=self.follower, approved=True).exists()
+
+class AllowedNode(models.Model):
+    url = models.URLField(unique=True)
+    username = models.CharField(max_length=150)
+    password = models.CharField(max_length=128)  # Stored as hashed
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Hash the password before saving if it's new or changed
+        if not self.pk or AllowedNode.objects.get(pk=self.pk).password != self.password:
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    @property
+    def groups(self):
+        return []
+
+    @property
+    def user_permissions(self):
+        return []
+    
+    def __str__(self):
+        return self.url
+    
+class RemoteNode(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="Friendly name for the remote node")
+    url = models.URLField(max_length=200, validators=[URLValidator()], help_text="URL of the remote node")
+    username = models.CharField(max_length=150, help_text="Username for authentication")
+    password = models.CharField(max_length=128, help_text="Password for authentication")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        # Hash the password before saving if it's new or changed
+        if self.pk is None or not self.password.startswith('pbkdf2_'):
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+    def check_password_custom(self, raw_password):
+        return check_password(raw_password, self.password)
+    
+class SiteSetting(SingletonModel):
+    user_approval_required = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Site Setting"
+
+    def __str__(self):
+        return "Site Settings"

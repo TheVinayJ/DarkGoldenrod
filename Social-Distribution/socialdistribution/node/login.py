@@ -16,6 +16,7 @@ from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
+from .models import SiteSetting
 
 def signup(request):
     return render(request, 'login/signup.html')
@@ -34,35 +35,59 @@ class SignupView(generics.CreateAPIView):
         next_url = '/node/'  # Redirect to home page by default
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        try:
+            # Retrieve the SiteSetting singleton instance
+            site_setting = SiteSetting.get_solo()
+        except SiteSetting.DoesNotExist:
+            # If SiteSetting doesn't exist, create one with default values
+            site_setting = SiteSetting.objects.create(user_approval_required=True)
+
 
         try:
-            author = serializer.save()
-            access_token = AccessToken.for_user(author)
-            response_data = {
-                'message': 'Signup successful',
-                'next': next_url,
-                'user_id': author.id
-            }
-            response = JsonResponse(response_data, status=status.HTTP_201_CREATED)
+            author = serializer.save(commit=False)
+            
+            if site_setting.user_approval_required:
+                author.is_active = False
+                author.save()
 
-            # Set access token in cookie
-            response.set_cookie(
-                key='access_token',
-                value=str(access_token),
-                httponly=True,
-                secure=False,  # Set to True in production with HTTPS
-                samesite='Lax',
-                max_age=60 * 60 * 24 * 7,
-            )
-            response.set_cookie(
-                key='user_id',
-                value=author.id,
-                httponly=False,
-                secure=False,
-                samesite='Lax',
-                max_age=60 * 60 * 24 * 7,
-            )
-            return response
+                # Prepare the response data without issuing an access token
+                response_data = {
+                    'message': 'Signup successful, pending admin approval.',
+                    'next': next_url,
+                    'user_id': author.id
+                }
+                response = JsonResponse(response_data, status=status.HTTP_201_CREATED)
+                return response
+            else:
+                author.is_active = True
+                author = serializer.save()
+                access_token = AccessToken.for_user(author)
+                response_data = {
+                    'message': 'Signup successful',
+                    'next': next_url,
+                    'user_id': author.id
+                }
+                response = JsonResponse(response_data, status=status.HTTP_201_CREATED)
+
+                # Set access token in cookie
+                response.set_cookie(
+                    key='access_token',
+                    value=str(access_token),
+                    httponly=True,
+                    secure=False,  # Set to True in production with HTTPS
+                    samesite='Lax',
+                    max_age=60 * 60 * 24 * 7,
+                )
+                response.set_cookie(
+                    key='user_id',
+                    value=author.id,
+                    httponly=False,
+                    secure=False,
+                    samesite='Lax',
+                    max_age=60 * 60 * 24 * 7,
+                )
+                return response
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

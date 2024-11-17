@@ -166,7 +166,7 @@ async function handleLogout() {
 // Function to check authentication
 async function checkAuth() {
     try {
-        const response = await fetch('api/user-info/', {
+        const response = await fetch('/api/user-info/', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

@@ -4,7 +4,9 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.response import Response
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
-
+from .models import RemoteNode
+from requests.auth import HTTPBasicAuth
+import requests
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -37,3 +39,34 @@ def custom_exception_handler(exc, context):
     # Call REST framework's default exception handler for other exceptions
     response = exception_handler(exc, context)
     return response
+
+def send_request_to_node(node_name, endpoint, method='GET', data=None):
+    '''
+        Send an HTTP request to a remote node.
+
+        Parameters:
+            node_name: The name of the remote node (When we add the node to connect in admin panel, we will give it a name).
+            endpoint: The endpoint to send the request to. Example: /api/posts/
+            method: {GET, POST, PUT, DELETE}
+            data: data for POST or PUT requests
+    '''
+    try:
+        node = RemoteNode.objects.get(name=node_name, is_active=True)
+    except RemoteNode.DoesNotExist:
+        raise Exception(f"Node '{node_name}' is not active or does not exist.")
+
+    url = f"{node.url}/{endpoint}"
+    auth = HTTPBasicAuth(node.username, node.password)
+
+    if method.upper() == 'GET':
+        response = requests.get(url, auth=auth)
+    elif method.upper() == 'POST':
+        response = requests.post(url, json=data, auth=auth)
+    elif method.upper() == 'PUT':
+        response = requests.put(url, json=data, auth=auth)
+    elif method.upper() == 'DELETE':
+        response = requests.delete(url, auth=auth)
+    else:
+        raise Exception(f"Unsupported HTTP method: {method}")
+    response.raise_for_status()
+    return response.json()
