@@ -123,6 +123,11 @@ def authors_list(request):
     for author in authors:
         author['linkable'] = author['id'].startswith("http://darkgoldenrod/api/authors/")
         author['id'] = author['id'].split('/')[-1] if author['linkable'] else author['id']
+        author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/'))[0])
+
+        # find authors logged-in user is already following
+        # author['is_following'] = Follow.objects.filter(follower="http://darkgoldenrod/api/authors/"+str(user.id), approved=True).exists()
+        # print(author['is_following'])
 
     context = {
         'authors': authors,
@@ -774,9 +779,18 @@ def local_api_follow(request, author_id):
         }
     }
 
+    access_token = AccessToken.for_user(current_author)
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+
     # Send the POST request to the target author's inbox endpoint
     inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
-    response = requests.post(inbox_url, json=follow_request)
+    access_token = AccessToken.for_user(current_author)
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
 
     if response.status_code in [200, 201]:
         print("Sent Follow request")
@@ -851,7 +865,7 @@ def follow_author(follower, following):
 
     if not follow_exists:
         print("Creating follow object")
-        Follow.objects.create(follower=follower_url, following=following_url)
+        Follow.objects.create(follower=follower_url, following=following_url, approved=False)
         
         return JsonResponse({'message': 'Follow request processed successfully'}, status=200)
     else:
@@ -888,7 +902,7 @@ def unfollow_author(request, author_id):
 def follow_requests(request, author_id):
     current_author = get_object_or_404(Author, id=author_id)  # logged in author
     current_follow_requests = Follow.objects.filter(following="http://darkgoldenrod/api/authors/" + str(current_author.id), approved=False)
-
+    print(current_follow_requests)
     follower_authors = []
     for a_request in current_follow_requests:
         follower_id = a_request.follower.replace("http://darkgoldenrod/api/authors/", "")
