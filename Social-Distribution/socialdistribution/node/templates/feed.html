@@ -28,6 +28,7 @@
         <div class="title-container">
             <!-- Title on the Left -->
             <div class="title-top">
+                <a href="{% url 'profile' post.author.id %}">
                 {% if post.author.profile_image %}
                     <img src="{{ post.author.profile_image.url }}" alt="{{ post.author.display_name }}'s Profile Picture" class="profile-picture">
                 {% else %}
@@ -41,6 +42,7 @@
                         </svg>
                     </div>
                 {% endif %}
+            </a>
             </div>
             <!-- Author and Date on the Right -->
             <div class="title-bottom">
@@ -71,8 +73,32 @@
         
         <!-- Display likes and comments count -->
         <div class="post-actions">
-            <p>Likes: {{ post.likes }} | Comments: {{ post.comments }}</p>
-            <a href="{% url 'view_post' post.id %}#comments">Comment</a>
+            <!-- Like Button -->
+            <form action="{% url 'like' post.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                {% if post.user_has_liked %}
+                    <button type="submit" class="action-button">
+                        <span class="material-symbols-outlined">favorite</span>{{ post.likes }}
+                    </button>
+                {% else %}
+                    <button type="submit" class="action-button">
+                        <span class="material-symbols-outlined">favorite</span>{{ post.likes }}
+                    </button>
+                {% endif %}
+            </form>
+        
+            <!-- Comment Button -->
+            <a href="{% url 'view_post' post.id %}#comments" class="action-link">
+                <span class="material-symbols-outlined">tooltip</span> {{ post.comments }}
+            </a>
+        
+            <!-- Repost Button -->
+            <form action="{% url 'repost' post.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="action-button">
+                    <span class="material-symbols-outlined">repeat</span>
+                </button>
+            </form>
         </div>
     </li>
     {% endfor %}
