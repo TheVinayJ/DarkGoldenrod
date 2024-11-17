@@ -177,10 +177,11 @@ def edit_post(request, post_id):
     if request.method == 'POST':
 
         title = request.POST.get('title')
-        text_content = request.POST.get('body-text')
+        description = request.POST.get('description')
+        contentType = request.POST.get('contentType')
         visibility = request.POST.get('visibility')
 
-        if not title or not text_content:
+        if not title or not description:
             messages.error(request, "Title and description cannot be empty.")
             return render(request, 'edit_post.html', {
                 'post': post,
@@ -188,9 +189,37 @@ def edit_post(request, post_id):
             })
 
         post.title = title
-        post.text_content = text_content
+        # post.text_content = description
         post.visibility = visibility
         post.published = datetime.datetime.now()
+
+        if contentType == 'plaintext':
+            content = request.POST.get('content')
+            post.contentType = 'text/plain'
+            post.text_content = content
+            post.image_content = None  # Remove image if switching from image to text
+        elif contentType == 'markdown':
+            content = request.POST.get('content')
+            post.contentType = 'text/markdown'
+            post.text_content = content
+            post.image_content = ""  # Remove image if switching from image to text
+        elif contentType == 'image':
+            image = request.FILES.get('content')
+            if image:
+                file_suffix = os.path.splitext(image.name)[1][1:]  # Get file extension without dot
+                post.contentType = f'image/{file_suffix.lower()}'
+                post.image_content = image
+                post.text_content = ""  # Remove text if switching from text to image
+            else:
+                # If no new image is uploaded, keep the existing one
+                pass
+        else:
+            messages.error(request, "Invalid content type.")
+            return render(request, 'edit_post.html', {
+                'post': post,
+                'author_id': author.id,
+            })
+
         post.save()
 
         return redirect('view_post', post_id=post.id)
@@ -201,6 +230,7 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
+@login_required
 def add_post(request, author_id):
     author = get_author(request)
     contentType = request.POST["contentType"]
@@ -576,6 +606,29 @@ def profile(request, author_id):
     retrieve_github(user)
     github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
 
+    # Followers: people who follow the user
+    followers_count = Follow.objects.filter(
+        following=f"http://darkgoldenrod/api/authors/{author_id}",
+        approved=True
+    ).count()
+
+    # Following: people the user follows
+    following_count = Follow.objects.filter(
+        follower=f"http://darkgoldenrod/api/authors/{author_id}",
+        approved=True
+    ).count()
+
+    # Friends: mutual follows
+    friends_count = Follow.objects.filter(
+        follower=f"http://darkgoldenrod/api/authors/{author_id}",
+        approved=True,
+        following__in=Follow.objects.filter(
+            follower__in=[f"http://darkgoldenrod/api/authors/{author_id}"],
+            approved=True
+        ).values_list('following', flat=True)
+    ).count()
+
+
     return render(request, "profile/profile.html", {
         'user': user,
         'posts': authors_posts,
@@ -583,6 +636,9 @@ def profile(request, author_id):
         'is_following': is_following,
         'is_pending': is_pending,
         'activity': github_posts,
+        'followers_count': followers_count,
+        'following_count': following_count,
+        'friends_count': friends_count,
     })
 
 def retrieve_github(user):

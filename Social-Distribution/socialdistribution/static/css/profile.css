@@ -1,3 +1,14 @@
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #dbdbdb;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
 /* Profile Header */
 .profileNameAndPhoto {
     display: flex;
@@ -25,6 +36,43 @@
     font-size: 32px;
 }
 
+/* Profile Stats */
+.profile-stats {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.stat-item {
+    margin: 0 15px;
+    text-align: center;
+}
+
+.stat-item a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.stat-item a::after{
+    position: relative;
+}
+
+.stat-count {
+    font-size: 24px;
+    font-weight: bold;
+    color: darkgoldenrod;
+}
+
+.stat-label {
+    display: block;
+    font-size: 14px;
+    color: #555;
+}
+
+.stat-item a:hover .stat-count,
+.stat-item a:hover .stat-label {
+    color: goldenrod;
+}
 /* Button Container */
 .button-container {
     display: flex;
@@ -54,23 +102,6 @@
     text-align: center;
     margin-top: 20px;
     color: #555;
-}
-
-/* Links to Followers, Following, Friends */
-.profile-links {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.profile-links a {
-    margin: 0 10px;
-    color: darkgoldenrod;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.profile-links a:hover {
-    color: goldenrod;
 }
 
 /* Navigation Bar */
