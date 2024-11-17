@@ -780,6 +780,7 @@ def local_api_follow(request, author_id):
     return redirect('authors')
 
 @csrf_exempt
+@api_view(['POST'])
 def inbox(request, author_id):
     print("Inbox function ran")
     if request.method == 'POST':
@@ -1117,22 +1118,28 @@ def get_serialized_post(post):
 @api_view(['GET', 'PUT', 'DELETE'])
 def followers_view(request, author_id, follower_id=None):
     author = get_object_or_404(Author, id=author_id)
-
+    print("followers_view ran initial")
+    print("follower_id", follower_id)
     if request.method == 'GET':
         if follower_id:
+            print("followers_view ran")
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
             decoded_follower_id = unquote(follower_id)
             # Attempt to find the follower by their URL field, assuming `url_field` holds the unique URL
             id = decoded_follower_id.split('/')[-1]
-            host = decoded_follower_id.replace(f'/authors/{id}', '')
-            follower = Author.objects.filter(host=host, id=id).first()
+            host = decoded_follower_id.replace(f'authors/{id}', '')
+            print('id in function: ', id)
+            print('host in function: ', host)
+            follower = Author.objects.filter(host=host, id=int(id)).first()
             if not follower:
-                return JsonResponse({"error": "Not Found"}, status=404)
+                return JsonResponse({"error": "Not Found Follower"}, status=404)
+            elif not Follow.objects.filter(following=f"{author.host}authors/{author.id}", follower=f"{follower.host}authors/{follower.id}", approved=True).first():
+                return JsonResponse({"error": "Not a Follower of Author"}, status=404)
 
             # Construct the JSON response manually
             return JsonResponse({
                 "type": "author",
-                "id": f"{follower.host}/authors/{follower.id}",
+                "id": f"{follower.host}authors/{follower.id}",
                 "host": follower.host,
                 "displayName": follower.display_name,
                 "page": follower.page,
@@ -1143,16 +1150,17 @@ def followers_view(request, author_id, follower_id=None):
         else:
             # Get all followers and manually construct the response
             followers_data = []
-            followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id}", approved=True)
+            followers = Follow.objects.filter(following=f"{author.host}authors/{author.id}", approved=True)
             followers = list(followers.values_list('follower', flat=True))
+            print("followers in function", followers)
             for follower_url in followers:
                 id = follower_url.split('/')[-1]
-                host = follower_url.replace(f'/authors/{id}', '')
-                follower = Author.objects.filter(host=host, id=id).first()
+                host = follower_url.replace(f'authors/{id}', '')
+                follower = Author.objects.filter(host=host, id=int(id)).first()
 
                 followers_data.append({
                     "type": "author",
-                    "id": f"{follower.host}/authors/{follower.id}",
+                    "id": f"{follower.host}authors/{follower.id}",
                     "host": follower.host,
                     "displayName": follower.display_name,
                     "page": follower.page,
@@ -1169,7 +1177,7 @@ def followers_view(request, author_id, follower_id=None):
         if follower_id:
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
             decoded_follower_id = unquote(follower_id)
-            Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}/authors/{author.id}", defaults={'approved': True})
+            Follow.objects.update_or_create(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}", defaults={'approved': True})
             return JsonResponse({"status": "follow request approved"}, status=201)
         else:
             return JsonResponse({"error": "Missing foreign author ID"}, status=400)
@@ -1179,7 +1187,9 @@ def followers_view(request, author_id, follower_id=None):
             # Decode the follower_id URL (assuming it's a URL-encoded ID)
             decoded_follower_id = unquote(follower_id)
             try:
-                follow_instance = Follow.objects.get(follower=decoded_follower_id, following=f"{author.host}/authors/{author.id}")
+                print("decode_follower_id: ", decoded_follower_id)
+                print("author_url: ", f"{author.host}authors/{author.id}")
+                follow_instance = Follow.objects.get(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}")
                 follow_instance.delete()
                 return JsonResponse({"status": "follow relationship deleted"}, status=204)
             except Follow.DoesNotExist:
