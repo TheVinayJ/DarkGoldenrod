@@ -8,6 +8,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 
 from django.views.generic import ListView
+from node.serializer import serializer
 
 # from node.serializers import serializer
 
@@ -15,7 +16,7 @@ from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, Comme
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
 from .serializers import AuthorProfileSerializer, PostSerializer, LikeSerializer, LikesSerializer, AuthorSerializer, \
-    CommentsSerializer
+    CommentsSerializer, CommentSerializer
 import datetime
 import requests
 import os
@@ -877,6 +878,32 @@ def local_api_follow(request, author_id):
 
     return redirect('authors')
 
+def add_external_comment(request, author_id):
+    """
+    Adds comment objects from an API according to
+    either the 'comment' or 'comments' specification
+    """
+    body = json.loads(request.body)
+
+    if body['type'] == 'comment':   # Single comment
+        new_comment = Comment.objects.create()
+        serializer = CommentSerializer(new_comment, data=body)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    if body['type'] == 'comments':
+        for comment in body['src']:
+            new_comment = Comment.objects.create()
+            serializer = CommentSerializer(new_comment, data=comment)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+            return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    return JsonResponse('Failed to add comment(s)', status=status.HTTP_400_BAD_REQUEST)
+
 @csrf_exempt
 @api_view(['POST'])
 def inbox(request, author_id):
@@ -910,6 +937,8 @@ def inbox(request, author_id):
             # Add additional handling for other types (e.g., post, like, comment) as needed
             if body['type'] == 'post':
                 add_post(request, author_id)
+            if 'comment' in body['type']:
+                add_external_comment(request, author_id)
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
     
@@ -1159,13 +1188,12 @@ def api_get_post_from_author(request, author_id, post_id):
         return delete_post_api(request, author_id, post_id)
 
 def edit_post_api(request, author_id, post_id):
-    author = get_object_or_404(Author, id=author_id)
+    author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
     if post.author != author:
-        return HttpResponseForbidden("Post cannot be edited.")
+        return HttpResponseForbidden("Post cannot be edited.", status=403)
 
     data = request.data
-    post.title = data.get('title', post.title)
     serializer = PostSerializer(post, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
@@ -1173,13 +1201,13 @@ def edit_post_api(request, author_id, post_id):
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def delete_post_api(request, author_id, post_id):
-    author = get_object_or_404(Author, id=author_id)
+    author = get_author(request)
     post = get_object_or_404(Post, id=post_id)
     if post.author != author:
-        return HttpResponseForbidden("Post cannot be deleted.")
+        return HttpResponseForbidden("Post cannot be deleted.", status=403)
 
     post.delete()
-    return HttpResponse('Post successfully deleted.', 201)
+    return HttpResponse('Post successfully deleted.', status=204)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
