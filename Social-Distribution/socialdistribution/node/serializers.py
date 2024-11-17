@@ -113,9 +113,9 @@ class LikesSerializer(serializers.Serializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default="comment")
-    author = AuthorSerializer()
+    author = AuthorSerializer(read_only=True)
     comment = serializers.CharField(source='text')
-    contentType = serializers.CharField(default='text/markdown')
+    contentType = serializers.CharField(default='text/plain')
     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()

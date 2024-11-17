@@ -909,7 +909,8 @@ def add_external_comment(request, author_id):
     body = json.loads(request.body)
 
     if body['type'] == 'comment':   # Single comment
-        new_comment = Comment.objects.create()
+        new_comment = Comment.objects.create(author_id=author_id,
+                                             post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
         serializer = CommentSerializer(new_comment, data=body)
         if serializer.is_valid():
             serializer.save()
@@ -918,7 +919,7 @@ def add_external_comment(request, author_id):
 
     if body['type'] == 'comments':
         for comment in body['src']:
-            new_comment = Comment.objects.create()
+            new_comment = Comment.objects.create(author_id=author_id, post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
             serializer = CommentSerializer(new_comment, data=comment)
             if serializer.is_valid():
                 serializer.save()
@@ -944,12 +945,12 @@ def inbox(request, author_id):
                 print("Follow request type detected")
                 return follow_author(follower, following)
             if body['type'] == 'like':
-                
+
                 liker = body['author']
                 serializer = LikeSerializer(data=body)
                 if not serializer.is_valid():
                     return Response(
-                        serializer.errors, 
+                        serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 post_or_comment = body['object']
@@ -959,9 +960,9 @@ def inbox(request, author_id):
                     return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
             if body['type'] == 'post':
-                add_post(request, author_id)
-            if 'comment' in body['type']:
-                add_external_comment(request, author_id)
+                return add_post(request, author_id)
+            if body['type'] == 'comment' or body['type'] == 'comments':
+                return add_external_comment(request, author_id)
         except (json.JSONDecodeError, KeyError):
             return JsonResponse({'error': 'Invalid request format'}, status=400)
     
