@@ -237,12 +237,14 @@ def add_post(request, author_id):
                         )
             post.save()
     if author.host == 'http://darkgoldenrod/api':
-        # NOT TESTED AND NEEDS FIXING ESP REGARDING URL FORMATTING
-        followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
+        # Distribute posts to connected nodes
+        followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
         for follower in followers:
-            url = follower.host + follower.id + '/inbox'
-            json_content = PostSerializer(post).data
-            send_request_to_node(follower.host, follower.id +'/inbox', 'POST', json_content)
+            processed_nodes = ['http://darkgoldenrod/api']
+            if follower.host not in processed_nodes:
+                json_content = PostSerializer(post).data
+                send_request_to_node(follower.host, follower.id +'/inbox', 'POST', json_content)
+                processed_nodes.append(follower.host)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
