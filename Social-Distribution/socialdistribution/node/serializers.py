@@ -56,6 +56,9 @@ class LikeSerializer(serializers.ModelSerializer):
     def get_author(self, obj):
         return AuthorSerializer(obj.author).data
     
+    def get_author(self, obj):
+        return AuthorSerializer(obj.author).data
+    
     def to_representation(self, instance):
         data = super().to_representation(instance)
         model_class = self.get_model_class()
