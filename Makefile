@@ -15,10 +15,5 @@ init:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate" --app darkgoldenrod
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py createsuperuser" --app darkgoldenrod
 
-deploy:
-	git add .
-	git commit -m "Deploy" || echo "Nothing to commit"
-	git push heroku Development:main
-
 static:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py collectstatic" --app darkgoldenrod
