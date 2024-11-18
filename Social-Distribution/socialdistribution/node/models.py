@@ -40,7 +40,7 @@ class AuthorManager(BaseUserManager):
 class Author(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     url = models.CharField(max_length=255, unique=True, null=True, default=None)
-    display_name = models.CharField(max_length=50, unique=True, null=False)
+    display_name = models.CharField(max_length=50, null=False)
     email = models.EmailField(max_length=50, unique=True)
     description = models.CharField(max_length=150, blank=True, null=True)
     host = models.CharField(max_length=50, blank=True, null=True, default='http://127.0.0.1:8000/api/')

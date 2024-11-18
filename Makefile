@@ -11,9 +11,9 @@ init:
 	git commit -m "Add runtime.txt for Python version"
 	git push heroku Development:main
 
-	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py diffsettings" --app darkgoldenrod
-	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate" --app darkgoldenrod
-	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py createsuperuser" --app darkgoldenrod
+	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py diffsettings" --app darkgoldenrod3
+	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate" --app darkgoldenrod3
+	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py createsuperuser" --app darkgoldenrod3
 
 static:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py collectstatic" --app darkgoldenrod
