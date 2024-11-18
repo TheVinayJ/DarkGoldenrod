@@ -963,7 +963,7 @@ def local_api_follow(request, author_id):
     access_token = AccessToken.for_user(current_author)
     try:
         response = send_request_to_node(author_to_follow.host[:-4], inbox_url)
-        Follow.objects.create(following=author_to_follow.url, followers=current_author.url)
+        Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
         headers = {
             'Authorization': f'Bearer {access_token}'
