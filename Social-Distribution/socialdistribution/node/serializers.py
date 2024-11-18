@@ -11,7 +11,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     host = serializers.SerializerMethodField()
     displayName = serializers.CharField(source='display_name')
-    github = serializers.CharField()
+    github = serializers.CharField(allow_null=True,allow_blank=False)
     profileImage = serializers.SerializerMethodField()
     page = serializers.SerializerMethodField()
 
@@ -20,10 +20,10 @@ class AuthorSerializer(serializers.ModelSerializer):
         fields = ['type', 'id', 'host', 'displayName', 'github', 'profileImage', 'page']
 
     def get_id(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.id}"
+        return obj.url
 
     def get_host(self, obj):
-        return "http://darkgoldenrod/api"
+        return obj.host
 
     def get_page(self, obj):
         return f"http://darkgoldenrod/{obj.id}/profile"
@@ -54,25 +54,31 @@ class LikeSerializer(serializers.ModelSerializer):
         return PostLike
     
     def get_author(self, obj):
-        return AuthorSerializer(obj.author).data
+        if isinstance(obj, dict):
+            author = obj.get('author')
+            if isinstance(author, Author):
+                return AuthorSerializer(author).data
+        # If obj is a model instance
+        elif hasattr(obj, 'liker'):
+            return AuthorSerializer(obj.liker).data
+        return None
     
-    def get_author(self, obj):
-        return AuthorSerializer(obj.author).data
     
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        model_class = self.get_model_class()
+    
+    # def to_representation(self, instance):
+    #     data = super().to_representation(instance)
+    #     model_class = self.get_model_class()
         
-        if model_class == CommentLike:
-            comment = instance.owner
-            data['object'] = f"http://darkgoldenrod/api/authors/{comment.author.id}/posts/{comment.post.id}/comments/{comment.id}"
-        else:
-            post = instance.owner
-            data['object'] = f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}"
+    #     if model_class == CommentLike:
+    #         comment = instance.owner
+    #         data['object'] = f"http://darkgoldenrod/api/authors/{comment.author.id}/posts/{comment.post.id}/comments/{comment.id}"
+    #     else:
+    #         post = instance.owner
+    #         data['object'] = f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}"
         
-        data['id'] = f"http://darkgoldenrod/api/authors/{instance.liker.id}/liked/{instance.object_id}"
+    #     data['id'] = f"http://darkgoldenrod/api/authors/{instance.liker.id}/liked/{instance.object_id}"
         
-        return data
+    #     return data
     
 class LikesSerializer(serializers.Serializer):
     # Microsoft Copilot, Nov. 2024. Serializer for aggregate of models
