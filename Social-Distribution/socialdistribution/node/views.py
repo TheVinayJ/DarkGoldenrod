@@ -387,33 +387,50 @@ def delete_post(request, post_id):
 def local_api_like(request, id):
     liked_post = get_object_or_404(Post, id=id)
     current_author = get_author(request)
+    print(current_author)
 
-    like_data = {
-        "type": "like",
-        "author": current_author,
-        "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
-        "published": datetime.datetime.now(),
-        "id" : f"http://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
-    }
+    author_data = AuthorSerializer(current_author).data
 
-    print("Like Data: ", like_data)
+    # like_data = {
+    #     "type": "like",
+    #     "author": current_author,
+    #     "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
+    #     "published": datetime.datetime.now(),
+    #     "id" : f"http://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
+    # }
+
+    new_like = PostLike(liker=current_author, owner=liked_post)
+    new_like.save()
+    return(redirect(f'/node/posts/{id}/'))
     
-    serializer = LikeSerializer(data=like_data, context={'request': request})
-    if not serializer.is_valid():
-        print("Validation errors:", serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # serializer = LikeSerializer(data=like_data, context={'request': request})
+    # if not serializer.is_valid():
+    #     print("Validation errors:", serializer.errors)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    like_object = serializer.data
+    # like_object = serializer.data
 
-    inbox_url = request.build_absolute_uri(reverse('inbox', args=[liked_post.author.id]))
+    # inbox_url = request.build_absolute_uri(reverse('inbox', args=[liked_post.author.id]))
     
-    try:
-        response = requests.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
-        response.raise_for_status()
+    # try:
+    #     response = requests.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
+    #     response.raise_for_status()
 
-        return Response({"message": "Like sent to inbox"}, status=status.HTTP_201_CREATED)
-    except request.ReqestException as e:
-        return Response({"error": f"Failed to send like to inbox: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
+    #     return Response({"message": "Like sent to inbox"}, status=status.HTTP_201_CREATED)
+    # except request.ReqestException as e:
+    #     return Response({"error": f"Failed to send like to inbox: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def local_api_like_comment(request, id):
+    liked_comment = get_object_or_404(Comment, id=id)
+    current_author = get_author(request)
+    print(current_author)
+
+    new_comment = CommentLike(liker=current_author, owner=liked_comment)
+    new_comment.save()
+    return(redirect(f'/node/posts/{liked_comment.post.id}/'))
+   
 
 
 def post_like(data):
