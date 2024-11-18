@@ -39,6 +39,7 @@ from rest_framework.parsers import JSONParser
 NODES = ['Duy']
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def api_authors_list(request):
     page = request.GET.get('page')  # Number of pages to include
     size = request.GET.get('size')  # Number of records per page\
