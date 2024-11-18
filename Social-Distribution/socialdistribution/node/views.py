@@ -36,7 +36,7 @@ from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
 
-NODES = ['Duy']
+NODES = []
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
