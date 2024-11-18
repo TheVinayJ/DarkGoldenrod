@@ -1022,7 +1022,6 @@ def add_external_post(request, author_id):
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def inbox(request, author_id):
