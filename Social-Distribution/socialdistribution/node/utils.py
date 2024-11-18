@@ -68,4 +68,4 @@ def send_request_to_node(node_name, endpoint, method='GET', data=None):
         response = requests.delete(url, auth=auth)
     else:
         raise Exception(f"Unsupported HTTP method: {method}")
-    return response.json()
+    return response
