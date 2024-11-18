@@ -36,6 +36,8 @@ class SignupView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        host = f"http://{request.get_host()}"
+        
         try:
             # Retrieve the SiteSetting singleton instance
             site_setting = SiteSetting.get_solo()
@@ -48,7 +50,7 @@ class SignupView(generics.CreateAPIView):
             #author = serializer.save(commit=False)
             
             if site_setting.user_approval_required:
-                author = serializer.save(is_active=False)
+                author = serializer.save(is_active=False, host=host)
 
                 # Prepare the response data without issuing an access token
                 response_data = {
@@ -59,7 +61,7 @@ class SignupView(generics.CreateAPIView):
                 response = JsonResponse(response_data, status=status.HTTP_201_CREATED)
                 return response
             else:
-                author = serializer.save(is_active=True)
+                author = serializer.save(is_active=True, host=host)
                 
                 access_token = AccessToken.for_user(author)
                 response_data = {
