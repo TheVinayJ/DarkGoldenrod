@@ -387,12 +387,9 @@ def local_api_like(request, id):
     liked_post = get_object_or_404(Post, id=id)
     current_author = get_author(request)
 
-    author_serializer = AuthorSerializer(current_author)
-    author_data = author_serializer.data
-
     like_data = {
         "type": "like",
-        "author": author_data,
+        "author": current_author,
         "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
         "published": datetime.datetime.now(),
         "id" : f"http://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
@@ -400,7 +397,7 @@ def local_api_like(request, id):
 
     print("Like Data: ", like_data)
     
-    serializer = LikeSerializer(data=like_data)
+    serializer = LikeSerializer(data=like_data, context={'request': request})
     if not serializer.is_valid():
         print("Validation errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
