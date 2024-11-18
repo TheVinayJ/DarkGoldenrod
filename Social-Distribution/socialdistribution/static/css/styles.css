@@ -109,4 +109,53 @@ a:hover::after {
 .main-nav a {
     font-weight: bold;
     color: black
-} 
+}
+
+.post-actions {
+    display: flex;
+    justify-content: left;
+    padding: 10px;
+    border-top: 1px solid #dbdbdb;
+}
+
+.material-symbols-outlined {
+    vertical-align: middle;
+    font-size: 24px;
+    margin-right: 5px;
+}
+
+.action-button {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    margin-right: 20px;
+    transition: none;
+}
+
+.action-button:hover {
+    color: darkgoldenrod;
+    transform: none;
+    box-shadow: none;
+}
+
+.action-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    margin-right: 20px;
+    margin-bottom: 0;
+}
+
+.action-link:hover{
+    color: darkgoldenrod;
+}
+
+.action-link::after{
+    position: relative;
+}
