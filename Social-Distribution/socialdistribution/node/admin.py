@@ -1,6 +1,8 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from .models import Author, Like, Comment, Post, Follow, Repost, SiteSetting, RemoteNode, AllowedNode
 from solo.admin import SingletonModelAdmin
+from django.urls import path
+from django.shortcuts import render, redirect
 
 class AuthorAdmin(admin.ModelAdmin):
     # Display specific fields in the list view
@@ -17,9 +19,29 @@ class AuthorAdmin(admin.ModelAdmin):
     approve_users.short_description = "Approve selected users"
 
     # Customize the list display to show pending (inactive) users
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.filter(is_active=True)
+    # def get_queryset(self, request):
+    #     qs = super().get_queryset(request)
+    #     return qs.filter(is_active=True)
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('inactive-users/', self.admin_site.admin_view(self.inactive_users_view), name='inactive-users'),
+        ]
+        return custom_urls + urls
+
+    def inactive_users_view(self, request):
+        # Get all inactive authors
+        inactive_users = Author.objects.filter(is_active=False)
+
+        if request.method == 'POST':
+            selected_ids = request.POST.getlist('user_ids')
+            if selected_ids:
+                updated_count = Author.objects.filter(id__in=selected_ids).update(is_active=True)
+                messages.success(request, f"{updated_count} user(s) have been approved.")
+                return redirect('admin:inactive-users')
+
+        return render(request, 'admin/inactive_users.html', {'inactive_users': inactive_users})
     
 # Register your models here.
 admin.site.register(Author, AuthorAdmin)
