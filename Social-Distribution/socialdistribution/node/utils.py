@@ -55,7 +55,7 @@ def send_request_to_node(node_name, endpoint, method='GET', data=None):
     except RemoteNode.DoesNotExist:
         raise Exception(f"Node '{node_name}' is not active or does not exist.")
 
-    url = f"{node.url}/{endpoint}"
+    url = f"{node.url}{endpoint}"
     auth = HTTPBasicAuth(node.username, node.password)
 
     if method.upper() == 'GET':

@@ -22,6 +22,21 @@
     border-bottom: 1px solid #dbdbdb;
 }
 
+.title-left {
+    display: flex;
+    align-items: center;
+}
+
+.title-left h2 {
+    margin: 0;
+}
+
+.title-right {
+    text-align: right;
+    font-size: 0.9em;
+    color: #555;
+}
+
 .post-item {
     background-color: #fff;
     border: 1px solid #dbdbdb;
@@ -35,6 +50,7 @@
 }
 
 .post-item a::after{
+    transition: none;
     position: relative;
 }
 
@@ -110,6 +126,10 @@
 
 .filter-options a.active {
     font-weight: bold;
+}
+
+.filter-options a::after{
+    position: relative;
 }
 
 .container {
