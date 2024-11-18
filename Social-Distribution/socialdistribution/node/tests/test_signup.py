@@ -23,13 +23,13 @@ class APISignupViewTest(APITestCase):
             'password': 'testpassword123',
             'confirm_password': 'testpassword123',
         }
-        
+
         response = self.client.post(
             self.signup_url,
             data,
             format='json'
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         response_data = response.json()
 

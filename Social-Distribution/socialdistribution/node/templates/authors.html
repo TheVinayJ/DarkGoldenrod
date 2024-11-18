@@ -30,6 +30,9 @@
             width: 80px;
             margin: 10px;
         }
+        button:disabled{
+            background-color: #4f4f4f;
+        }
     </style>
 </head>
 
@@ -48,7 +51,7 @@
         {% if messages %}
         <ul class="messages">
             {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
+                <li {% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
             {% endfor %}
         </ul>
         {% endif %}
@@ -57,28 +60,24 @@
         <li>
             <div class="author-card">
                 <!-- Link to the author's profile page -->
-                {% if author.linkable %}
-                    <strong><a href="{% url 'profile' author.id %}">{{ author.display_name }}</a></strong><br>
-                {% else %}
-                    <strong>{{ author.display_name }}</strong><br>
-                {% endif %}
+                <a href="{% url 'profile' author.id_num %}">{{ author.displayName}}</a>
 
                 Host: {{ author.host }}<br>
-                GitHub: <a href="{{ author.github }}">{{ author.github }}</a><br>
+                GitHub: <a href="https://github.com/{{ author.github }}">{{ author.github }}</a><br>
 
                 <div class="button-container">
                     <!-- Follow form -->
-                    <form method="POST" action="{% url 'follow_author' author.id %}">
+                    <form method="POST" action="{% url 'follow_author' author.id_num %}">
                         {% csrf_token %}
-                        <button type="submit">
-                            Follow
-                        </button>
+                            <button type="submit">
+                                Follow
+                            </button>
                     </form>
-                    <form method="POST" action="{% url 'unfollow_author' author.id %}">
+                    <form method="POST" action="{% url 'unfollow_author' author.id_num %}">
                         {% csrf_token %}
-                        <button type="submit">
-                            Unfollow
-                        </button>
+                            <button type="submit">
+                                Unfollow
+                            </button>
                     </form>
                 </div>
             </div>

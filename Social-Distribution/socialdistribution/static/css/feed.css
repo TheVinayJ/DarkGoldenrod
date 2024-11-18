@@ -16,13 +16,19 @@
 
 .title-container {
     display: flex;
-    justify-content: space-between;
+    justify-content: left;
     align-items: center;
     flex-direction: row;
+    border-bottom: 1px solid #dbdbdb;
 }
 
 .title-left {
-    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.title-left h2 {
+    margin: 0;
 }
 
 .title-right {
@@ -43,10 +49,18 @@
     color: black;
 }
 
+.post-item a::after{
+    transition: none;
+    position: relative;
+}
+
+.post-item a:hover{
+    color: darkgoldenrod;
+}
+
 .post-item h2 {
     font-size: 18px;
-    padding: 10px;
-    border-bottom: 1px solid #dbdbdb;
+    padding: 0 10px;
 }
 
 .post-item p {
@@ -55,19 +69,28 @@
     line-height: 1.5;
 }
 
-.post-item img {
+.title-container p {
+    padding: 0 10px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.markdown-output {
+    border: 1px solid #dbdbdb;
+    border-radius: 5px;
+}
+
+.post-image {
     width: 100%;
     height: auto;
 }
 
-.post-actions {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-}
-
-.post-actions a {
-    font-weight: bold;
+.profile-picture {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 10px;
 }
 
 /* Pagination */
@@ -105,14 +128,12 @@
     font-weight: bold;
 }
 
+.filter-options a::after{
+    position: relative;
+}
+
 .container {
     margin-top: 60px;
 }
 
-.post-item img {
-    width: 100%;
-    height: auto;
-    display: block;
-    margin-bottom: 10px;
-}
 

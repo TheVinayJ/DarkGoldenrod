@@ -15,17 +15,30 @@
     <textarea name="description" id="post-description" rows="3" cols="50" placeholder="Short Description"></textarea><br>
 
     <!-- Content type selection -->
-    <label>Content Type:</label><br>
-    <input type="radio" id="text/plain" name="contentType" value="plain" checked>
-    <label for="text/plain">Plaintext</label><br>
-    <input type="radio" id="text/markdown" name="contentType" value="markdown">
-    <label for="text/markdown">Markdown</label><br>
-    <input type="radio" id="image" name="contentType" value="image">
-    <label for="image">Image</label><br>
+    <div class="form-group">
+        <label>Content Type:</label>
+        <div class="radio-group">
+            <label>
+                <input type="radio" id="plaintext" name="contentType" value="plain" checked>
+                Plaintext
+            </label>
+            <label>
+                <input type="radio" id="markdown" name="contentType" value="markdown">
+                Markdown
+            </label>
+            <label>
+                <input type="radio" id="image" name="contentType" value="image">
+                Image
+            </label>
+        </div>
+    </div>
 
     <!-- Content input fields -->
-    <div id="plaintext-input" class="content-input">
-        <textarea id="plaintext-editor" name="content" rows="10" cols="50" placeholder="Enter plaintext..."></textarea><br>
+    <div id="plain-input" class="content-input">
+        <div class="form-group">
+            <label for="plaintext-editor">Content:</label>
+            <textarea id="plaintext-editor" name="content" rows="10" placeholder="Enter plaintext content..."></textarea>
+        </div>
     </div>
     <div id="markdown-input" class="content-input" style="display:none;">
         <textarea id="markdown-editor" name="content" rows="10" cols="50" placeholder="Enter markdown..."></textarea><br>

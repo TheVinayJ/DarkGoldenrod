@@ -33,6 +33,16 @@
     <!-- Post Meta (Author and Date) -->
     <p class="post-meta">By {{ post.author.display_name }} on {{ post.published|date:"Y-m-d" }}</p>
 
+    <!-- Post Description -->
+    <p>{{ post.description }}</p>
+
+    <!-- Post Content -->
+    {% if post.text_content %}
+    <div class="post-content">
+        {{ post.text_content|linebreaks }}
+    </div>
+    {% endif %}
+
     <!-- Post Image -->
     {% if post.image_content %}
     <div class="post-image">
@@ -40,35 +50,35 @@
     </div>
     {% endif %}
 
-    <!-- Post Description -->
-    <p>{{ post.description }}</p>
-
-    <!-- Post Content -->
-    <div class="post-content">
-        {{ post.text_content|linebreaks }}
-    </div>
-
     <!-- Like and Repost Buttons -->
     <div class="post-actions">
         <!-- Like Button -->
-        <form action="/node/posts/{{ id }}/like/" method="POST" style="display:inline;">
+        <form action="{% url 'like' post.id %}" method="POST" style="display:inline;">
             {% csrf_token %}
-            {% if liked %}
-            <button type="submit" class="btn small-btn">Unlike</button>
+            {% if post.user_has_liked %}
+                <button type="submit" class="action-button">
+                    <span class="material-symbols-outlined">favorite</span>{{ post.likes }}
+                </button>
             {% else %}
-            <button type="submit" class="btn small-btn">Like</button>
+                <button type="submit" class="action-button">
+                    <span class="material-symbols-outlined">favorite</span>{{ post.likes }}
+                </button>
             {% endif %}
         </form>
-
+    
+        <!-- Comment Button -->
+        <a href="{% url 'view_post' post.id %}#comments" class="action-link">
+            <span class="material-symbols-outlined">tooltip</span> {{ post.comments }}
+        </a>
+    
         <!-- Repost Button -->
-        <form action="/node/posts/{{ id }}/repost/" method="POST" style="display:inline;">
+        <form action="{% url 'repost' post.id %}" method="POST" style="display:inline;">
             {% csrf_token %}
-            <button type="submit" id="repost" class="btn small-btn">Repost</button>
+            <button type="submit" class="action-button">
+                <span class="material-symbols-outlined">repeat</span>
+            </button>
         </form>
     </div>
-
-    <!-- Likes Count -->
-    <p>Likes: {{ likes.count }}</p>
 
     </div>
 

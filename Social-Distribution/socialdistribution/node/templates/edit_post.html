@@ -3,20 +3,159 @@
 
 {% block title %}Edit Post{% endblock %}
 
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/editor.css' %}">
+{% endblock %}
+
 {% block content %}
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+
+<form enctype="multipart/form-data" id="save-form" method="POST" action="{% url 'edit_post' post.id %}">
     <h1>Edit Post</h1>
 
-    <form id="edit-form" method="POST" action="{% url 'edit_post' post.id %}">
-        {% csrf_token %}
-        <input type="text" name="title" id="post-title" placeholder="Post Title" value="{{ post.title }}"><br>
-        <textarea id="markdown-editor" name="body-text" rows="10" cols="50">{{ post.text_content }}</textarea><br>
-        <br>
-        <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" {% if post.visibility == 'PUBLIC' %}checked{% endif %}>
-        <label for="PUBLIC">Public</label><br>
-        <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS" {% if post.visibility == 'FRIENDS' %}checked{% endif %}>
-        <label for="FRIENDS">Friends Only</label><br>
-        <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED" {% if post.visibility == 'UNLISTED' %}checked{% endif %}>
-        <label for="UNLISTED">Unlisted</label><br><br>
-        <button id="save-btn" type="submit">Save Changes</button>
-    </form>
+    <!-- Title Field -->
+    <div class="form-group">
+        <label for="post-title">Post Title:</label>
+        <input type="text" name="title" id="post-title" value="{{ post.title }}" required>
+    </div>
+
+    <!-- Short description -->
+    <div class="form-group">
+        <label for="post-description">Short Description:</label>
+        <textarea name="description" id="post-description" rows="3" required>{{ post.description }}</textarea>
+    </div>
+
+    <!-- Content type selection -->
+    <div class="form-group">
+        <label>Content Type:</label>
+        <div class="radio-group">
+            <label>
+                <h2>{{post.contentType}}</h2>
+                <input type="radio" id="plaintext" name="contentType" value="plain" {% if post.contentType == 'text/plain' %}checked{% endif %}>
+                Plaintext
+            </label>
+            <label>
+                <input type="radio" id="markdown" name="contentType" value="markdown" {% if post.contentType == 'text/markdown' %}checked{% endif %}>
+                Markdown
+            </label>
+            <label>
+                <input type="radio" id="image" name="contentType" value="image" {% if 'image' in post.contentType %}checked{% endif %}>
+                Image
+            </label>
+        </div>
+    </div>
+
+    <!-- Content input fields -->
+    <div id="plain-input" class="content-input" style="display: none;">
+        <div class="form-group">
+            <label for="plaintext-editor">Content:</label>
+            <textarea id="plaintext-editor" name="plain-content" rows="10">{{ post.text_content }}</textarea>
+        </div>
+    </div>
+
+    <div id="markdown-input" class="content-input" style="display: none;">
+        <div class="form-group">
+            <label for="markdown-editor">Content:</label>
+            <textarea id="markdown-editor" name="markdown-content" rows="10">{{ post.text_content }}</textarea>
+        </div>
+        <button id="convert-btn" type="button">Preview Markdown</button>
+        <h3>Preview</h3>
+        <div id="markdown-output"></div>
+    </div>
+
+    <div id="image-input" class="content-input" style="display: none;">
+        <div class="form-group">
+            <label for="image-upload">Upload Image:</label>
+            <input type="file" name="image-content" id="image-upload" accept="image/*">
+        </div>
+        {% if post.image_content %}
+            <img src="{{ post.image_content.url }}" alt="Current Image" style="max-width: 600px; height: auto;">
+        {% endif %}
+    </div>
+
+    <!-- Visibility options -->
+    <div class="form-group">
+        <label>Visibility:</label>
+        <div class="radio-group">
+            <label>
+                <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" {% if post.visibility == 'PUBLIC' %}checked{% endif %}>
+                Public
+            </label>
+            <label>
+                <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS" {% if post.visibility == 'FRIENDS' %}checked{% endif %}>
+                Friends Only
+            </label>
+            <label>
+                <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED" {% if post.visibility == 'UNLISTED' %}checked{% endif %}>
+                Unlisted
+            </label>
+        </div>
+    </div>
+
+    <button id="save-btn" type="submit">Save Changes</button>
+    {% csrf_token %}
+</form>
+
+{% block scripts %}
+
+<script src="{% static 'authentication.min.js' %}"></script>
+<script src="{% static 'markdown-editor.min.js' %}"></script>
+
+<script>
+    // JavaScript to handle content type selection and display
+
+    function getCSRFToken() {
+        const cookie = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='));
+        return cookie ? cookie.split('=')[1] : '';
+    }
+
+    // Function to update content input display based on selected content type
+    function updateContentInputDisplay() {
+    const selectedContentType = document.querySelector('input[name="contentType"]:checked').value;
+    document.querySelectorAll(".content-input").forEach((inputElem) => {
+        inputElem.style.display = "none";
+    });
+    document.getElementById(`${selectedContentType}-input`).style.display = "block";
+    }
+
+    // Initial call to set up the correct display
+    updateContentInputDisplay();
+
+    // Event listener for content type changes
+    document.querySelectorAll('input[name="contentType"]').forEach((elem) => {
+        elem.addEventListener("change", updateContentInputDisplay);
+    });
+
+    
+    // document.getElementById('save-form').addEventListener('submit', async function(event) {
+    //     event.preventDefault();
+    //     let formData = new FormData(this);
+    //     let request = {
+    //         method: 'POST',
+    //         headers: {
+    //             'X-CSRFToken': getCSRFToken(),
+    //         },
+    //         credentials: "include",
+    //         body: formData
+    //     }
+
+    //     let response = await fetch("{% url 'edit_post' post.id %}", request);
+    //     let responseData = await response.json();
+    //     if (responseData.url) {
+    //         window.location.href = responseData.url;
+    //     }
+    // });
+
+</script>
+
+{% endblock %}
 {% endblock %}
