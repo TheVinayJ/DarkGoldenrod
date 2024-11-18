@@ -140,17 +140,18 @@ def authors_list(request):
         authors += response.json().get('authors', []) if response.status_code == 200 else []
 
     for author in authors:
-        Author.objects.update_or_create(
-            url=author['id'],
-            defaults={
-                'url': author['id'],
-                'host': author['host'],
-                'display_name': author['displayName'],
-                'github': author['github'],
-                'page': author['page'],
-                'profile_image': author['profileImage'],
-            }
-        )
+        if not Author.objects.filter(url=author['id']).exists():
+            Author.objects.update_or_create(
+                url=author['id'],
+                defaults={
+                    'url': author['id'],
+                    'host': author['host'],
+                    'display_name': author['displayName'],
+                    'github': author['github'],
+                    'page': author['page'],
+                    'profile_image': author['profileImage'],
+                }
+            )
 
         author_from_db = Author.objects.filter(url=author['id']).first()
 
@@ -962,6 +963,7 @@ def local_api_follow(request, author_id):
     access_token = AccessToken.for_user(current_author)
     try:
         response = send_request_to_node(author_to_follow.host[:-4], inbox_url)
+        Follow.objects.create(following=author_to_follow.url, followers=current_author.url)
     except Exception as e:
         headers = {
             'Authorization': f'Bearer {access_token}'
@@ -1104,21 +1106,20 @@ def unfollow_author(request, author_id):
     follow_exists = Follow.objects.filter(follower=current_author.url, following=author_to_unfollow.url).exists()
 
     if follow_exists:
-        api_url = request.build_absolute_uri(reverse('list_follower'))
-        access_token = AccessToken.for_user(current_author)
-        headers = {
-            'Authorization': f'Bearer {access_token}'
-        }
-        # Make the GET request to the API endpoint
-        response = requests.delete(api_url, headers=headers, cookies=request.COOKIES)
-
-        messages.success(request, "You have successfully unfollowed this author.")
-
-        # Create a new follow relationship
-        # follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
-        # # Delete the Follow object to unfollow the author
-        # follow.delete()
+        # api_url = request.build_absolute_uri(reverse('list_follower'))
+        # access_token = AccessToken.for_user(current_author)
+        # headers = {
+        #     'Authorization': f'Bearer {access_token}'
+        # }
+        # # Make the GET request to the API endpoint
+        # response = requests.delete(api_url, headers=headers, cookies=request.COOKIES)
+        #
         # messages.success(request, "You have successfully unfollowed this author.")
+
+        follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
+        # Delete the Follow object to unfollow the author
+        follow.delete()
+        messages.success(request, "You have successfully unfollowed this author.")
 
     if not follow_exists:
         # Create a new follow relationship
