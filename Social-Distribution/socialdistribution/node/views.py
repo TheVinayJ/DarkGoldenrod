@@ -961,14 +961,14 @@ def local_api_follow(request, author_id):
     # inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
     inbox_url = author_to_follow.url + "/inbox/"
     access_token = AccessToken.for_user(current_author)
-    try:
-        response = post_request_to_node(author_to_follow.host[:-4], inbox_url, data=json.dumps(follow_request))
-        Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
-    except Exception as e:
-        headers = {
-            'Authorization': f'Bearer {access_token}'
-        }
-        response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+    # try:
+    response = post_request_to_node(author_to_follow.host[:-4], inbox_url, data=json.dumps(follow_request))
+    Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
+    # except Exception as e:
+    #     headers = {
+    #         'Authorization': f'Bearer {access_token}'
+    #     }
+    #     response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
 
     if response.status_code in [200, 201]:
         print("Sent Follow request")
