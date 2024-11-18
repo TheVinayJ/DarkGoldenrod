@@ -92,7 +92,6 @@ def api_authors_list(request):
     return JsonResponse(response_data)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def authors_list(request):
     print("Host: ", request.get_host())
     query = request.GET.get('q', None)
