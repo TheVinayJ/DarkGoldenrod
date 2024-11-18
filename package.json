@@ -2,7 +2,6 @@
   "dependencies": {
     "commonmark": "^0.31.2",
     "emoji-mart": "^5.6.0",
-    "esbuild": "^0.24.0",
     "marked": "^14.1.4",
     "npm-run-all": "^4.1.5"
   },
@@ -16,5 +15,8 @@
     "watch3": "esbuild webapp/markdown-editor.js --bundle --minify --sourcemap --outfile=Social-Distribution/socialdistribution/static/markdown-editor.min.js --watch",
     "build:js:watch": "npm-run-all --parallel watch1 watch2 watch3",
     "heroku-postbuild": "npm run build:js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
   }
 }

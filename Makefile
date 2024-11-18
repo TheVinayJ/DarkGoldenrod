@@ -16,4 +16,4 @@ init:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py createsuperuser" --app darkgoldenrod
 
 static:
-	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py collectstatic" --app darkgoldenrod
+	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py collectstatic"
