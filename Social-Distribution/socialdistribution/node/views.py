@@ -391,6 +391,7 @@ def local_api_like(request, id):
         "author": author_data,
         "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
         "published": datetime.datetime.now(),
+        "id" : f"http://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
     }
 
     print("Like Data: ", like_data)
@@ -622,6 +623,22 @@ def profile(request, author_id):
     current_author = get_author(request) # logged in author
     ownProfile = (user == current_author)
 
+    api_url = request.build_absolute_uri(reverse('single_author', kwargs={'author_id': user.id}))
+    response = requests.get(api_url)
+    author_data = response.json().get('authors', []) if response.status_code == 200 else []
+    if author_data:
+        user, created = Author.objects.update_or_create(
+            url=author_data['id'],
+            defaults={
+                'url': author_data['id'],
+                'host': author_data['host'],
+                'display_name': author_data['displayName'],
+                'github': author_data['github'],
+                'page': author_data['page'],
+                'profile_image': author_data['profileImage'],
+            }
+        )
+
     is_following = Follow.objects.filter( # if logged in author following the user
         follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
         following=f"http://{request.get_host()}/api/authors/" + str(author_id),
@@ -755,7 +772,6 @@ def api_single_author(request, author_id):
 
     if request.method == 'GET':
         if user is None:
-            print("a?")
             nonexistent_author = {
                 "message": "This user does not exist",
             }
@@ -821,6 +837,7 @@ def followers_following_friends(request, author_id):
     author = get_object_or_404(Author, id=author_id)
     profileUserUrl = author.url  # user of the profile
 
+
     # find a diff way to do this tbh
     see_follower = request.GET.get('see_follower')
     if see_follower is None:
@@ -829,8 +846,28 @@ def followers_following_friends(request, author_id):
         title = "Friends"
     else:
         if see_follower == "true":
-            # Get all followers by checking the Follow model
-            users = Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
+            # use the api to get followers
+            responses = []
+            api_url = request.build_absolute_uri(reverse('list_all_followers', kwargs={'author_id': author_id}))
+            response = requests.get(api_url)
+            responses.append(response)
+
+            users = []
+            for response in responses:
+                users += response.json().get('followers', []) if response.status_code == 200 else []
+
+            for follower in users:
+                Author.objects.update_or_create(
+                    url=follower['id'],
+                    defaults={
+                        'url': follower['id'],
+                        'host': follower['host'],
+                        'display_name': follower['displayName'],
+                        'github': follower['github'],
+                        'page': follower['page'],
+                        'profile_image': follower['profileImage'],
+                    }
+                )
             title = "Followers"
         elif see_follower == 'false':
             users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
@@ -839,17 +876,17 @@ def followers_following_friends(request, author_id):
     user_authors = Author.objects.filter(url__in=users)
 
     # serialize
-    author_data = [{'id': author.id, 'display_name': author.display_name} for author in user_authors]
+    # author_data = [{'id': author.id, 'display_name': author.display_name} for author in user_authors]
 
-    if request.accepted_renderer.format == 'json':
-        author_data = [{'id': author.id, 'display_name': author.display_name} for author in user_authors]
-        return Response({
-            'title': title,
-            'authors': author_data
-        })
+    # if request.accepted_renderer.format == 'json':
+    #     author_data = [{'id': author.id, 'display_name': author.display_name} for author in user_authors]
+    #     return Response({
+    #         'title': title,
+    #         'authors': author_data
+    #     })
     return render(request, 'follower_following.html', {
-        'authors': user_authors,
-        'DisplayTitle': title
+        'authors': users,
+        'DisplayTitle': title,
     })
 
 def get_author(request):

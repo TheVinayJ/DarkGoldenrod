@@ -35,10 +35,10 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class LikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = AuthorSerializer(source='liker')
-    object = serializers.URLField()
+    author = serializers.SerializerMethodField()
+    object = serializers.CharField()
     published = serializers.DateTimeField(default=datetime.datetime.now)
-    id = serializers.URLField()
+    id = serializers.CharField()
 
     class Meta:
         model = PostLike  
@@ -52,6 +52,9 @@ class LikeSerializer(serializers.ModelSerializer):
                 return CommentLike
             return PostLike
         return PostLike
+    
+    def get_author(self, obj):
+        return AuthorSerializer(obj.author).data
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -222,16 +225,23 @@ class SignupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Passwords must match."})
         return attrs
 
+    def save(self, **kwargs):
+        return self.create(self.validated_data, **kwargs)
+
     def create(self, validated_data, **kwargs):
         is_active = kwargs.pop('is_active', True)
-        host = kwargs.pop('host', 'none')
+        host = kwargs.pop('host', 'None')
         validated_data.pop('confirm_password')
         password = validated_data.pop('password')
+
+        # Add host to validated_data
+        validated_data['host'] = host
+
         author = Author(**validated_data)
         author.is_active = is_active
-        author.host = host
+        #author.host = host
         author.set_password(password)
-        author.save()  # Ensure the author is saved to the database
+        author.save()
         return author
 
 class LoginSerializer(serializers.Serializer):

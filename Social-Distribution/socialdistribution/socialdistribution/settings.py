@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = 'node.Author'
 
+SECURE_SSL_REDIRECT = True
 
 # Application definition
 
@@ -62,6 +63,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
