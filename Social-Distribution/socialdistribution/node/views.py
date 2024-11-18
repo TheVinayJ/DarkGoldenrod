@@ -391,29 +391,25 @@ def local_api_like(request, id):
         "author": author_data,
         "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
         "published": datetime.datetime.now(),
-        "id" : f"http://darkgoldenrod/api/authors/{current_author.id}/liked/{PostLike.objects.count()+1}"
     }
+
+    print("Like Data: ", like_data)
     
     serializer = LikeSerializer(data=like_data)
     if not serializer.is_valid():
         print("Validation errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    print("Like Data: ", serializer)
-    
     like_object = serializer.data
+
     inbox_url = request.build_absolute_uri(reverse('inbox', args=[liked_post.author.id]))
     
     try:
-        access_token = AccessToken.for_user(current_author)
-        headers = {
-            'Authorization': f'Bearer {access_token}'
-        }
-        response = requests.post(inbox_url, json=like_object, headers=headers, cookies=request.COOKIES)
+        response = requests.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
         response.raise_for_status()
 
         return Response({"message": "Like sent to inbox"}, status=status.HTTP_201_CREATED)
-    except requests.RequestException as e:
+    except request.ReqestException as e:
         return Response({"error": f"Failed to send like to inbox: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
 
 
@@ -985,19 +981,17 @@ def inbox(request, author_id):
                 print("Follow request type detected")
                 return follow_author(follower, following)
             if body['type'] == 'like':
+                liker = body['author']
                 serializer = LikeSerializer(data=body)
                 if not serializer.is_valid():
-                    print(serializer)
                     return Response(
                         serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 post_or_comment = body['object']
                 if '/posts/' in post_or_comment:
-                    print("This a post like bruh")
                     return post_like(body)
                 else:   # Comment like
-                    print("This a post like bruh")
                     return comment_like(body)
             # Add additional handling for other types (e.g., post, like, comment) as needed
             if body['type'] == 'post':

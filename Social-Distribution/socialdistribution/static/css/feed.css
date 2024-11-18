@@ -22,6 +22,21 @@
     border-bottom: 1px solid #dbdbdb;
 }
 
+.title-left {
+    display: flex;
+    align-items: center;
+}
+
+.title-left h2 {
+    margin: 0;
+}
+
+.title-right {
+    text-align: right;
+    font-size: 0.9em;
+    color: #555;
+}
+
 .post-item {
     background-color: #fff;
     border: 1px solid #dbdbdb;
@@ -32,14 +47,6 @@
 
 .post-item a{
     color: black;
-}
-
-.post-item a::after{
-    position: relative;
-}
-
-.post-item a:hover{
-    color: darkgoldenrod;
 }
 
 .post-item h2 {
@@ -75,6 +82,16 @@
     border-radius: 50%;
     object-fit: cover;
     margin: 10px;
+}
+
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+}
+
+.post-actions a {
+    font-weight: bold;
 }
 
 /* Pagination */
