@@ -134,7 +134,7 @@ def authors_list(request):
     # print("Response: ", response)
     # print("Response text: ", response.text)
     # print("Response body: ", response.json())
-    
+    print("Responses: ", responses)
     authors = []
     for response in responses:
         authors += response.json().get('authors', []) if response.status_code == 200 else []
