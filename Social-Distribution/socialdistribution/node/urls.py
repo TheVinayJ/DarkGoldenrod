@@ -61,6 +61,7 @@ urlpatterns = [
     path('api/liked/<path:like_id>/', views.get_like, name='get_like'),
     path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
     path('api/authors/<int:author_id>/posts/<int:post_id>/comments', views.get_comments, name='get_comments'),
+    path('api/authors/<int:author_id>/commented/<int:comment_id>', views.get_comment, name='get_comment')
     path('api/authors/<int:author_id>/followers', views.followers_view, name='list_all_followers'),
     path('api/authors/<int:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
     path('api/authors/<int:author_id>/followers/<int:follower_id>/approve', views.followers_view, name='approve_follow'),
