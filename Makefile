@@ -5,7 +5,7 @@ init:
 	heroku git:remote -a darkgoldenrod3
 	heroku addons:create heroku-postgresql:essential-0 --app darkgoldenrod3
 	heroku run "env" --app darkgoldenrod3
-	# heroku buildpacks:set heroku/python --app darkgoldenrod3
+	heroku buildpacks:set heroku/python --app darkgoldenrod3
 
 	git add .
 	git commit -m "Add runtime.txt for Python version"
