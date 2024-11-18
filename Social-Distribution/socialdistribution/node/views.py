@@ -392,6 +392,7 @@ def local_api_like(request, id):
         "author": author_data,
         "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
         "published": datetime.datetime.now(),
+        "id" : f"http://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
     }
 
     print("Like Data: ", like_data)
