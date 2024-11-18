@@ -69,3 +69,33 @@ def send_request_to_node(node_name, endpoint, method='GET', data=None):
     else:
         raise Exception(f"Unsupported HTTP method: {method}")
     return response
+
+
+def post_request_to_node(host, url, method='POST', data=None):
+    '''
+        Send an HTTP request to a remote node.
+
+        Parameters:
+            node_name: The name of the remote node (When we add the node to connect in admin panel, we will give it a name).
+            endpoint: The endpoint to send the request to. Example: /api/posts/
+            method: {GET, POST, PUT, DELETE}
+            data: data for POST or PUT requests
+    '''
+    try:
+        node = RemoteNode.objects.get(url=host, is_active=True)
+    except RemoteNode.DoesNotExist:
+        raise Exception(f"Node '{host}' is not active or does not exist.")
+
+    auth = HTTPBasicAuth(node.username, node.password)
+
+    if method.upper() == 'GET':
+        response = requests.get(url, auth=auth)
+    elif method.upper() == 'POST':
+        response = requests.post(url, json=data, auth=auth)
+    elif method.upper() == 'PUT':
+        response = requests.put(url, json=data, auth=auth)
+    elif method.upper() == 'DELETE':
+        response = requests.delete(url, auth=auth)
+    else:
+        raise Exception(f"Unsupported HTTP method: {method}")
+    return response

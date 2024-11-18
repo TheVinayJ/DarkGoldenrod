@@ -951,19 +951,21 @@ def local_api_follow(request, author_id):
         }
     }
 
-    access_token = AccessToken.for_user(current_author)
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
+    # access_token = AccessToken.for_user(current_author)
+    # headers = {
+    #     'Authorization': f'Bearer {access_token}'
+    # }
 
     # Send the POST request to the target author's inbox endpoint
     # inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
     inbox_url = author_to_follow.url + "/inbox/"
-    access_token = AccessToken.for_user(current_author)
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+    # access_token = AccessToken.for_user(current_author)
+    # headers = {
+    #     'Authorization': f'Bearer {access_token}'
+    # }
+    # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+
+    response = send_request_to_node(author_to_follow.host[:-4], inbox_url)
 
     if response.status_code in [200, 201]:
         print("Sent Follow request")
