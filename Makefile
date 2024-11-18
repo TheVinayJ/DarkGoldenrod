@@ -25,6 +25,10 @@ migrate:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py makemigrations"
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate"
 
+test_all:
+	@echo "Running tests..."
+	@python3.11 Social-Distribution/socialdistribution/manage.py test node.tests
+
 tag-part3:
 	@git checkout Production
 	@git pull origin Production
