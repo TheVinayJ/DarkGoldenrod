@@ -619,25 +619,27 @@ def profile(request, author_id):
     :param author_id: id of author whose profile is currently being viewed
     :return: html rendition of profile.html with the appropriate content
     '''
-    user = get_object_or_404(Author, id=author_id)
+    viewing_author = get_object_or_404(Author, id=author_id)
     current_author = get_author(request) # logged in author
-    ownProfile = (user == current_author)
+    ownProfile = (viewing_author == current_author)
 
-    api_url = request.build_absolute_uri(reverse('single_author', kwargs={'author_id': user.id}))
-    response = requests.get(api_url)
-    author_data = response.json().get('authors', []) if response.status_code == 200 else []
-    if author_data:
-        user, created = Author.objects.update_or_create(
-            url=author_data['id'],
-            defaults={
-                'url': author_data['id'],
-                'host': author_data['host'],
-                'display_name': author_data['displayName'],
-                'github': author_data['github'],
-                'page': author_data['page'],
-                'profile_image': author_data['profileImage'],
-            }
-        )
+    access_token = AccessToken.for_user(current_author)
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    api_url = request.build_absolute_uri(reverse('single_author', kwargs={'author_id': viewing_author.id}))
+    response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+    author_data = response.json()
+
+    user = {
+            'id': author_data['id'],
+            'host': author_data['host'],
+            'display_name': author_data['displayName'],
+            'github': author_data['github'],
+            'page': author_data['page'],
+            'profile_image': author_data['profileImage'],
+            'description':author_data['description'],
+        }
 
     is_following = Follow.objects.filter( # if logged in author following the user
         follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
@@ -665,9 +667,9 @@ def profile(request, author_id):
         if user==current_author: # if logged in user viewing own profile, show unlisted posts too
             visible_tags.append('UNLISTED')
 
-    authors_posts = Post.objects.filter(author=user, visibility__in= visible_tags).exclude(description="Public Github Activity").order_by('-published') # most recent on top
-    retrieve_github(user)
-    github_posts = Post.objects.filter(author=user, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
+    authors_posts = Post.objects.filter(author=viewing_author, visibility__in= visible_tags).exclude(description="Public Github Activity").order_by('-published') # most recent on top
+    retrieve_github(viewing_author)
+    github_posts = Post.objects.filter(author=viewing_author, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
 
     # Followers: people who follow the user
     followers_count = Follow.objects.filter(
@@ -676,20 +678,21 @@ def profile(request, author_id):
     ).count()
 
     # Following: people the user follows
-    following_count = Follow.objects.filter(
+    # This returns a list of users that `author_id` is following
+    followed_users = Follow.objects.filter(
         follower=f"http://{request.get_host()}/api/authors/{author_id}",
-        approved=True
-    ).count()
+        approved=True).values_list('following', flat=True)
+    following_count = followed_users.count()
+    print(followed_users)
+
+    author_url = f"http://{request.get_host()}/api/authors/{author_id}"
 
     # Friends: mutual follows
     friends_count = Follow.objects.filter(
-        follower=f"http://{request.get_host()}/api/authors/{author_id}",
-        approved=True,
-        following__in=Follow.objects.filter(
-            follower__in=[f"http://{request.get_host()}/api/authors/{author_id}"],
-            approved=True
-        ).values_list('following', flat=True)
-    ).count()
+        follower__in=followed_users,  # Users that are followed by `author_id`
+        following=author_url,  # `author_id` is the `following`
+        approved=True
+    ).count()  # Count mutual follow relationships
 
 
     return render(request, "profile/profile.html", {
@@ -779,12 +782,13 @@ def api_single_author(request, author_id):
         else:
             author_data = {
                 "type": "author",
-                "id": user.url,
+                "id": user.id,
                 "host": user.host,
                 "displayName": user.display_name,
                 "github": "http://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
+                "description": user.description,
             }
             return JsonResponse(author_data, status=200)
 
@@ -800,12 +804,13 @@ def api_single_author(request, author_id):
             serializer.save()
             author_data = {
                 "type": "author",
-                "id": user.url,
+                "id": user.id,
                 "host": user.host,
                 "displayName": user.display_name,
                 "github": "http://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
+                "description": user.description,
             }
             return JsonResponse(author_data, status=200)
         else:
@@ -847,27 +852,35 @@ def followers_following_friends(request, author_id):
     else:
         if see_follower == "true":
             # use the api to get followers
+
+            access_token = AccessToken.for_user(author)
+            headers = {
+                'Authorization': f'Bearer {access_token}'
+            }
+
             responses = []
             api_url = request.build_absolute_uri(reverse('list_all_followers', kwargs={'author_id': author_id}))
-            response = requests.get(api_url)
+            response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+            print(response.json())
             responses.append(response)
 
             users = []
             for response in responses:
                 users += response.json().get('followers', []) if response.status_code == 200 else []
 
-            for follower in users:
-                Author.objects.update_or_create(
-                    url=follower['id'],
-                    defaults={
-                        'url': follower['id'],
-                        'host': follower['host'],
-                        'display_name': follower['displayName'],
-                        'github': follower['github'],
-                        'page': follower['page'],
-                        'profile_image': follower['profileImage'],
-                    }
-                )
+            print(users)
+            # for follower in users:
+            #     Author.objects.update_or_create(
+            #         url=follower['id'],
+            #         defaults={
+            #             'url': follower['id'],
+            #             'host': follower['host'],
+            #             'display_name': follower['displayName'],
+            #             'github': follower['github'],
+            #             'page': follower['page'],
+            #             'profile_image': follower['profileImage'],
+            #         }
+            #     )
             title = "Followers"
         elif see_follower == 'false':
             users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
@@ -941,7 +954,7 @@ def local_api_follow(request, author_id):
 
     # Send the POST request to the target author's inbox endpoint
     # inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
-    inbox_url = author_to_follow.url + "/inbox"
+    inbox_url = author_to_follow.url + "/inbox/"
     access_token = AccessToken.for_user(current_author)
     headers = {
         'Authorization': f'Bearer {access_token}'
@@ -1110,6 +1123,7 @@ def unfollow_author(request, author_id):
 
 def follow_requests(request, author_id):
     current_author = get_object_or_404(Author, id=author_id)  # logged in author
+    print(current_author.url)
     current_follow_requests = Follow.objects.filter(following=current_author.url, approved=False)
     print(current_follow_requests)
     follower_authors = []
@@ -1394,7 +1408,8 @@ def followers_view(request, author_id, follower_id=None):
             # Construct the JSON response manually
             return JsonResponse({
                 "type": "author",
-                "id": f"{follower.host}authors/{follower.id}",
+                "id": follower.id,
+                "url": follower.url,
                 "host": follower.host,
                 "displayName": follower.display_name,
                 "page": follower.page,
@@ -1405,6 +1420,8 @@ def followers_view(request, author_id, follower_id=None):
         else:
             # Get all followers and manually construct the response
             followers_data = []
+            print(author.host)
+            print(author.id)
             followers = Follow.objects.filter(following=f"{author.host}authors/{author.id}", approved=True)
             followers = list(followers.values_list('follower', flat=True))
             print("followers in function", followers)
@@ -1415,7 +1432,8 @@ def followers_view(request, author_id, follower_id=None):
 
                 followers_data.append({
                     "type": "author",
-                    "id": f"{follower.host}authors/{follower.id}",
+                    "id": follower.id,
+                    "url": follower.url,
                     "host": follower.host,
                     "displayName": follower.display_name,
                     "page": follower.page,
@@ -1435,8 +1453,12 @@ def followers_view(request, author_id, follower_id=None):
             print(follower_id)
             # print("decoded_follower_id: ", decoded_follower_id)
             # print("author_url: ", f"{author.host}authors/{author.id}")
-            
-            Follow.objects.update_or_create(follower=follower_host+"/authors/{decoded_follower_id}", following=f"{author.host}authors/{author.id}", defaults={'approved': True})
+
+            follow = Follow.objects.get(follower=follower_host + "authors/" + decoded_follower_id,
+                                        following=f"{author.host}authors/{author.id}")
+
+            follow.approved = True
+            follow.save()
             return JsonResponse({"status": "follow request approved"}, status=201)
         else:
             return JsonResponse({"error": "Missing foreign author ID"}, status=400)

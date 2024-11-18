@@ -47,10 +47,10 @@
                     }
                     throw new Error('Network response was not ok.');
                 })
-                //.then(data => {
+                .then(data => {
                     // Handle successful response (redirect or update UI)
-                    // window.location.href = `/node/authors/{{ author.id }}/profile`;
-                //})
+                    window.location.href = `/node/authors/{{ author.id }}/profile`;
+                })
                 .catch(error => {
                     console.error('Error:', error); // Handle error
                 });
