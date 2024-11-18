@@ -36,7 +36,7 @@ from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
 
-NODES = ['darkgoldenrod-90ec2f69ae67.herokuapp.com']
+NODES = ['Duy']
 
 @api_view(['GET'])
 def api_authors_list(request):
