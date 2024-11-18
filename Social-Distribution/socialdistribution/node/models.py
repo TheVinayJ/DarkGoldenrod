@@ -150,18 +150,12 @@ class Follow(models.Model):
 class AllowedNode(models.Model):
     url = models.URLField(unique=True)
     username = models.CharField(max_length=150)
-    password = models.CharField(max_length=128)  # Stored as hashed
+    password = models.CharField(max_length=128)  # Now stored as plain text
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def save(self, *args, **kwargs):
-        # Hash the password before saving if it's new or changed
-        if not self.pk or AllowedNode.objects.get(pk=self.pk).password != self.password:
-            self.password = make_password(self.password)
-        super().save(*args, **kwargs)
-
     def check_password(self, raw_password):
-        return check_password(raw_password, self.password)
+        return self.password == raw_password
 
     @property
     def is_authenticated(self):
@@ -186,25 +180,19 @@ class RemoteNode(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="Friendly name for the remote node")
     url = models.URLField(max_length=200, validators=[URLValidator()], help_text="URL of the remote node")
     username = models.CharField(max_length=150, help_text="Username for authentication")
-    password = models.CharField(max_length=128, help_text="Password for authentication")
+    password = models.CharField(max_length=128, help_text="Password for authentication")  # Now stored as plain text
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
 
+    def check_password_custom(self, raw_password):
+        return self.password == raw_password
+
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        # Hash the password before saving if it's new or changed
-        if self.pk is None or not self.password.startswith('pbkdf2_'):
-            self.password = make_password(self.password)
-        super().save(*args, **kwargs)
-
-    def check_password_custom(self, raw_password):
-        return check_password(raw_password, self.password)
     
 class SiteSetting(SingletonModel):
-    user_approval_required = models.BooleanField(default=True)
+    user_approval_required = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Site Setting"
