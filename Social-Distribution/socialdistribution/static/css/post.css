@@ -65,9 +65,10 @@
 
 /* Post Actions */
 .post-actions {
-    margin: 10px 0;
+    margin-top: 10px;
     display: flex;
     align-items: center;
+    margin-bottom: -15px;
 }
 
 .post-actions .btn {
@@ -140,6 +141,10 @@
     border: 1px solid lightgray;
     border-radius: 5px;
     resize: vertical;
+}
+
+#comment-form {
+    margin-top: 10px;
 }
 
 /* Update Comment Input Container */

@@ -39,7 +39,7 @@ class AuthorManager(BaseUserManager):
 
 class Author(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
-    url = models.CharField(max_length=255, unique=True, null=True)
+    url = models.CharField(max_length=255, unique=True, null=True, default=None)
     display_name = models.CharField(max_length=50, unique=True, null=False)
     email = models.EmailField(max_length=50, unique=True)
     description = models.CharField(max_length=150, blank=True, null=True)
@@ -57,38 +57,25 @@ class Author(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['display_name']
 
+    # def save(self, *args, **kwargs):
+    #     # Ensure the url is set when the instance is first created
+    #     if not self.url and self._state.adding:
+    #         super().save(*args, **kwargs)  # Save first to generate the auto-increment id
+    #         self.url = f"{self.host}authors/{self.id}"
+    #         kwargs['update_fields'] = ['url']
+    #     super().save(*args, **kwargs)  # Save again to store the URL
+        
     def save(self, *args, **kwargs):
-        # Ensure the url is set when the instance is first created
         if not self.url and self._state.adding:
-            super().save(*args, **kwargs)  # Save first to generate the auto-increment id
+            super().save(*args, **kwargs)  # Save to generate 'id'
             self.url = f"{self.host}authors/{self.id}"
-        super().save(*args, **kwargs)  # Save again to store the URL
+            # Now save only the 'url' field
+            super().save(update_fields=['url'])
+        else:
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return self.display_name
-    
-    
-class RemoteNode(models.Model):
-    name = models.CharField(max_length=100, unique=True, help_text="Friendly name for the remote node")
-    url = models.URLField(max_length=200, validators=[URLValidator()], help_text="URL of the remote node")
-    username = models.CharField(max_length=150, help_text="Username for authentication")
-    password = models.CharField(max_length=128, help_text="Password for authentication")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        # Only hash the password if it is not already hashed
-        if self.password and not self.password.startswith('pbkdf2_'):
-            self.password = make_password(self.password)
-        super().save(*args, **kwargs)
-
-    def check_password_custom(self, raw_password):
-        # Checks if the given raw_password matches the hashed password
-        return check_password(raw_password, self.password)
     
 
 class Like(models.Model):
