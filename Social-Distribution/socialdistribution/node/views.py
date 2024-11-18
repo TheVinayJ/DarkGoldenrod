@@ -35,7 +35,8 @@ from rest_framework import status
 from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
-NODES = ['https://darkgoldenrod-90ec2f69ae67.herokuapp.com/']
+
+NODES = ['https://darkgoldenrod-90ec2f69ae67.herokuapp.com']
 
 @api_view(['GET'])
 def api_authors_list(request):
@@ -101,7 +102,7 @@ def authors_list(request):
     # Construct the URL for the API endpoint
     api_url = request.build_absolute_uri(reverse('api_authors_list'))
     if (page and size) or query:
-        api_url[:-1]
+        api_url = api_url[:-1]
 
     if page and size:
         api_url += f'?page={page}&size={size}'
@@ -122,9 +123,10 @@ def authors_list(request):
     responses.append(response)
     for node in NODES:
         if page and size:
-            response = requests.get(f"{node}authors?page={page}&size={size}", headers=headers)
+
+            response = send_request_to_node(node, f'api/authors?page={page}&size={size}')
         else:
-            response = requests.get(f"{node}authors/", headers=headers)
+            response = send_request_to_node(node, f'api/authors/')
         responses.append(response)
     # print("Response: ", response)
     # print("Response text: ", response.text)
