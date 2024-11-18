@@ -126,6 +126,7 @@ def authors_list(request):
         if page and size:
 
             response = send_request_to_node(node, f'api/authors?page={page}&size={size}')
+            print("Response: ", response)
         else:
             response = send_request_to_node(node, f'api/authors/')
         responses.append(response)
