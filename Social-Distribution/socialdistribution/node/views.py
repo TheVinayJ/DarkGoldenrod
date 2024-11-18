@@ -35,7 +35,7 @@ from rest_framework import status
 from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
-NODES = []
+NODES = ['vinay']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
