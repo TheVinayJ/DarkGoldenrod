@@ -7,6 +7,7 @@ from django.core.validators import URLValidator
 from solo.models import SingletonModel
 import django
 import datetime
+import os
 
 
 class AuthorManager(BaseUserManager):
@@ -17,6 +18,10 @@ class AuthorManager(BaseUserManager):
             raise ValueError('The Display Name field must be set')
 
         email = self.normalize_email(email)
+        
+        extra_fields.setdefault('host', os.getenv('HOST_URL', 'http://127.0.0.1:8000/api/'))
+
+        
         user = self.model(email=email, display_name=display_name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -33,6 +38,8 @@ class AuthorManager(BaseUserManager):
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
+        
+        extra_fields.setdefault('host', os.getenv('HOST_URL', 'http://127.0.0.1:8000/api/'))
 
         return self.create_user(email, display_name, password, **extra_fields)
 
