@@ -35,10 +35,10 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class LikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = AuthorSerializer(source='liker')
-    object = serializers.URLField()
+    author = serializers.SerializerMethodField()
+    object = serializers.CharField()
     published = serializers.DateTimeField(default=datetime.datetime.now)
-    id = serializers.URLField()
+    id = serializers.CharField()
 
     class Meta:
         model = PostLike  
@@ -52,6 +52,9 @@ class LikeSerializer(serializers.ModelSerializer):
                 return CommentLike
             return PostLike
         return PostLike
+    
+    def get_author(self, obj):
+        return AuthorSerializer(obj.author).data
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
