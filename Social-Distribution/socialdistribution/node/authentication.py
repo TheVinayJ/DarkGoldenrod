@@ -19,26 +19,6 @@ class CookieJWTAuthentication(JWTAuthentication):
         except exceptions.AuthenticationFailed:
             return None
         
-
-# class NodeBasicAuthentication(BasicAuthentication):
-#     """
-#     Custom Basic Authentication class to authenticate against the AllowedNode model.
-#     """
-
-#     def authenticate_credentials(self, userid, password, request=None):
-#         try:
-#             # Find the node by username
-#             node = AllowedNode.objects.get(username=userid, is_active=True)
-#         except AllowedNode.DoesNotExist:
-#             raise AuthenticationFailed('Invalid username/password for node.')
-
-#         # Check if the provided password matches the stored hash
-#         if not check_password(password, node.password):
-#             raise AuthenticationFailed('Invalid username/password for node.')
-
-#         # Return a tuple of (node, None) - DRF expects the first element to be a user-like object
-#         return (node, None)
-    
     
 class NodeBasicAuthentication(BasicAuthentication):
     """

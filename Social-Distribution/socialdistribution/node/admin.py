@@ -17,11 +17,6 @@ class AuthorAdmin(admin.ModelAdmin):
         updated_count = queryset.filter(is_active=False).update(is_active=True)
         self.message_user(request, f"{updated_count} user(s) have been approved.")
     approve_users.short_description = "Approve selected users"
-
-    # Customize the list display to show pending (inactive) users
-    # def get_queryset(self, request):
-    #     qs = super().get_queryset(request)
-    #     return qs.filter(is_active=True)
     
     def get_urls(self):
         urls = super().get_urls()
