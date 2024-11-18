@@ -962,7 +962,7 @@ def local_api_follow(request, author_id):
     inbox_url = author_to_follow.url + "/inbox/"
     access_token = AccessToken.for_user(current_author)
     try:
-        response = post_request_to_node(author_to_follow.host[:-4], inbox_url)
+        response = post_request_to_node(author_to_follow.host[:-4], inbox_url, data=json.dumps(follow_request))
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
         headers = {
