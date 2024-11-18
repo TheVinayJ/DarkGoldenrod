@@ -11,7 +11,7 @@ from django.views.generic import ListView
 
 # from node.serializers import serializer
 
-from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike
+from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike, RemoteNode
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
 from .serializers import AuthorProfileSerializer, PostSerializer, LikeSerializer, LikesSerializer, AuthorSerializer, \
@@ -36,7 +36,7 @@ from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
 
-NODES = ['Duy', 'Aykhan']
+NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
