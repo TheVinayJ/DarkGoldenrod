@@ -47,7 +47,7 @@ class AuthorManager(BaseUserManager):
 class Author(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     url = models.CharField(max_length=255, unique=True, null=True, default=None)
-    display_name = models.CharField(max_length=50, unique=True, null=False)
+    display_name = models.CharField(max_length=50, null=False)
     email = models.EmailField(max_length=50, unique=True)
     description = models.CharField(max_length=150, blank=True, null=True)
     host = models.CharField(max_length=50, blank=True, null=True, default='http://127.0.0.1:8000/api/')
@@ -73,11 +73,22 @@ class Author(AbstractBaseUser, PermissionsMixin):
     #     super().save(*args, **kwargs)  # Save again to store the URL
         
     def save(self, *args, **kwargs):
-        if not self.url and self._state.adding:
+        if not self.email and self._state.adding:
+            super().save(*args, **kwargs)  # Save to generate 'id'
+            self.email = f"{self.id}@foreignnode.com"
+            # Now save only the 'url' field
+            super().save(update_fields=['email'])
+        elif not self.url and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
             self.url = f"{self.host}authors/{self.id}"
             # Now save only the 'url' field
             super().save(update_fields=['url'])
+        elif not self.url and not self.email and self._state.adding:
+            super().save(*args, **kwargs)  # Save to generate 'id'
+            self.url = f"{self.host}authors/{self.id}"
+            self.email = f"{self.id}@foreignnode.com"
+            # Now save only the 'url' field
+            super().save(update_fields=['url', 'email'])
         else:
             super().save(*args, **kwargs)
 
