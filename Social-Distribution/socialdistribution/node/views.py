@@ -572,9 +572,6 @@ def add_comment(request, id):
     author = get_author(request)
     text = request.POST["content"]
 
-    if not author:
-        return HttpResponseForbidden("You must be logged in to post a comment.")
-
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
