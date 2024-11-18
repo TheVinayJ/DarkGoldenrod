@@ -68,7 +68,7 @@ def api_authors_list(request):
         current_page = paginator.page(page)
         author_list.extend([{
             "type": "author",
-            "id": f"{author.host}authors/{author.id}",
+            "id": f"{author.url}",
             "host": author.host,
             "displayName": author.display_name,
             "github": author.github,
@@ -78,7 +78,7 @@ def api_authors_list(request):
     else:
         author_list = [{
             "type": "author",
-            "id": f"{author.host}authors/{author.id}",
+            "id": f"{author.url}",
             "host": author.host,
             "displayName": author.display_name,
             "github": author.github,
