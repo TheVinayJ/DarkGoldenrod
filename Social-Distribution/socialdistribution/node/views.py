@@ -91,7 +91,7 @@ def api_authors_list(request):
         "authors": author_list,
     }
 
-    return JsonResponse(response_data)
+    return JsonResponse(response_data, status=200)
 
 @api_view(['GET'])
 def authors_list(request):
@@ -129,6 +129,7 @@ def authors_list(request):
             print("Response: ", response)
         else:
             response = send_request_to_node(node, f'api/authors/')
+            print("Response: ", response)
         responses.append(response)
     # print("Response: ", response)
     # print("Response text: ", response.text)
