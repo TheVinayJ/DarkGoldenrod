@@ -17,5 +17,5 @@ init:
 
 deploy:
 	git add .
-	git commit -m "Deploy"
+	git commit -m "Deploy" || echo "Nothing to commit"
 	git push heroku Development:main
