@@ -7,7 +7,6 @@ from django.core.validators import URLValidator
 from solo.models import SingletonModel
 import django
 import datetime
-import os
 
 
 class AuthorManager(BaseUserManager):
@@ -18,10 +17,6 @@ class AuthorManager(BaseUserManager):
             raise ValueError('The Display Name field must be set')
 
         email = self.normalize_email(email)
-        
-        extra_fields.setdefault('host', os.getenv('HOST_URL', 'http://127.0.0.1:8000/api/'))
-
-        
         user = self.model(email=email, display_name=display_name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -38,8 +33,6 @@ class AuthorManager(BaseUserManager):
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-        
-        extra_fields.setdefault('host', os.getenv('HOST_URL', 'http://127.0.0.1:8000/api/'))
 
         return self.create_user(email, display_name, password, **extra_fields)
 
@@ -47,7 +40,7 @@ class AuthorManager(BaseUserManager):
 class Author(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     url = models.CharField(max_length=255, unique=True, null=True, default=None)
-    display_name = models.CharField(max_length=50, null=False)
+    display_name = models.CharField(max_length=50, unique=True, null=False)
     email = models.EmailField(max_length=50, unique=True)
     description = models.CharField(max_length=150, blank=True, null=True)
     host = models.CharField(max_length=50, blank=True, null=True, default='http://127.0.0.1:8000/api/')
@@ -73,22 +66,11 @@ class Author(AbstractBaseUser, PermissionsMixin):
     #     super().save(*args, **kwargs)  # Save again to store the URL
         
     def save(self, *args, **kwargs):
-        if not self.email and self._state.adding:
-            super().save(*args, **kwargs)  # Save to generate 'id'
-            self.email = f"{self.id}@foreignnode.com"
-            # Now save only the 'url' field
-            super().save(update_fields=['email'])
-        elif not self.url and self._state.adding:
+        if not self.url and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
             self.url = f"{self.host}authors/{self.id}"
             # Now save only the 'url' field
             super().save(update_fields=['url'])
-        elif not self.url and not self.email and self._state.adding:
-            super().save(*args, **kwargs)  # Save to generate 'id'
-            self.url = f"{self.host}authors/{self.id}"
-            self.email = f"{self.id}@foreignnode.com"
-            # Now save only the 'url' field
-            super().save(update_fields=['url', 'email'])
         else:
             super().save(*args, **kwargs)
 
