@@ -1024,6 +1024,7 @@ def add_external_post(request, author_id):
 
 @csrf_exempt
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def inbox(request, author_id):
     print("Inbox function ran")
     if request.method == 'POST':
