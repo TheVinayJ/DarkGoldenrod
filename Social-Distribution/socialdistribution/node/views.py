@@ -29,7 +29,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.decorators import login_required
-from .utils import get_authenticated_user_id, AuthenticationFailed, send_request_to_node
+from .utils import get_authenticated_user_id, AuthenticationFailed, send_request_to_node, post_request_to_node
 from rest_framework.response import Response
 from rest_framework import status
 from urllib.parse import unquote
@@ -962,7 +962,7 @@ def local_api_follow(request, author_id):
     inbox_url = author_to_follow.url + "/inbox/"
     access_token = AccessToken.for_user(current_author)
     try:
-        response = send_request_to_node(author_to_follow.host[:-4], inbox_url)
+        response = post_request_to_node(author_to_follow.host[:-4], inbox_url)
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
         headers = {
