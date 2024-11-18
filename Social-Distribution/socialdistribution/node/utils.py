@@ -82,7 +82,7 @@ def post_request_to_node(host, url, method='POST', data=None):
             data: data for POST or PUT requests
     '''
     try:
-        node = RemoteNode.objects.get(url=host, is_active=True)
+        node = RemoteNode.objects.filter(url=host, is_active=True).first()
     except RemoteNode.DoesNotExist:
         raise Exception(f"Node '{host}' is not active or does not exist.")
 
