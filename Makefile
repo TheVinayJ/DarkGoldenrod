@@ -32,20 +32,20 @@ test_all:
 tag-part3:
 	@git checkout Production
 	@git pull origin Production
-	@git tag -a "part3" -m "Tagging the latest commit on the Production branch as part 3"
+	@git tag -a -s "part3" -m "Tagging the latest commit on the Production branch as part 3"
 	@git push origin "part3"
 	@echo "Tag 'part3' has been created and pushed to GitHub."
 
 tag-part4:
 	@git checkout Production
 	@git pull origin Production
-	@git tag -a "part4" -m "Tagging the latest commit on the Production branch as part 4"
+	@git tag -a -s "part4" -m "Tagging the latest commit on the Production branch as part 4"
 	@git push origin "part4"
 	@echo "Tag 'part4' has been created and pushed to GitHub."
 
 tag-part5:
 	@git checkout Production
 	@git pull origin Production
-	@git tag -a "part5" -m "Tagging the latest commit on the Production branch as part 5"
+	@git tag -a -s "part5" -m "Tagging the latest commit on the Production branch as part 5"
 	@git push origin "part5"
 	@echo "Tag 'part5' has been created and pushed to GitHub."

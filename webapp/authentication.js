@@ -31,7 +31,7 @@ async function handleLogin(event) {
     }
 
     try {
-        const response = await fetch('api/login/', {
+        const response = await fetch('/api/login/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ async function handleSignup(event) {
     }
 
     try {
-        const response = await fetch('api/signup/', {
+        const response = await fetch('/api/signup/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ async function handleSignup(event) {
 // Function to handle logout
 async function handleLogout() {
     try {
-        const response = await fetch('api/logout/', {
+        const response = await fetch('/api/logout/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
