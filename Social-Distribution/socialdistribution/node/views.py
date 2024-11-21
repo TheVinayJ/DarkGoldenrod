@@ -171,6 +171,7 @@ def authors_list(request):
         'query': query,
         'total_pages': response.json().get('total_pages', 1) if response.status_code == 200 else 1,
     }
+    print("Context: ", context)
 
     return render(request, 'authors.html', context)
 
