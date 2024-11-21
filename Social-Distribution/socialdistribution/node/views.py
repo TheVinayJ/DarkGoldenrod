@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+import asyncio
 
 from django.views.generic import ListView
 
@@ -93,83 +94,174 @@ def api_authors_list(request):
 
     return JsonResponse(response_data, status=200)
 
+# @api_view(['GET'])
+# def authors_list(request):
+#     print("Host: ", request.get_host())
+#     query = request.GET.get('q', None)
+#     page = request.GET.get('page', None)
+#     size = request.GET.get('size', None)
+
+#     # Construct the URL for the API endpoint
+#     api_url = request.build_absolute_uri(reverse('api_authors_list'))
+#     if (page and size) or query:
+#         api_url = api_url[:-1]
+
+#     if page and size:
+#         api_url += f'?page={page}&size={size}'
+
+#     if query:
+#         api_url += f'&q={query}'
+
+
+#     user = get_author(request)
+#     access_token = AccessToken.for_user(user)
+#     headers = {
+#         'Authorization': f'Bearer {access_token}'
+#     }
+    
+#     # Make the GET request to the API endpoint
+#     responses = []
+#     response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+#     responses.append(response)
+#     for node in NODES:
+#         if page and size:
+
+#             response = send_request_to_node(node, f'api/authors?page={page}&size={size}')
+#             print("Response: ", response)
+#         else:
+#             response = send_request_to_node(node, f'api/authors/')
+#             print("Response: ", response)
+#         responses.append(response)
+#     # print("Response: ", response)
+#     # print("Response text: ", response.text)
+#     # print("Response body: ", response.json())
+#     print("Responses: ", responses)
+#     authors = []
+#     for response in responses:
+#         authors += response.json().get('authors', []) if response.status_code == 200 else []
+
+#     for author in authors:
+#         if not Author.objects.filter(url=author['id']).exists():
+#             Author.objects.update_or_create(
+#                 url=author['id'],
+#                 defaults={
+#                     'url': author['id'],
+#                     'host': author['host'],
+#                     'display_name': author['displayName'],
+#                     'github': author['github'],
+#                     'page': author['page'],
+#                     'profile_image': author['profileImage'],
+#                 }
+#             )
+
+#         author_from_db = Author.objects.filter(url=author['id']).first()
+
+#         print(author['id'])
+#         # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
+#         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
+#         print(author['id'])
+#         print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
+#         author['id_num'] = author_from_db.id
+#         print(author['id_num'])
+#         # find authors logged-in user is already following
+#         author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
+#         # print(author['is_following'])
+
+#     context = {
+#         'authors': authors,
+#         'query': query,
+#         'total_pages': response.json().get('total_pages', 1) if response.status_code == 200 else 1,
+#     }
+
+#     return render(request, 'authors.html', context)
+
+
 @api_view(['GET'])
 def authors_list(request):
     print("Host: ", request.get_host())
     query = request.GET.get('q', None)
     page = request.GET.get('page', None)
     size = request.GET.get('size', None)
+    user = get_author(request)
 
-    # Construct the URL for the API endpoint
-    api_url = request.build_absolute_uri(reverse('api_authors_list'))
-    if (page and size) or query:
-        api_url = api_url[:-1]
+    # Get local authors directly
+    local_authors = Author.objects.all()
+    if query:
+        local_authors = local_authors.filter(display_name__icontains=query)
 
     if page and size:
-        api_url += f'?page={page}&size={size}'
+        paginator = Paginator(local_authors, size)
+        local_authors = paginator.get_page(page)
+    else:
+        local_authors = local_authors[:50]  # Limit to 50 authors
 
-    if query:
-        api_url += f'&q={query}'
+    authors = [{
+        "type": "author",
+        "id": f"{author.url}",
+        "host": author.host,
+        "displayName": author.display_name,
+        "github": author.github,
+        "profileImage": author.profile_image.url if author.profile_image else '',
+        "page": author.page
+    } for author in local_authors]
 
+    # Fetch authors from external nodes asynchronously
+    async def fetch_authors():
+        tasks = []
+        for node_name in NODES:
+            if page and size:
+                endpoint = f'api/authors?page={page}&size={size}'
+            else:
+                endpoint = 'api/authors/'
+            tasks.append(send_request_to_node(node_name, endpoint))
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+        node_authors = []
+        for response in responses:
+            if isinstance(response, Exception):
+                # Handle exceptions
+                print(f"Error fetching from node: {response}")
+                continue
+            if response and 'authors' in response:
+                node_authors.extend(response['authors'])
+        return node_authors
 
-    user = get_author(request)
-    access_token = AccessToken.for_user(user)
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    
-    # Make the GET request to the API endpoint
-    responses = []
-    response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
-    responses.append(response)
-    for node in NODES:
-        if page and size:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    external_authors = loop.run_until_complete(fetch_authors())
 
-            response = send_request_to_node(node, f'api/authors?page={page}&size={size}')
-            print("Response: ", response)
-        else:
-            response = send_request_to_node(node, f'api/authors/')
-            print("Response: ", response)
-        responses.append(response)
-    # print("Response: ", response)
-    # print("Response text: ", response.text)
-    # print("Response body: ", response.json())
-    print("Responses: ", responses)
-    authors = []
-    for response in responses:
-        authors += response.json().get('authors', []) if response.status_code == 200 else []
+    authors.extend(external_authors)
 
+    # Update or create authors in bulk
+    author_urls = [author['id'] for author in authors]
+    existing_authors = set(Author.objects.filter(url__in=author_urls).values_list('url', flat=True))
+    authors_to_create = []
     for author in authors:
-        if not Author.objects.filter(url=author['id']).exists():
-            Author.objects.update_or_create(
+        if author['id'] not in existing_authors:
+            authors_to_create.append(Author(
                 url=author['id'],
-                defaults={
-                    'url': author['id'],
-                    'host': author['host'],
-                    'display_name': author['displayName'],
-                    'github': author['github'],
-                    'page': author['page'],
-                    'profile_image': author['profileImage'],
-                }
-            )
+                host=author['host'],
+                display_name=author['displayName'],
+                github=author['github'],
+                page=author['page'],
+                profile_image=author['profileImage'],
+            ))
+    Author.objects.bulk_create(authors_to_create)
 
-        author_from_db = Author.objects.filter(url=author['id']).first()
-
-        print(author['id'])
-        # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
+    # Update author data with additional info
+    for author in authors:
         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
-        print(author['id'])
-        print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
-        author['id_num'] = author_from_db.id
-        print(author['id_num'])
-        # find authors logged-in user is already following
-        author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
-        # print(author['is_following'])
+        author_from_db = Author.objects.filter(url=author['id']).first()
+        author['id_num'] = author_from_db.id if author_from_db else None
+        author['is_following'] = Follow.objects.filter(
+            follower=f"http://{request.get_host()}/api/authors/{user.id}",
+            following=author['id'],
+            approved=True
+        ).exists()
 
     context = {
         'authors': authors,
         'query': query,
-        'total_pages': response.json().get('total_pages', 1) if response.status_code == 200 else 1,
+        'total_pages': 1,  # Adjust as needed
     }
 
     return render(request, 'authors.html', context)
@@ -673,96 +765,196 @@ def view_post(request, post_id):
                             ),
     })
 
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def profile(request, author_id):
+#     '''
+#     Render the contents of profile of desired author
+#     including author's posts, author's GitHub activity, and author's profile details
+#     :param request:
+#     :param author_id: id of author whose profile is currently being viewed
+#     :return: html rendition of profile.html with the appropriate content
+#     '''
+#     viewing_author = get_object_or_404(Author, id=author_id)
+#     current_author = get_author(request) # logged in author
+#     ownProfile = (viewing_author == current_author)
+
+#     access_token = AccessToken.for_user(current_author)
+#     headers = {
+#         'Authorization': f'Bearer {access_token}'
+#     }
+#     api_url = request.build_absolute_uri(reverse('single_author', kwargs={'author_id': viewing_author.id}))
+#     response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+#     author_data = response.json()
+
+#     user = {
+#             'id': author_data['id'],
+#             'host': author_data['host'],
+#             'display_name': author_data['displayName'],
+#             'github': author_data['github'],
+#             'page': author_data['page'],
+#             'profile_image': author_data['profileImage'],
+#             'description':author_data['description'],
+#         }
+
+#     is_following = Follow.objects.filter( # if logged in author following the user
+#         follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
+#         following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+#         approved=True,
+#     ).exists()
+#     if is_following:
+#         is_followback = Follow.objects.filter(  # ... see if user is following back
+#             follower=f"http://{request.get_host()}/api/authors/" + str(author_id),
+#             following=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
+#             approved=True,
+#         ).exists()
+#         is_pending = False
+#     else:
+#         is_followback = False
+#         is_pending = Follow.objects.filter( # if logged in author following the user
+#             follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
+#             following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+#             approved=False,
+#         ).exists()
+
+#     visible_tags = ['PUBLIC']
+#     if is_followback or user==current_author: # if logged in user is friends with user or if logged in user viewing own profile
+#         visible_tags.append('FRIENDS') # show friend visibility posts
+#         if user==current_author: # if logged in user viewing own profile, show unlisted posts too
+#             visible_tags.append('UNLISTED')
+
+#     authors_posts = Post.objects.filter(author=viewing_author, visibility__in= visible_tags).exclude(description="Public Github Activity").order_by('-published') # most recent on top
+#     retrieve_github(viewing_author)
+#     github_posts = Post.objects.filter(author=viewing_author, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
+
+#     # Followers: people who follow the user
+#     followers_count = Follow.objects.filter(
+#         following=f"http://{request.get_host()}/api/authors/{author_id}",
+#         approved=True
+#     ).count()
+
+#     # Following: people the user follows
+#     # This returns a list of users that `author_id` is following
+#     followed_users = Follow.objects.filter(
+#         follower=f"http://{request.get_host()}/api/authors/{author_id}",
+#         approved=True).values_list('following', flat=True)
+#     following_count = followed_users.count()
+#     print(followed_users)
+
+#     author_url = f"http://{request.get_host()}/api/authors/{author_id}"
+
+#     # Friends: mutual follows
+#     friends_count = Follow.objects.filter(
+#         follower__in=followed_users,  # Users that are followed by `author_id`
+#         following=author_url,  # `author_id` is the `following`
+#         approved=True
+#     ).count()  # Count mutual follow relationships
+
+
+#     return render(request, "profile/profile.html", {
+#         'user': user,
+#         'posts': authors_posts,
+#         'ownProfile': ownProfile,
+#         'is_following': is_following,
+#         'is_pending': is_pending,
+#         'activity': github_posts,
+#         'followers_count': followers_count,
+#         'following_count': following_count,
+#         'friends_count': friends_count,
+#     })
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request, author_id):
     '''
-    Render the contents of profile of desired author
-    including author's posts, author's GitHub activity, and author's profile details
-    :param request:
-    :param author_id: id of author whose profile is currently being viewed
-    :return: html rendition of profile.html with the appropriate content
+    Render the contents of the profile of the desired author,
+    including the author's posts, GitHub activity, and profile details.
     '''
     viewing_author = get_object_or_404(Author, id=author_id)
-    current_author = get_author(request) # logged in author
-    ownProfile = (viewing_author == current_author)
+    current_author = get_author(request)  # Logged-in author
+    own_profile = (viewing_author == current_author)
 
-    access_token = AccessToken.for_user(current_author)
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    api_url = request.build_absolute_uri(reverse('single_author', kwargs={'author_id': viewing_author.id}))
-    response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
-    author_data = response.json()
-
+    # Build the user data directly from the `viewing_author` object
     user = {
-            'id': author_data['id'],
-            'host': author_data['host'],
-            'display_name': author_data['displayName'],
-            'github': author_data['github'],
-            'page': author_data['page'],
-            'profile_image': author_data['profileImage'],
-            'description':author_data['description'],
-        }
+        'id': viewing_author.id,
+        'host': viewing_author.host,
+        'display_name': viewing_author.display_name,
+        'github': viewing_author.github,
+        'page': viewing_author.page,
+        'profile_image': viewing_author.profile_image.url if viewing_author.profile_image else '',
+        'description': viewing_author.description,
+    }
 
-    is_following = Follow.objects.filter( # if logged in author following the user
-        follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
-        following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+    # Determine if the current user is following the viewing author
+    is_following = Follow.objects.filter(
+        follower=f"http://{request.get_host()}/api/authors/{current_author.id}",
+        following=viewing_author.url,
         approved=True,
     ).exists()
-    if is_following:
-        is_followback = Follow.objects.filter(  # ... see if user is following back
-            follower=f"http://{request.get_host()}/api/authors/" + str(author_id),
-            following=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
-            approved=True,
-        ).exists()
-        is_pending = False
-    else:
-        is_followback = False
-        is_pending = Follow.objects.filter( # if logged in author following the user
-            follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
-            following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+
+    # Check if there is a pending follow request
+    is_pending = False
+    if not is_following:
+        is_pending = Follow.objects.filter(
+            follower=f"http://{request.get_host()}/api/authors/{current_author.id}",
+            following=viewing_author.url,
             approved=False,
         ).exists()
 
+    # Determine if the viewing author is following back
+    is_followback = Follow.objects.filter(
+        follower=viewing_author.url,
+        following=f"http://{request.get_host()}/api/authors/{current_author.id}",
+        approved=True,
+    ).exists()
+
+    # Determine visible posts based on relationship
     visible_tags = ['PUBLIC']
-    if is_followback or user==current_author: # if logged in user is friends with user or if logged in user viewing own profile
-        visible_tags.append('FRIENDS') # show friend visibility posts
-        if user==current_author: # if logged in user viewing own profile, show unlisted posts too
+    if is_followback or own_profile:
+        visible_tags.append('FRIENDS')
+        if own_profile:
             visible_tags.append('UNLISTED')
 
-    authors_posts = Post.objects.filter(author=viewing_author, visibility__in= visible_tags).exclude(description="Public Github Activity").order_by('-published') # most recent on top
-    retrieve_github(viewing_author)
-    github_posts = Post.objects.filter(author=viewing_author, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
+    # Retrieve posts
+    authors_posts = Post.objects.filter(
+        author=viewing_author,
+        visibility__in=visible_tags
+    ).exclude(description="Public Github Activity").order_by('-published')
 
-    # Followers: people who follow the user
+    # Retrieve GitHub activity
+    retrieve_github(viewing_author)
+    github_posts = Post.objects.filter(
+        author=viewing_author,
+        visibility__in=visible_tags,
+        description="Public Github Activity"
+    ).order_by('-published')
+
+    # Followers count
     followers_count = Follow.objects.filter(
-        following=f"http://{request.get_host()}/api/authors/{author_id}",
+        following=viewing_author.url,
         approved=True
     ).count()
 
-    # Following: people the user follows
-    # This returns a list of users that `author_id` is following
-    followed_users = Follow.objects.filter(
-        follower=f"http://{request.get_host()}/api/authors/{author_id}",
-        approved=True).values_list('following', flat=True)
-    following_count = followed_users.count()
-    print(followed_users)
-
-    author_url = f"http://{request.get_host()}/api/authors/{author_id}"
-
-    # Friends: mutual follows
-    friends_count = Follow.objects.filter(
-        follower__in=followed_users,  # Users that are followed by `author_id`
-        following=author_url,  # `author_id` is the `following`
+    # Following count
+    following_count = Follow.objects.filter(
+        follower=viewing_author.url,
         approved=True
-    ).count()  # Count mutual follow relationships
+    ).count()
 
+    # Friends count (mutual follows)
+    friends_count = Follow.objects.filter(
+        follower__in=Follow.objects.filter(
+            follower=viewing_author.url,
+            approved=True
+        ).values_list('following', flat=True),
+        following=viewing_author.url,
+        approved=True
+    ).count()
 
     return render(request, "profile/profile.html", {
         'user': user,
         'posts': authors_posts,
-        'ownProfile': ownProfile,
+        'ownProfile': own_profile,
         'is_following': is_following,
         'is_pending': is_pending,
         'activity': github_posts,
