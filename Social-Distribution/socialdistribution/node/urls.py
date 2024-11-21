@@ -56,9 +56,8 @@ urlpatterns = [
     path('api/authors/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
     path('api/authors/<int:author_id>/posts/<int:post_id>/likes', views.get_post_likes, name='get_post_likes'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
-    path('api/posts/<str:post_id>/likes/', views.get_post_likes_by_id, name='post_likes_by_id'),
+    path('api/posts/<str:post_url>/likes/', views.get_post_likes_by_id, name='post_likes_by_id'),
     path('api/authors/<str:author_id>/posts/<str:post_id>/comments/<str:comment_id>/likes/', views.get_comment_likes, name='get_comment_likes'),
-    path('api/liked/<path:like_id>/', views.get_like, name='get_like'),
     path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
     path('api/authors/<int:author_id>/posts/<int:post_id>/comments', views.get_comments, name='get_comments'),
     path('api/authors/<int:author_id>/commented/<int:comment_id>', views.get_comment, name='get_comment'),
@@ -66,6 +65,10 @@ urlpatterns = [
     path('api/authors/<int:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
     path('api/authors/<int:author_id>/followers/<int:follower_id>/approve', views.followers_view, name='approve_follow'),
     path("api/authors/<int:author_id>/", views.api_single_author, name='single_author'),
+    path("api/authors/<int:author_id>/liked", views.likes_by_author, name='likes_by_author'),
+    path('api/authors/<int:author_id>/liked/<int:like_id>', views.get_like, name='get_like'),
+    path('api/authors/<str:author_fqid>/liked/', views.liked_by_author_fqid, name='liked_by_author_fqid'),
+    path('api/liked/<path:like_id>', views.get_like_by_id, name='get_like'),
 
     
 ]

@@ -14,8 +14,8 @@ from django.views.generic import ListView
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike, RemoteNode
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
-from .serializers import AuthorProfileSerializer, PostSerializer, LikeSerializer, LikesSerializer, AuthorSerializer, \
-    CommentsSerializer, CommentSerializer
+from .serializers import AuthorProfileSerializer, PostSerializer, PostLikeSerializer, PostLikesSerializer, AuthorSerializer, \
+    CommentsSerializer, CommentSerializer, CommentLikeSerializer, CommentLikesSerializer
 import datetime
 import requests
 import os
@@ -434,15 +434,11 @@ def local_api_like_comment(request, id):
 
 
 def post_like(request, author_id):
-    """
-    Method for liking a post given a post_id
-    If already liked by requesting author, unlike
-    """
     body = json.loads(request.body)
 
     post = get_object_or_404(Post, id=body['object'].split('/')[-1])
-    post_like = PostLike.objects.create(author_id=author_id, owner=post)
-    serializer = LikeSerializer(post_like, data=body)
+    post_like = PostLike.objects.create(liker=author_id, owner=post)
+    serializer = PostLikeSerializer(post_like, data=body)
     if serializer.is_valid():
         serializer.save()
         return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
@@ -450,15 +446,11 @@ def post_like(request, author_id):
 
 
 def comment_like(request, author_id):
-    """
-    Method for liking a comment given comment ID
-    if already liked by requesting author, removes the like
-    """
     body = json.loads(request.body)
 
     post = get_object_or_404(Post, id=body['object'].split('/')[-1])
-    post_like = PostLike.objects.create(author_id=author_id, owner=post)
-    serializer = LikeSerializer(post_like, data=body)
+    comment_like = CommentLike.objects.create(author_id=author_id, owner=post)
+    serializer = CommentLikeSerializer(comment_like, data=body)
     if serializer.is_valid():
         serializer.save()
         return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
@@ -466,13 +458,13 @@ def comment_like(request, author_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_post_likes(request, author_id, post_id):
-    post = get_object_or_404(Post, id=post_id, author__id=author_id)
+def get_post_likes(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
-    serializer = LikesSerializer(
+    serializer = PostLikesSerializer(
         post,
         context={
             'page_number': page_number,
@@ -485,27 +477,20 @@ def get_post_likes(request, author_id, post_id):
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_post_likes_by_id(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    
-    return redirect('get_post_likes', 
-                   author_id=post.author.id, 
-                   post_id=post.id)
+def get_post_likes_by_id(request, post_url):
+    post_id = post_url.split('/')[-1]
+    return get_post_likes(request, post_id)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment_likes(request, author_id, post_id, comment_id):
-    """
-    GET: Retrieve all likes for a comment
-    URL: ://service/api/authors/{AUTHOR_ID}/posts/{POST_ID}/comments/{COMMENT_ID}/likes
-    """
     comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, post__author__id=author_id)
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
-    serializer = LikesSerializer(
-        comment,  # Pass the comment instance
+    serializer = CommentLikesSerializer(
+        comment,  
         context={
             'page_number': page_number,
             'size': size,
@@ -514,30 +499,104 @@ def get_comment_likes(request, author_id, post_id, comment_id):
     )
     
     return Response(serializer.data)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def likes_by_author(request, author_id):
+    author = get_object_or_404(Author, id=author_id)
+
+    post_likes = PostLike.objects.filter(liker=author)
+    comment_likes = CommentLike.objects.filter(liker=author)
+    all_likes = list(post_likes) + list(comment_likes)
+
+    page_number = request.GET.get('page', 1)
+    size = request.GET.get('size', 50)
+
+    if page_number is not None and size is not None:
+        page_number = int(page_number)
+        size = int(size)
+        paginator = Paginator(all_likes, size)
+        
+        if page > paginator.num_pages:
+            page = paginator.num_pages
+            
+        current_page = paginator.page(page)
+        
+        likes_list = []
+        for like in current_page:
+            if isinstance(like, PostLike):
+                likes_list.append(PostLikeSerializer(like).data)
+            else:  # CommentLike
+                likes_list.append(CommentLikeSerializer(like).data)
+    else:
+        likes_list = []
+        for like in all_likes:
+            if isinstance(like, PostLike):
+                likes_list.append(PostLikeSerializer(like).data)
+            else:  # CommentLike
+                likes_list.append(CommentLikeSerializer(like).data)
+    
+    response_data = {
+        "type": "likes",
+        "page": f"http://{author.host}/api/authors/{author_id}/liked",
+        "id": f"http://{author.host}/api/authors/{author_id}/liked",
+        "page_number": int(page) if page else 1,
+        "size": int(size) if size else len(all_likes),
+        "count": len(all_likes),
+        "src": likes_list
+    }
+    return JsonResponse(response_data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_like(request, like_id):
+def get_like(request, author_id, like_id):
     """
-    GET: Retrieve a single like by its FQID
-    URL: ://service/api/liked/{LIKE_FQID}
+    GET: Retrieve a single like by its ID
+    URL: ://service/api/authors/{AUTHOR_ID}/liked/{LIKE_ID}
     """
     try:
+        if PostLike.objects.filter(object_id=like_id, liker__id=author_id).exists():
+            like = get_object_or_404(PostLike, object_id=like_id, liker__id=author_id)
+            serializer = PostLikeSerializer(like)
+            return Response(serializer.data)
+        
+        elif CommentLike.objects.filter(object_id=like_id, liker__id=author_id).exists():
+            like = get_object_or_404(CommentLike, object_id=like_id, liker__id=author_id)
+            serializer = CommentLikeSerializer(like)
+            return Response(serializer.data)
+        else:
+            return Response({"error": "Like not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_author_likes_by_id(request, author_fqid):
+    author_id = author_fqid.split('/')[-1]
+    return likes_by_author(request, author_id)
+
+# In views.py
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_like_by_id(request, like_id):
+    try:
         split_like = like_id.split('/')
-        like_exact_id = split_like[-1] 
-        author_id = split_like[1] 
+        id = split_like[-1]
+        author_id = split_like[-2] 
         
         like = None
         author = get_object_or_404(Author, id=author_id)
         
-        if PostLike.objects.filter(object_id=like_exact_id, liker=author).exists():
-            like = get_object_or_404(PostLike, object_id=like_exact_id, liker=author)
-        elif CommentLike.objects.filter(object_id=like_exact_id, liker=author).exists():
-            like = get_object_or_404(CommentLike, object_id=like_exact_id, liker=author)
+        if PostLike.objects.filter(object_id=id, liker=author).exists():
+            like = get_object_or_404(PostLike, object_id=id, liker=author)
+            serializer = PostLikeSerializer(like)
+        elif CommentLike.objects.filter(object_id=id, liker=author).exists():
+            like = get_object_or_404(CommentLike, object_id=id, liker=author)
+            serializer = CommentLikeSerializer(like)
         else:
             return Response({"error": "Like not found"}, status=status.HTTP_404_NOT_FOUND)
         
-        serializer = LikeSerializer(like)
         return Response(serializer.data)
         
     except (IndexError, ValueError):
