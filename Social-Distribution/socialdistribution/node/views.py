@@ -458,47 +458,96 @@ def comment_like(request, author_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_post_likes(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+def get_post_likes(request, author_id, post_id):
+    post = get_object_or_404(Post, pk=post_id, author_id=author_id)
+    author = get_object_or_404(Author, pk=author_id)
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
-    serializer = PostLikesSerializer(
-        post,
-        context={
-            'page_number': page_number,
-            'size': size,
-            'request': request
-        }
-    )
+    likes = PostLike.objects.filter(owner=post).order_by('-published')
     
-    return Response(serializer.data)
+    paginator = Paginator(likes, size)
+    
+    if page_number > paginator.num_pages:
+        page_number = paginator.num_pages
+        
+    current_page = paginator.page(page_number)
+    
+    response_data = {
+        "type": "likes",
+        "id": f"http://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"http://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "page_number": page_number,
+        "size": size,
+        "count": likes.count(),
+        "src": [PostLikeSerializer(like).data for like in current_page]
+    }
+    
+    return Response(response_data)
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_likes_by_id(request, post_url):
     post_id = post_url.split('/')[-1]
-    return get_post_likes(request, post_id)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_comment_likes(request, author_id, post_id, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, post__author__id=author_id)
+    author_id = post_url.split('/authors/')[-1].split('/')[0]
+    
+    post = get_object_or_404(Post, pk=post_id, author_id=author_id)
+    author = get_object_or_404(Author, pk=author_id)
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
-    serializer = CommentLikesSerializer(
-        comment,  
-        context={
-            'page_number': page_number,
-            'size': size,
-            'request': request
-        }
-    )
+    likes = PostLike.objects.filter(owner=post).order_by('-published')
     
-    return Response(serializer.data)
+    paginator = Paginator(likes, size)
+    
+    if page_number > paginator.num_pages:
+        page_number = paginator.num_pages
+        
+    current_page = paginator.page(page_number)
+    
+    response_data = {
+        "type": "likes",
+        "id": f"http://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"http://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "page_number": page_number,
+        "size": size,
+        "count": likes.count(),
+        "src": [PostLikeSerializer(like).data for like in current_page]
+    }
+    
+    return Response(response_data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_comment_likes(request, author_id, post_id, comment_url):
+    comment_id = comment_url.split('/')[-1]
+    comment = get_object_or_404(Comment, id=comment_id)
+    author = get_object_or_404(Author, pk=author_id)
+    page_number = int(request.GET.get('page', 1))
+    size = int(request.GET.get('size', 50))
+    
+    likes = CommentLike.objects.filter(owner=comment).order_by('-published')
+    
+    paginator = Paginator(likes, size)
+    
+    if page_number > paginator.num_pages:
+        page_number = paginator.num_pages
+    
+    current_page = paginator.page(page_number)
+    
+    response_data = {
+        "type": "likes",
+        "id": f"http://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
+        "page": f"http://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
+        "page_number": page_number,
+        "size": size,
+        "count": likes.count(),
+        "src": [CommentLikeSerializer(like).data for like in current_page]
+    }
+    
+    return Response(response_data)
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -538,7 +587,7 @@ def likes_by_author(request, author_id):
     
     response_data = {
         "type": "likes",
-        "page": f"http://{author.host}/api/authors/{author_id}/liked",
+        "page": f"http://{author.host}/authors/{author_id}/liked",
         "id": f"http://{author.host}/api/authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
@@ -574,9 +623,41 @@ def get_like(request, author_id, like_id):
 @permission_classes([IsAuthenticated])
 def get_author_likes_by_id(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
-    return likes_by_author(request, author_id)
+    author = get_object_or_404(Author, id=author_id)
 
-# In views.py
+    post_likes = PostLike.objects.filter(liker=author)
+    comment_likes = CommentLike.objects.filter(liker=author)
+    all_likes = list(post_likes) + list(comment_likes)
+    
+    page_number = int(request.GET.get('page', 1))
+    size = int(request.GET.get('size', 50))
+    
+    paginator = Paginator(all_likes, size)
+    
+    if page_number > paginator.num_pages:
+        page_number = paginator.num_pages
+            
+    current_page = paginator.page(page_number)
+    
+    likes_list = []
+    for like in current_page:
+        if isinstance(like, PostLike):
+            likes_list.append(PostLikeSerializer(like).data)
+        else: 
+            likes_list.append(CommentLikeSerializer(like).data)
+    
+    response_data = {
+        "type": "likes",
+        "page": f"http://{author.host}/api/authors/{author_id}/liked",
+        "id": f"http://{author.host}/api/authors/{author_id}/liked",
+        "page_number": page_number,
+        "size": size,
+        "count": len(all_likes),
+        "src": likes_list
+    }
+    
+    return JsonResponse(response_data)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_like_by_id(request, like_id):
