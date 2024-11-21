@@ -7,6 +7,8 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 import asyncio
+from asgiref.sync import sync_to_async
+from django.db import connections
 
 from django.views.generic import ListView
 
