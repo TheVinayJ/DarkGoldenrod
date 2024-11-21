@@ -36,7 +36,8 @@ from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
 
-NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
+#NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
+NODES = ['Vinay']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

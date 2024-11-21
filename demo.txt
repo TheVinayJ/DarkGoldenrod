@@ -1,0 +1,87 @@
+curl -X POST \
+     -H "Content-Type: application/json" \
+     -u 'duy:1' \
+     -d '{
+    "type: "post"
+    "title": "New Image Post",
+    "description": "Description of the new image post",
+    "content": (image file),
+    "contentType": "image",
+    "visibility": "PRIVATE",
+    "author": {
+        "type":"author",
+        "id":"http://darkgoldenrod/api/authors/1",
+        "host":"http://darkgoldenrod/api/",
+        "displayName":"Author Name",
+        "page":"http://darkgoldenrod/authors/1",
+        "github": "http://github.com/authorname",
+        "profileImage": "http://darkgoldenrod/api/authors/1/posts/103/image"
+    },
+    "comments":{
+        "type":"comments",
+        "page":"http://darkgoldenrod/authors/1/posts/1",
+        "id":"http://darkgoldenrod/api/authors/1/posts/1/comments"
+        "page_number":1,
+        "size":5,
+        "count": 7,
+        // the first page of comments
+        "src":[
+            {
+                "type":"comment",
+                "author":{
+                    "type":"author",
+                    "id":"http://darkgoldenrod/api/authors/4",
+                    "page":"http://darkgoldenrod/authors/greg",
+                    "host":"http://darkgoldenrod/api/",
+                    "displayName":"Greg Johnson",
+                    "github": "http://github.com/gjohnson",
+                    "profileImage": "https://i.imgur.com/k7XVwpB.jpeg"
+                },
+                "comment":"Sick Olde English",
+                "contentType":"text/markdown",
+                "published":"2015-03-09T13:07:04+00:00",
+                "id":"http://darkgoldenrod/api/authors/4/commented/130",
+                "post": "http://darkgoldenrod/api/authors/1/posts/2",
+                "page": "http://darkgoldenrod/authors/1/posts/2"
+                "likes": {
+                    "type": "likes",
+                    "id": "http://darkgoldenrod/api/authors/4/commented/130",
+                    "page": "http://darkgoldenrod/api/authors/4/commented/130"
+                    "page_number": 1,
+                    "size": 50,
+                    "count": 0,
+                    "src": [],
+                },
+            }
+        ]
+    },
+    // likes on the post
+    "likes":{
+        "type":"likes",
+        "page":"http://darkgoldenrod/authors/1/posts/1"
+        "id":"http://darkgoldenrod/api/authors/1/posts/1/likes"
+        "page_number":1,
+        "size":50,
+        // total number of likes
+        "count": 6,
+        // the first page of likes
+        "src":[
+            {
+                "type":"like",
+                "author":{
+                    "type":"author",
+                    "id":"http://darkgoldenrod/api/authors/4",
+                    "page":"http://darkgoldenrod/authors/4",
+                    "host":"http://darkgoldenrod/api/",
+                    "displayName":"Greg Johnson",
+                    "github": "http://github.com/gjohnson",
+                    "profileImage": "https://i.imgur.com/k7XVwpB.jpeg"
+                },
+                "published":"2015-03-09T13:07:04+00:00",
+                "id":"http://darkgoldenrod/api/authors/111/liked/166",
+                "object": "http://darkgoldenrod/authors/222/posts/249"
+            }
+        ]
+    },
+}' \
+     http://darkergoldenrod-e938dbcc5811.herokuapp.com/api/authors/22/inbox/
