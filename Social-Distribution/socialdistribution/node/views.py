@@ -6,6 +6,8 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+import asyncio
+import aiohttp
 
 from django.views.generic import ListView
 
@@ -94,84 +96,177 @@ def api_authors_list(request):
 
     return JsonResponse(response_data, status=200)
 
+# @api_view(['GET'])
+# def authors_list(request):
+#     print("Host: ", request.get_host())
+#     query = request.GET.get('q', None)
+#     page = request.GET.get('page', None)
+#     size = request.GET.get('size', None)
+
+#     # Construct the URL for the API endpoint
+#     api_url = request.build_absolute_uri(reverse('api_authors_list'))
+    
+#     if (page and size) or query:
+#         api_url = api_url[:-1]
+
+#     if page and size:
+#         api_url += f'?page={page}&size={size}'
+
+#     if query:
+#         api_url += f'&q={query}'
+
+
+#     user = get_author(request)
+#     access_token = AccessToken.for_user(user)
+#     headers = {
+#         'Authorization': f'Bearer {access_token}'
+#     }
+    
+#     # Make the GET request to the API endpoint
+#     responses = []
+#     response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+    
+#     responses.append(response)
+#     for node in NODES:
+#         if page and size:
+#             response = send_request_to_node(node, f'api/authors?page={page}&size={size}')
+#             #print("Response: ", response)
+#         else:
+#             response = send_request_to_node(node, f'api/authors/')
+#             #print("Response: ", response)
+#         responses.append(response)
+#     # print("Response: ", response)
+#     # print("Response text: ", response.text)
+#     # print("Response body: ", response.json())
+#     #print("Responses: ", responses)
+#     authors = []
+#     for response in responses:
+#         authors += response.json().get('authors', []) if response.status_code == 200 else []
+
+#     for author in authors:
+#         if not Author.objects.filter(url=author['id']).exists():
+#             Author.objects.update_or_create(
+#                 url=author['id'],
+#                 defaults={
+#                     'url': author['id'],
+#                     'host': author['host'],
+#                     'display_name': author['displayName'],
+#                     'github': author['github'],
+#                     'page': author['page'],
+#                     'profile_image': author['profileImage'],
+#                 }
+#             )
+
+#         author_from_db = Author.objects.filter(url=author['id']).first()
+
+#         #print(author['id'])
+#         # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
+#         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
+#         #print(author['id'])
+#         #print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
+#         author['id_num'] = author_from_db.id
+#         #print(author['id_num'])
+#         # find authors logged-in user is already following
+#         author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
+#         # print(author['is_following'])
+
+#     context = {
+#         'authors': authors,
+#         'query': query,
+#         'total_pages': response.json().get('total_pages', 1) if response.status_code == 200 else 1,
+#     }
+#     print("Context: ", context)
+
+#     return render(request, 'authors.html', context)
+
+
 @api_view(['GET'])
 def authors_list(request):
     print("Host: ", request.get_host())
     query = request.GET.get('q', None)
     page = request.GET.get('page', None)
     size = request.GET.get('size', None)
+    user = get_author(request)
 
-    # Construct the URL for the API endpoint
-    api_url = request.build_absolute_uri(reverse('api_authors_list'))
-    if (page and size) or query:
-        api_url = api_url[:-1]
+    # Get local authors directly
+    local_authors = Author.objects.all()
+    if query:
+        local_authors = local_authors.filter(display_name__icontains=query)
 
     if page and size:
-        api_url += f'?page={page}&size={size}'
+        paginator = Paginator(local_authors, size)
+        local_authors = paginator.get_page(page)
+    else:
+        local_authors = local_authors[:50]  # Limit to 50 authors
 
-    if query:
-        api_url += f'&q={query}'
+    authors = [{
+        "type": "author",
+        "id": f"{author.url}",
+        "host": author.host,
+        "displayName": author.display_name,
+        "github": author.github,
+        "profileImage": author.profile_image.url if author.profile_image else '',
+        "page": author.page
+    } for author in local_authors]
 
+    # Fetch authors from external nodes asynchronously
+    async def fetch_authors():
+        tasks = []
+        for node_name in NODES:
+            if page and size:
+                endpoint = f'api/authors?page={page}&size={size}'
+            else:
+                endpoint = 'api/authors/'
+            tasks.append(send_request_to_node(node_name, endpoint))
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+        node_authors = []
+        for response in responses:
+            if isinstance(response, Exception):
+                # Handle exceptions
+                print(f"Error fetching from node: {response}")
+                continue
+            if response and 'authors' in response:
+                node_authors.extend(response['authors'])
+        return node_authors
 
-    user = get_author(request)
-    access_token = AccessToken.for_user(user)
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    
-    # Make the GET request to the API endpoint
-    responses = []
-    response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
-    responses.append(response)
-    for node in NODES:
-        if page and size:
-            response = send_request_to_node(node, f'api/authors?page={page}&size={size}')
-            #print("Response: ", response)
-        else:
-            response = send_request_to_node(node, f'api/authors/')
-            #print("Response: ", response)
-        responses.append(response)
-    # print("Response: ", response)
-    # print("Response text: ", response.text)
-    # print("Response body: ", response.json())
-    #print("Responses: ", responses)
-    authors = []
-    for response in responses:
-        authors += response.json().get('authors', []) if response.status_code == 200 else []
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    external_authors = loop.run_until_complete(fetch_authors())
 
+    authors.extend(external_authors)
+
+    # Update or create authors in bulk
+    author_urls = [author['id'] for author in authors]
+    existing_authors = set(Author.objects.filter(url__in=author_urls).values_list('url', flat=True))
+    authors_to_create = []
     for author in authors:
-        if not Author.objects.filter(url=author['id']).exists():
-            Author.objects.update_or_create(
+        if author['id'] not in existing_authors:
+            authors_to_create.append(Author(
                 url=author['id'],
-                defaults={
-                    'url': author['id'],
-                    'host': author['host'],
-                    'display_name': author['displayName'],
-                    'github': author['github'],
-                    'page': author['page'],
-                    'profile_image': author['profileImage'],
-                }
-            )
+                host=author['host'],
+                display_name=author['displayName'],
+                github=author['github'],
+                page=author['page'],
+                profile_image=author['profileImage'],
+            ))
+    Author.objects.bulk_create(authors_to_create)
 
-        author_from_db = Author.objects.filter(url=author['id']).first()
-
-        #print(author['id'])
-        # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
+    # Update author data with additional info
+    for author in authors:
         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
-        #print(author['id'])
-        #print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
-        author['id_num'] = author_from_db.id
-        #print(author['id_num'])
-        # find authors logged-in user is already following
-        author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
-        # print(author['is_following'])
+        author_from_db = Author.objects.filter(url=author['id']).first()
+        author['id_num'] = author_from_db.id if author_from_db else None
+        author['is_following'] = Follow.objects.filter(
+            follower=f"http://{request.get_host()}/api/authors/{user.id}",
+            following=author['id'],
+            approved=True
+        ).exists()
 
     context = {
         'authors': authors,
         'query': query,
-        'total_pages': response.json().get('total_pages', 1) if response.status_code == 200 else 1,
+        'total_pages': 1,  # Adjust as needed
     }
-    print("Context: ", context)
 
     return render(request, 'authors.html', context)
 
