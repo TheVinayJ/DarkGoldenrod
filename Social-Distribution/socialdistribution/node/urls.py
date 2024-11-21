@@ -69,8 +69,6 @@ urlpatterns = [
     path('api/authors/<int:author_id>/liked/<int:like_id>', views.get_like, name='get_like'),
     path('api/authors/<str:author_fqid>/liked/', views.get_author_likes_by_id, name='liked_by_author_fqid'),
     path('api/liked/<path:like_id>', views.get_like_by_id, name='get_like'),
-
-    
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
