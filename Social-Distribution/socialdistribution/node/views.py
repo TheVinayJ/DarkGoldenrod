@@ -433,49 +433,36 @@ def local_api_like_comment(request, id):
    
 
 
-def post_like(data):
+def post_like(request, author_id):
     """
     Method for liking a post given a post_id
     If already liked by requesting author, unlike
     """
-    # author = get_author(request)
-    post_url = data['object']
-    split_post = post_url.split('/')
-    post_id = split_post[-1] # Get last item in list after split
-    post = get_object_or_404(Post, pk=post_id)
-    liker = data['author']
-    liker_id = liker["id"].split('/')[-1]
-    author = get_object_or_404(Author, id=liker_id)
-    if PostLike.objects.filter(owner=post, liker=author).exists():
-        PostLike.objects.filter(owner=post, liker=author).delete()
-        return Response({"message": "Post Like removed"}, status=status.HTTP_200_OK)
-    else:
-        new_like = PostLike(owner=post, liker=author)
-        new_like.save()
-        return Response({"message": "Post Like created"}, status=status.HTTP_201_CREATED)
+    body = json.loads(request.body)
+
+    post = get_object_or_404(Post, id=body['object'].split('/')[-1])
+    post_like = PostLike.objects.create(author_id=author_id, owner=post)
+    serializer = LikeSerializer(post_like, data=body)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def comment_like(data):
+def comment_like(request, author_id):
     """
     Method for liking a comment given comment ID
     if already liked by requesting author, removes the like
     """
-    # author = get_author(request)
-    comment_url = data['object']
-    comment_id = comment.split('/')
-    comment_id = comment_id[-1]
-    comment = get_object_or_404(Comment, pk=comment_id)
-    
-    liker = data['author']
-    liker_id = liker["id"].split('/')[-1]
-    author = get_object_or_404(Author, id=liker_id)
-    if CommentLike.objects.filter(owner=comment, liker=author).exists():
-        CommentLike.objects.filter(owner=comment, liker=author).delete()
-        return Response({"message": "Comment Like removed"}, status=status.HTTP_200_OK)
-    else:
-        new_like = CommentLike(owner=comment, liker=author)
-        new_like.save()
-        return Response({"message": "Comment Like created"}, status=status.HTTP_201_CREATED)
+    body = json.loads(request.body)
+
+    post = get_object_or_404(Post, id=body['object'].split('/')[-1])
+    post_like = PostLike.objects.create(author_id=author_id, owner=post)
+    serializer = LikeSerializer(post_like, data=body)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1054,18 +1041,11 @@ def inbox(request, author_id):
                 print("Follow request type detected")
                 return follow_author(follower, following)
             if body['type'] == 'like':
-                liker = body['author']
-                serializer = LikeSerializer(data=body)
-                if not serializer.is_valid():
-                    return Response(
-                        serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
                 post_or_comment = body['object']
                 if '/posts/' in post_or_comment:
-                    return post_like(body)
+                    return post_like(request, author_id)
                 else:   # Comment like
-                    return comment_like(body)
+                    return comment_like(request, author_id)
             # Add additional handling for other types (e.g., post, like, comment) as needed
             if body['type'] == 'post':
                 return add_external_post(request, author_id)
@@ -1075,11 +1055,6 @@ def inbox(request, author_id):
             return JsonResponse({'error': str(e)}, status=400)
     
     return JsonResponse({'message': 'Method not allowed'}, status=405)
-
-
-    # if type = "follow":
-    #     follow_author(author_id, follow_id)
-    # identify the post request from the body by "type"
 
 
 ### Is called by def inbox()

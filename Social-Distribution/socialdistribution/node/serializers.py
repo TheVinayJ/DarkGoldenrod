@@ -35,50 +35,38 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class LikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = serializers.SerializerMethodField()
-    object = serializers.CharField()
-    published = serializers.DateTimeField(default=datetime.datetime.now)
-    id = serializers.CharField()
+    author = AuthorSerializer()
+    object = serializers.SerializerMethodField()
+    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    id = serializers.SerializerMethodField()
 
     class Meta:
         model = PostLike  
         fields = ['type', 'author', 'object', 'published', 'id']
+    
+    def get_id(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.author.id}/liked/{obj.id}"
+    
+    def get_object(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.owner.author.id}/posts/{obj.owner.id}"
+    
+class CommentLikeSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(default='like')
+    author = AuthorSerializer()
+    object = serializers.SerializerMethodField()
+    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    id = serializers.SerializerMethodField()
 
-    # ChatGPT 4o. Nov 2024. How can I identify if a instance in a serializer is of type CommentLike or PostLike.
-    def get_model_class(self):
-        """Helper method to determine which model to use based on the instance"""
-        if hasattr(self.instance, 'owner'):
-            if hasattr(self.instance.owner, 'post'): 
-                return CommentLike
-            return PostLike
-        return PostLike
+    class Meta:
+        model = CommentLike
+        fields = ['type', 'author', 'object', 'published', 'id']
+
+    def get_id(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.liker.id}/liked/{obj.object_id}"
+
+    def get_object(self, obj):
+        return f"http://darkgoldenrod/api/authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
     
-    def get_author(self, obj):
-        if isinstance(obj, dict):
-            author = obj.get('author')
-            if isinstance(author, Author):
-                return AuthorSerializer(author).data
-        # If obj is a model instance
-        elif hasattr(obj, 'liker'):
-            return AuthorSerializer(obj.liker).data
-        return None
-    
-    
-    
-    # def to_representation(self, instance):
-    #     data = super().to_representation(instance)
-    #     model_class = self.get_model_class()
-        
-    #     if model_class == CommentLike:
-    #         comment = instance.owner
-    #         data['object'] = f"http://darkgoldenrod/api/authors/{comment.author.id}/posts/{comment.post.id}/comments/{comment.id}"
-    #     else:
-    #         post = instance.owner
-    #         data['object'] = f"http://darkgoldenrod/api/authors/{post.author.id}/posts/{post.id}"
-        
-    #     data['id'] = f"http://darkgoldenrod/api/authors/{instance.liker.id}/liked/{instance.object_id}"
-        
-    #     return data
     
 class LikesSerializer(serializers.Serializer):
     # Microsoft Copilot, Nov. 2024. Serializer for aggregate of models
