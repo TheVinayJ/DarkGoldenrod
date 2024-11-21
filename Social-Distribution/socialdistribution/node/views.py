@@ -39,7 +39,7 @@ from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 
 
-NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
+#NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -206,6 +206,8 @@ def authors_list(request):
         "profileImage": author.profile_image.url if author.profile_image else '',
         "page": author.page
     } for author in local_authors]
+    
+    NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
 
     # Fetch authors from external nodes asynchronously
     async def fetch_authors():
