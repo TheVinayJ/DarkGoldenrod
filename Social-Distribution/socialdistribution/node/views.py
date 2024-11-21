@@ -125,17 +125,16 @@ def authors_list(request):
     responses.append(response)
     for node in NODES:
         if page and size:
-
             response = send_request_to_node(node, f'api/authors?page={page}&size={size}')
-            print("Response: ", response)
+            #print("Response: ", response)
         else:
             response = send_request_to_node(node, f'api/authors/')
-            print("Response: ", response)
+            #print("Response: ", response)
         responses.append(response)
     # print("Response: ", response)
     # print("Response text: ", response.text)
     # print("Response body: ", response.json())
-    print("Responses: ", responses)
+    #print("Responses: ", responses)
     authors = []
     for response in responses:
         authors += response.json().get('authors', []) if response.status_code == 200 else []
@@ -156,13 +155,13 @@ def authors_list(request):
 
         author_from_db = Author.objects.filter(url=author['id']).first()
 
-        print(author['id'])
+        #print(author['id'])
         # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
-        print(author['id'])
-        print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
+        #print(author['id'])
+        #print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
         author['id_num'] = author_from_db.id
-        print(author['id_num'])
+        #print(author['id_num'])
         # find authors logged-in user is already following
         author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
         # print(author['is_following'])
