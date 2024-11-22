@@ -23,16 +23,19 @@ class AuthorsApiTest(TestCase):
                 host="http://localhost:8000/api/"
             ))
         
+        # Important #######################
         self.node = AllowedNode.objects.create(
             url="http://localhost:8000/",
             username="nodeuser",
             password="nodepassword",
             is_active=True
         )
-
+    
         # Set up authentication credentials
         auth_credentials = b64encode(b'nodeuser:nodepassword').decode('utf-8')
         self.auth_headers = {'HTTP_AUTHORIZATION': f'Basic {auth_credentials}'}
+        
+        #################################
         
         
     def print_all_authors_from_response(self, response_data, test_case):
@@ -86,11 +89,14 @@ class AuthorsApiTest(TestCase):
         
         DEBUG = False
         
+        # Important
+        ######################################
         # Send request with pagination parameters
         response = self.client.get(
             "http://localhost:8000/api/authors/",
             **self.auth_headers
         )
+        ######################################
         
         # Parse JSON response
         response_data = response.json()
