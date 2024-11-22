@@ -181,11 +181,7 @@ def api_authors_list(request):
 @api_view(['GET'])
 def authors_list(request):
     print("Host: ", request.get_host())
-    nodes = RemoteNode.objects.filter(is_active=True)
-    for node in nodes:
-        print(f"Node URL: {node.url}")
-        print(f"Node username: {node.username}")
-        print(f"Node is_active: {node.is_active}")
+    
     query = request.GET.get('q', None)
     page = request.GET.get('page', None)
     size = request.GET.get('size', None)
