@@ -1220,6 +1220,9 @@ def local_api_follow(request, author_id):
     access_token = AccessToken.for_user(current_author)
     try:
         node = author_to_follow.host[:-4].replace('http://','https://')
+        print(f"Node: {node}")
+        print(f"Author to follow: {inbox_url}")
+        
         response = post_request_to_node(node, inbox_url, data=follow_request)
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
