@@ -1307,6 +1307,7 @@ def local_api_follow(request, author_id):
         
         print(f"Follow request: {follow_request}")
         response = post_request_to_node(node, inbox_url, data=follow_request)
+        print(f"Response: {response}")
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
         print(f"Failed to send follow request: {str(e)}")
