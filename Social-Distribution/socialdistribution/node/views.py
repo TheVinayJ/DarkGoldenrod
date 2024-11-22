@@ -1216,7 +1216,7 @@ def local_api_follow(request, author_id):
 
     # Send the POST request to the target author's inbox endpoint
     # inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
-    inbox_url = author_to_follow.url + "/inbox/"
+    inbox_url = author_to_follow.url + "/inbox"
     access_token = AccessToken.for_user(current_author)
     try:
         node = author_to_follow.host[:-4].replace('http://','https://')
