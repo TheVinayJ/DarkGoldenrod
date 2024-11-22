@@ -42,7 +42,7 @@ urlpatterns = [
     path('node/authors/<int:author_id>/posts/<int:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
 
     # API
-    path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
+    path('api/authors/<int:author_id>/inbox', views.inbox, name='inbox'),
     path('api/authors/', views.api_authors_list, name='api_authors_list'),    
     path('api/authors', views.api_authors_list, name='api_authors_list'),    
     path('api/signup/', SignupView.as_view(), name='api_signup'),
