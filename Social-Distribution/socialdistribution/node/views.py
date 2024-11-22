@@ -1705,7 +1705,7 @@ def get_post(request, post_id):
 @permission_classes([IsAuthenticated])
 def get_comments_from_post(request, post_url):
     post_id = post_url.split('/')[-1]
-    get_comments(request, post_id)
+    return get_comments(request, post_id)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
