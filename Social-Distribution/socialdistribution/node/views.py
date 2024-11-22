@@ -249,6 +249,7 @@ def authors_list(request):
                 github=author['github'],
                 page=author['page'],
                 profile_image=author['profileImage'],
+                email=f"{author['id']}@foreignnode.com",
             ))
     Author.objects.bulk_create(authors_to_create)
 
