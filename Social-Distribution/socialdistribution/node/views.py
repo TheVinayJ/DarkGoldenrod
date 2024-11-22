@@ -431,14 +431,14 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
-    if author.host == f'http://{request.get_host()}/api/':
+    if author.host == f'https://{request.get_host()}/api/':
         # Distribute posts to connected nodes
         followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
         for follower in followers:
-            processed_nodes = [f'http://{request.get_host()}/api/']
+            processed_nodes = [f'https://{request.get_host()}/api/']
             if follower.host not in processed_nodes:
                 json_content = PostSerializer(post).data
-                send_request_to_node(follower.host, follower.id +'/inbox', 'POST', json_content)
+                post_request_to_node(follower.host[:-4], follower.url +'/inbox', 'POST', json_content)
                 processed_nodes.append(follower.host)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
@@ -1677,7 +1677,7 @@ def edit_post_api(request, author_id, post_id):
                 processed_nodes = [f'http://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
                     json_content = PostSerializer(post).data
-                    send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)
+                    post_request_to_node(follower.host[:-4], follower.url + '/inbox', 'POST', json_content)
                     processed_nodes.append(follower.host)
         return JsonResponse(PostSerializer(post).data)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -1706,7 +1706,7 @@ def get_post(request, post_id):
 @permission_classes([IsAuthenticated])
 def get_comments_from_post(request, post_url):
     post_id = post_url.split('/')[-1]
-    get_comments(request, post_id)
+    return get_comments(request, post_id)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
