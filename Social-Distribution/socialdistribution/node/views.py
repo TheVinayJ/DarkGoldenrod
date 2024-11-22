@@ -1223,12 +1223,15 @@ def local_api_follow(request, author_id):
         print(f"Node: {node}")
         print(f"Author to follow: {inbox_url}")
         
+        print(f"Follow request: {follow_request}")
         response = post_request_to_node(node, inbox_url, data=follow_request)
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
         headers = {
             'Authorization': f'Bearer {access_token}'
         }
+        print("not good")
+        print(f"Follow request: {follow_request}")
         response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
 
     if response.status_code in [200, 201]:
