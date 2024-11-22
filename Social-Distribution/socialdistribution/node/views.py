@@ -227,6 +227,7 @@ def authors_list(request):
                 continue
             if response and 'authors' in response:
                 node_authors.extend(response['authors'])
+        print("Node authors: ", node_authors)
         return node_authors
 
     loop = asyncio.new_event_loop()
