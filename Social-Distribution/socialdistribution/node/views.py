@@ -1196,7 +1196,7 @@ def local_api_follow(request, author_id):
             "displayName": current_author.display_name,
             "github": current_author.github,
             "profileImage": current_author.profile_image.url if current_author.profile_image else None,
-            "page": current_author.page,
+            "page": current_author.url,
         },
         "object": {
             "type": "author",
@@ -1205,7 +1205,7 @@ def local_api_follow(request, author_id):
             "displayName": author_to_follow.display_name,
             "github": author_to_follow.github,
             "profileImage": author_to_follow.profile_image.url if current_author.profile_image else None,
-            "page": author_to_follow.page,
+            "page": author_to_follow.url,
         }
     }
 
@@ -1227,6 +1227,7 @@ def local_api_follow(request, author_id):
         response = post_request_to_node(node, inbox_url, data=follow_request)
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
+        print(f"Failed to send follow request: {str(e)}")
         headers = {
             'Authorization': f'Bearer {access_token}'
         }
