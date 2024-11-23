@@ -455,6 +455,7 @@ def add_post(request, author_id):
 
         print("base_url: ", base_url)
         print("inbox_url: ", inbox_url)
+        print("json_content: ", json_content)
         # Now call post_request_to_node with base_url
         post_request_to_node(base_url, inbox_url, 'POST', json_content)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
