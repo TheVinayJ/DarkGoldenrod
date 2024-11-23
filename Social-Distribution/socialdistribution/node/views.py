@@ -1307,6 +1307,7 @@ def local_api_follow(request, author_id):
         print(f"Follow request: {follow_request}")
 
         print(current_author.host)
+        print(node+"/api/")
         if current_author.host != (node+"/api/"):
             response = post_request_to_node(node, inbox_url, data=follow_request)
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
