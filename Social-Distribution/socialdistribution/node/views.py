@@ -1197,7 +1197,7 @@ def api_single_author_fqid(request, author_fqid):
             serializer.save()
             author_data = {
                 "type": "author",
-                "id": user.id,
+                "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
                 "github": "http://github.com/" + user.github if user.github else "",
@@ -1276,7 +1276,7 @@ def api_single_author(request, author_id):
             serializer.save()
             author_data = {
                 "type": "author",
-                "id": user.id,
+                "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
                 "github": "http://github.com/" + user.github if user.github else "",
