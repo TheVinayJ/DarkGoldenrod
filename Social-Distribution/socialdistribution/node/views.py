@@ -1135,6 +1135,7 @@ def retrieve_github(user):
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
+    print(author_id)
     return api_single_author(request, author_id)
 
 @api_view(['GET', 'PUT'])
