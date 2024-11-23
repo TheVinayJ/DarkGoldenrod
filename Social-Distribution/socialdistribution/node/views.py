@@ -1175,7 +1175,7 @@ def api_single_author_fqid(request, author_fqid):
     # Try to parse the ID as a UUID
     try:
         author_uuid = UUID(author_id)
-        user = Author.objects.get(pk=author_uuid)
+        user = Author.objects.get(uuid=author_uuid)
     except (ValueError, Author.DoesNotExist):
         # If it's not a valid UUID, try to parse it as an integer
         try:
@@ -1272,7 +1272,7 @@ def api_single_author(request, author_id):
     # Try to parse the ID as a UUID
     try:
         author_uuid = UUID(author_id)
-        user = Author.objects.get(pk=author_uuid)
+        user = Author.objects.get(uuid=author_uuid)
     except (ValueError, Author.DoesNotExist):
         # If it's not a valid UUID, try to parse it as an integer
         try:
@@ -2012,7 +2012,7 @@ def followers_view(request, author_id, follower_id=None):
     try:
         # Try UUID
         author_uuid = UUID(author_id)
-        author = get_object_or_404(Author, id=author_uuid)
+        author = get_object_or_404(Author, uuid=author_uuid)
     except (ValueError, Author.DoesNotExist):
         try:
             # Try Integer
