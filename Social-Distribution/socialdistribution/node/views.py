@@ -12,6 +12,7 @@ from django.db import connections
 from urllib.parse import urlparse
 
 from django.views.generic import ListView
+from rest_framework.views import APIView
 
 # from node.serializers import serializer
 
@@ -1990,3 +1991,9 @@ def followers_view(request, author_id, follower_id=None):
                 return JsonResponse({"error": "Follow relationship not found"}, status=404)
         else:
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
+
+@APIView(['GET'])
+@permission_classes([IsAuthenticated])
+def api_single_author_fqid(request, author_fqid):
+    author_id = author_fqid.split('/')[-1]
+    return api_single_author(request, author_id)
