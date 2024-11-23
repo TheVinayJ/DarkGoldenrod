@@ -1187,7 +1187,6 @@ def followers_following_friends(request, author_id):
     profileUserUrl = author.url  # user of the profile
 
 
-    # find a diff way to do this tbh
     see_follower = request.GET.get('see_follower')
     if see_follower is None:
         follow_objects = Follow.objects.filter(follower=profileUserUrl, approved=True)
