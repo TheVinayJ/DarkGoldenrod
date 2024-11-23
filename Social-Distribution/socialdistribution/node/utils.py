@@ -89,6 +89,7 @@ def post_request_to_node(host, url, method='POST', data=None):
     except RemoteNode.DoesNotExist:
         raise Exception(f"Node '{host}' is not active or does not exist.")
 
+    print(f"ALL HAIL THE NODE:", node)
     auth = HTTPBasicAuth(node.username, node.password)
 
     if method.upper() == 'GET':
