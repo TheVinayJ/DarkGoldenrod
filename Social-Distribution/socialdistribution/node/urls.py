@@ -8,7 +8,10 @@ from .login import SignupView, LoginView, LogoutView, UserInfoView
 
 
 urlpatterns = [
+    path("", views.display_feed, name="index"),
+    path("/", views.display_feed, name="index"),
     path("node/", views.display_feed, name="index"),
+    
     path("node/add/", views.editor, name="add"),
     path("node/posts/<int:post_id>/", views.view_post, name="view_post"),
     path("node/posts/<int:id>/like/", views.local_api_like, name="like"),
@@ -44,8 +47,10 @@ urlpatterns = [
     # API
     path('api/authors/<int:author_id>/inbox/', views.inbox, name='inbox'),
     path('api/authors/<int:author_id>/inbox', views.inbox, name='inbox'),
+    
     path('api/authors/', views.api_authors_list, name='api_authors_list'),    
     path('api/authors', views.api_authors_list, name='api_authors_list'),    
+    
     path('api/signup/', SignupView.as_view(), name='api_signup'),
     path('api/login/', LoginView.as_view(), name='api_login'),
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
@@ -66,6 +71,7 @@ urlpatterns = [
     path('api/authors/<int:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
     path('api/authors/<int:author_id>/followers/<int:follower_id>/approve', views.followers_view, name='approve_follow'),
     path("api/authors/<int:author_id>/", views.api_single_author, name='single_author'),
+    path("api/authors/<int:author_id>", views.api_single_author, name='single_author'),
     path("api/authors/<int:author_id>/liked", views.likes_by_author, name='likes_by_author'),
     path('api/authors/<int:author_id>/liked/<int:like_id>', views.get_like, name='get_like'),
     path('api/authors/<str:author_fqid>/liked/', views.get_author_likes_by_id, name='liked_by_author_fqid'),
