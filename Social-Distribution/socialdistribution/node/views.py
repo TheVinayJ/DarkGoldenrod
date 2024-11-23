@@ -1310,10 +1310,6 @@ def local_api_follow(request, author_id):
         print(f"Follow request: {follow_request}")
         print(f"remote node:", RemoteNode.objects.filter(url=node, is_active=True).first() )
         response = post_request_to_node(node, inbox_url, data=follow_request)
-        if response is None:
-            print("Error: The response from post_request_to_node is None")
-        else:
-            print(f"Response: {response}")
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
         print(f"Failed to send follow request: {str(e)}")
@@ -1322,7 +1318,7 @@ def local_api_follow(request, author_id):
         }
         print("not good")
         print(f"Follow request: {follow_request}")
-        # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+        response = request.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
 
     if response.status_code in [200, 201]:
         print("Sent Follow request")
