@@ -431,7 +431,7 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
-    followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
+    followers = Follow.objects.filter(following=f"{request.get_host()}/authors/{author_id})")
     for follower in followers:
         json_content = PostSerializer(post).data
         print("sending POST to: " + follower.follower)
