@@ -1135,8 +1135,56 @@ def retrieve_github(user):
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
-    print(author_id)
-    return api_single_author(request, author_id)
+    # print(author_id)
+    # return api_single_author(request, author_id)
+    user = get_object_or_404(Author, id=author_id)
+
+    if request.method == 'GET':
+        if user is None:
+            nonexistent_author = {
+                "message": "This user does not exist",
+            }
+            return JsonResponse(nonexistent_author, status=404)
+        else:
+            author_data = {
+                "type": "author",
+                "id": user.id,
+                "host": user.host,
+                "displayName": user.display_name,
+                "github": "http://github.com/" + user.github if user.github else "",
+                "profileImage": user.profile_image.url if user.profile_image else None,
+                "page": user.page,
+                "description": user.description,
+            }
+            return JsonResponse(author_data, status=200)
+
+    if request.method == 'PUT':
+        serializer = AuthorProfileSerializer(user, data=request.data)
+
+        original_github = user.github
+
+        if serializer.is_valid():
+            if original_github != serializer.validated_data.get('github'):
+                Post.objects.filter(author=user, description="Public Github Activity").delete()
+
+            serializer.save()
+            author_data = {
+                "type": "author",
+                "id": user.id,
+                "host": user.host,
+                "displayName": user.display_name,
+                "github": "http://github.com/" + user.github if user.github else "",
+                "profileImage": user.profile_image.url if user.profile_image else None,
+                "page": user.page,
+                "description": user.description,
+            }
+            return JsonResponse(author_data, status=200)
+        else:
+            error_data = {
+                "message": "Invalid edit made.",
+                'errors': serializer.errors,
+            }
+            return JsonResponse(error_data, status=400)
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
