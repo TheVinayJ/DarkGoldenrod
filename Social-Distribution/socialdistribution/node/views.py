@@ -431,7 +431,7 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
-    print(f"Searching for followers following: {request.get_host()}/authors/{author_id})")
+    print(f"Searching for followers following: {request.get_host()}/api/authors/{author_id})")
     followers = Follow.objects.filter(following=f"{request.get_host()}/authors/{author_id})")
     print("Sending to the following followers: " + str(followers))
     for follower in followers:
