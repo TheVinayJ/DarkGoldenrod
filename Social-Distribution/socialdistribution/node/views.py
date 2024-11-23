@@ -77,7 +77,7 @@ def api_authors_list(request):
             "github": author.github,
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
-        } for author in current_page])
+        } for author in current_page if '@foreignnode.com' not in author.email])
     else:
         author_list = [{
             "type": "author",
@@ -87,7 +87,7 @@ def api_authors_list(request):
             "github": author.github,
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
-        } for author in authors]
+        } for author in authors if '@foreignnode.com' not in author.email]
 
     response_data = {
         "type": "authors",
