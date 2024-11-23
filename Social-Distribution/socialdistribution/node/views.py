@@ -1131,6 +1131,12 @@ def retrieve_github(user):
             )
     # Ends here
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_single_author_fqid(request, author_fqid):
+    author_id = author_fqid.split('/')[-1]
+    return api_single_author(request, author_id)
+
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_single_author(request, author_id):
@@ -1991,9 +1997,3 @@ def followers_view(request, author_id, follower_id=None):
                 return JsonResponse({"error": "Follow relationship not found"}, status=404)
         else:
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
-
-@APIView(['GET'])
-@permission_classes([IsAuthenticated])
-def api_single_author_fqid(request, author_fqid):
-    author_id = author_fqid.split('/')[-1]
-    return api_single_author(request, author_id)
