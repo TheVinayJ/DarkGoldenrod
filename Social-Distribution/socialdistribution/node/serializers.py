@@ -8,8 +8,7 @@ from django.contrib.auth import authenticate
 
 class AuthorSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='author')
-    #id = serializers.SerializerMethodField()
-    id = serializers.UUIDField(source='uuid', read_only=True)
+    id = serializers.SerializerMethodField()
     host = serializers.SerializerMethodField()
     displayName = serializers.CharField(source='display_name')
     github = serializers.CharField(allow_null=True,allow_blank=False)
@@ -27,7 +26,7 @@ class AuthorSerializer(serializers.ModelSerializer):
         return obj.host
 
     def get_page(self, obj):
-        return f"http://{obj.host}/authors/{obj.uuid}/profile"
+        return f"http://darkgoldenrod/{obj.id}/profile"
 
     def get_profileImage(self, obj):
         if obj.profile_image:
