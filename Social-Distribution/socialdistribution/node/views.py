@@ -9,6 +9,7 @@ from django.urls import reverse
 import asyncio
 from asgiref.sync import sync_to_async
 from django.db import connections
+from urllib.parse import urlparse
 
 from django.views.generic import ListView
 
@@ -434,10 +435,28 @@ def add_post(request, author_id):
     print(f"Searching for followers following: http://{request.get_host()}/api/authors/{author_id}")
     followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{author_id}")
     print("Sending to the following followers: " + str(followers))
+    
+    # for follower in followers:
+    #     json_content = PostSerializer(post).data
+    #     print("sending POST to: " + follower.follower)
+    #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+        
     for follower in followers:
         json_content = PostSerializer(post).data
-        print("sending POST to: " + follower.follower)
-        post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+        follower_url = follower.follower
+        print("sending POST to: " + follower_url)
+
+        # Extract base URL from follower's URL
+        parsed_url = urlparse(follower_url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+        # Send the POST request to the follower's inbox
+        inbox_url = follower_url.rstrip('/') + '/inbox/'
+
+        print("base_url: ", base_url)
+        print("inbox_url: ", inbox_url)
+        # Now call post_request_to_node with base_url
+        post_request_to_node(base_url, inbox_url, 'POST', json_content)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
