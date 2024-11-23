@@ -13,8 +13,6 @@ from urllib.parse import urlparse
 
 from django.views.generic import ListView
 from rest_framework.views import APIView
-from uuid import UUID
-
 
 # from node.serializers import serializer
 
@@ -1141,50 +1139,32 @@ def api_single_author_fqid(request, author_fqid):
     # return api_single_author(request, author_id)
     #user = get_object_or_404(Author, id=author_id)
     
-    # author_id = unquote(author_id)
-
-    # # Initialize user to None
-    # user = None
-
-    # # First, try to get by primary key (integer ID)
-    # try:
-    #     user = Author.objects.get(pk=int(author_id))
-    # except (ValueError, Author.DoesNotExist):
-    #     pass  # Not an integer ID or author with this ID does not exist
-
-    # if not user:
-    #     # Try to get by URL equals author_id (in case it's a full URL)
-    #     user = Author.objects.filter(url=author_id).first()
-
-    # if not user:
-    #     # Try to get by URL ending with /authors/{author_id}
-    #     user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
-
-    # if not user:
-    #     # Author not found
-    #     nonexistent_author = {
-    #         "message": "This user does not exist",
-    #     }
-    #     return JsonResponse(nonexistent_author, status=404)
-    
     author_id = unquote(author_id)
+
+    # Initialize user to None
     user = None
 
-    # Try to parse the ID as a UUID
+    # First, try to get by primary key (integer ID)
     try:
-        author_uuid = UUID(author_id)
-        user = Author.objects.get(pk=author_uuid)
+        user = Author.objects.get(pk=int(author_id))
     except (ValueError, Author.DoesNotExist):
-        # If it's not a valid UUID, try to parse it as an integer
-        try:
-            author_id_int = int(author_id)
-            user = Author.objects.get(pk=author_id_int)
-        except (ValueError, Author.DoesNotExist):
-            # The ID is neither a valid UUID nor an integer
-            nonexistent_author = {
-                "message": "This user does not exist",
-            }
-            return JsonResponse(nonexistent_author, status=404)
+        pass  # Not an integer ID or author with this ID does not exist
+
+    if not user:
+        # Try to get by URL equals author_id (in case it's a full URL)
+        user = Author.objects.filter(url=author_id).first()
+
+    if not user:
+        # Try to get by URL ending with /authors/{author_id}
+        user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
+
+    if not user:
+        # Author not found
+        nonexistent_author = {
+            "message": "This user does not exist",
+        }
+        return JsonResponse(nonexistent_author, status=404)
+
 
     if request.method == 'GET':
         if user is None:
@@ -1238,50 +1218,32 @@ def api_single_author_fqid(request, author_fqid):
 def api_single_author(request, author_id):
     #user = get_object_or_404(Author, id=author_id)
     
-    # author_id = unquote(author_id)
-
-    # # Initialize user to None
-    # user = None
-
-    # # First, try to get by primary key (integer ID)
-    # try:
-    #     user = Author.objects.get(pk=int(author_id))
-    # except (ValueError, Author.DoesNotExist):
-    #     pass  # Not an integer ID or author with this ID does not exist
-
-    # if not user:
-    #     # Try to get by URL equals author_id (in case it's a full URL)
-    #     user = Author.objects.filter(url=author_id).first()
-
-    # if not user:
-    #     # Try to get by URL ending with /authors/{author_id}
-    #     user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
-
-    # if not user:
-    #     # Author not found
-    #     nonexistent_author = {
-    #         "message": "This user does not exist",
-    #     }
-    #     return JsonResponse(nonexistent_author, status=404)
-
     author_id = unquote(author_id)
+
+    # Initialize user to None
     user = None
 
-    # Try to parse the ID as a UUID
+    # First, try to get by primary key (integer ID)
     try:
-        author_uuid = UUID(author_id)
-        user = Author.objects.get(pk=author_uuid)
+        user = Author.objects.get(pk=int(author_id))
     except (ValueError, Author.DoesNotExist):
-        # If it's not a valid UUID, try to parse it as an integer
-        try:
-            author_id_int = int(author_id)
-            user = Author.objects.get(pk=author_id_int)
-        except (ValueError, Author.DoesNotExist):
-            # The ID is neither a valid UUID nor an integer
-            nonexistent_author = {
-                "message": "This user does not exist",
-            }
-            return JsonResponse(nonexistent_author, status=404)
+        pass  # Not an integer ID or author with this ID does not exist
+
+    if not user:
+        # Try to get by URL equals author_id (in case it's a full URL)
+        user = Author.objects.filter(url=author_id).first()
+
+    if not user:
+        # Try to get by URL ending with /authors/{author_id}
+        user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
+
+    if not user:
+        # Author not found
+        nonexistent_author = {
+            "message": "This user does not exist",
+        }
+        return JsonResponse(nonexistent_author, status=404)
+
 
     if request.method == 'GET':
         if user is None:
@@ -1999,26 +1961,12 @@ def get_serialized_post(post):
 @permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
     # Since your local authors have integer IDs, convert author_id to integer
-    # try:
-    #     author_id_int = int(author_id)
-    # except ValueError:
-    #     return JsonResponse({"error": "Invalid author ID"}, status=400)
-
-    # author = get_object_or_404(Author, id=author_id_int)
-    
-    author_id = unquote(author_id)
     try:
-        # Try UUID
-        author_uuid = UUID(author_id)
-        author = get_object_or_404(Author, id=author_uuid)
-    except (ValueError, Author.DoesNotExist):
-        try:
-            # Try Integer
-            author_id_int = int(author_id)
-            author = get_object_or_404(Author, id=author_id_int)
-        except (ValueError, Author.DoesNotExist):
-            return JsonResponse({"error": "Invalid author ID"}, status=400)
-    
+        author_id_int = int(author_id)
+    except ValueError:
+        return JsonResponse({"error": "Invalid author ID"}, status=400)
+
+    author = get_object_or_404(Author, id=author_id_int)
     follower_id_param = request.GET.get('follower_id')  # Get the follower_id from query params
     follower_host = request.GET.get('follower')  # Get the follower's host from query params
 

@@ -7,7 +7,6 @@ from django.core.validators import URLValidator
 from solo.models import SingletonModel
 import django
 import datetime
-import uuid
 
 
 class AuthorManager(BaseUserManager):
@@ -39,8 +38,7 @@ class AuthorManager(BaseUserManager):
 
 
 class Author(AbstractBaseUser, PermissionsMixin):
-    #id = models.AutoField(primary_key=True)
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.AutoField(primary_key=True)
     url = models.CharField(max_length=255, unique=True, null=True, default=None)
     display_name = models.CharField(max_length=255, null=False)
     email = models.EmailField(max_length=255, unique=True)
