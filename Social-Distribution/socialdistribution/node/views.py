@@ -431,15 +431,10 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
-    if author.host == f'https://{request.get_host()}/api/':
-        # Distribute posts to connected nodes
-        followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
-        for follower in followers:
-            processed_nodes = [f'https://{request.get_host()}/api/']
-            if follower.host not in processed_nodes:
-                json_content = PostSerializer(post).data
-                post_request_to_node(follower.host[:-4], follower.url +'/inbox', 'POST', json_content)
-                processed_nodes.append(follower.host)
+    followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
+    for follower in followers:
+        json_content = PostSerializer(post).data
+        post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
