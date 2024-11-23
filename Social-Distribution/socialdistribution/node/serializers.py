@@ -188,7 +188,7 @@ class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     id = serializers.SerializerMethodField()
-    author = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField
     comments = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
 
