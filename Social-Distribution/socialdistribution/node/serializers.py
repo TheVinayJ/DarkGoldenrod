@@ -91,13 +91,13 @@ class PostLikesSerializer(serializers.Serializer):
             return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/likes"
 
     def get_count(self, obj):
-        return  PostLike.objects.filter(post=obj).count()
+        return  PostLike.objects.filter(owner=obj).count()
 
     def get_src(self, obj):
         page_number = self.context.get('page_number', 1)
         page_size = self.context.get('size', 50)
 
-        likes = PostLike.objects.filter(post=obj).order_by('-published')
+        likes = PostLike.objects.filter(owner=obj).order_by('-published')
 
         start = (page_number - 1) * page_size
         end = start + page_size
@@ -127,13 +127,13 @@ class CommentLikesSerializer(serializers.Serializer):
             return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/likes"
 
     def get_count(self, obj):
-        return  CommentLike.objects.filter(post=obj).count()
+        return  CommentLike.objects.filter(owner=obj).count()
 
     def get_src(self, obj):
         page_number = self.context.get('page_number', 1)
         page_size = self.context.get('size', 50)
 
-        likes = CommentLike.objects.filter(post=obj).order_by('-published')
+        likes = CommentLike.objects.filter(owner=obj).order_by('-published')
 
         start = (page_number - 1) * page_size
         end = start + page_size
