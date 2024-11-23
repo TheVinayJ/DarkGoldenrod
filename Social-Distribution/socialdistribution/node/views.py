@@ -434,7 +434,7 @@ def add_post(request, author_id):
     followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
     for follower in followers:
         json_content = PostSerializer(post).data
-        post_request_to_node(follower.host[:-4], follower.url +'/inbox', 'POST', json_content)
+        post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
