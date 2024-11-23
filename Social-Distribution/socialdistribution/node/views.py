@@ -433,6 +433,8 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
+
+    print("Post data: ", PostSerializer(post).data)
     print(f"Searching for followers following: http://{request.get_host()}/api/authors/{author_id}")
     followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{author_id}")
     print("Sending to the following followers: " + str(followers))
