@@ -9,7 +9,6 @@ from .login import SignupView, LoginView, LogoutView, UserInfoView
 
 urlpatterns = [
     path("", views.display_feed, name="index"),
-    path("/", views.display_feed, name="index"),
     path("node/", views.display_feed, name="index"),
     
     path("node/add/", views.editor, name="add"),
