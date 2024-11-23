@@ -1308,8 +1308,16 @@ def local_api_follow(request, author_id):
 
         print(current_author.host.replace('http://','https://'))
         print(node+"api/")
+        # if remote node
         if current_author.host.replace('http://','https://') != (node+"api/"):
             response = post_request_to_node(node, inbox_url, data=follow_request)
+        # else local node
+        else:
+            headers = {
+                'Authorization': f'Bearer {access_token}'
+            }
+            response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+        # create follow object after successful post
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
     except Exception as e:
         print(f"Failed to send follow request: {str(e)}")
