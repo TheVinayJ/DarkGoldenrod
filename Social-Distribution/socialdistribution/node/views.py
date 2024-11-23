@@ -1137,7 +1137,34 @@ def api_single_author_fqid(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
     # print(author_id)
     # return api_single_author(request, author_id)
-    user = get_object_or_404(Author, id=author_id)
+    #user = get_object_or_404(Author, id=author_id)
+    
+    author_id = unquote(author_id)
+
+    # Initialize user to None
+    user = None
+
+    # First, try to get by primary key (integer ID)
+    try:
+        user = Author.objects.get(pk=int(author_id))
+    except (ValueError, Author.DoesNotExist):
+        pass  # Not an integer ID or author with this ID does not exist
+
+    if not user:
+        # Try to get by URL equals author_id (in case it's a full URL)
+        user = Author.objects.filter(url=author_id).first()
+
+    if not user:
+        # Try to get by URL ending with /authors/{author_id}
+        user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
+
+    if not user:
+        # Author not found
+        nonexistent_author = {
+            "message": "This user does not exist",
+        }
+        return JsonResponse(nonexistent_author, status=404)
+
 
     if request.method == 'GET':
         if user is None:
@@ -1189,7 +1216,34 @@ def api_single_author_fqid(request, author_fqid):
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_single_author(request, author_id):
-    user = get_object_or_404(Author, id=author_id)
+    #user = get_object_or_404(Author, id=author_id)
+    
+    author_id = unquote(author_id)
+
+    # Initialize user to None
+    user = None
+
+    # First, try to get by primary key (integer ID)
+    try:
+        user = Author.objects.get(pk=int(author_id))
+    except (ValueError, Author.DoesNotExist):
+        pass  # Not an integer ID or author with this ID does not exist
+
+    if not user:
+        # Try to get by URL equals author_id (in case it's a full URL)
+        user = Author.objects.filter(url=author_id).first()
+
+    if not user:
+        # Try to get by URL ending with /authors/{author_id}
+        user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
+
+    if not user:
+        # Author not found
+        nonexistent_author = {
+            "message": "This user does not exist",
+        }
+        return JsonResponse(nonexistent_author, status=404)
+
 
     if request.method == 'GET':
         if user is None:
