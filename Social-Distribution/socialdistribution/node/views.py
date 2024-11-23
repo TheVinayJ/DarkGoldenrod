@@ -1266,6 +1266,8 @@ def local_api_follow(request, author_id):
     current_author = get_author(request)
     author_to_follow = get_object_or_404(Author, id=author_id)
 
+    print("authors")
+    print(current_author, author_to_follow)
 
     # Construct the follow request object
     follow_request = {
@@ -1316,7 +1318,7 @@ def local_api_follow(request, author_id):
         }
         print("not good")
         print(f"Follow request: {follow_request}")
-        response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+        # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
 
     if response.status_code in [200, 201]:
         print("Sent Follow request")
