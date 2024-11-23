@@ -1318,7 +1318,7 @@ def local_api_follow(request, author_id):
         }
         print("not good")
         print(f"Follow request: {follow_request}")
-        response = request.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+        response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
 
     if response.status_code in [200, 201]:
         print("Sent Follow request")
