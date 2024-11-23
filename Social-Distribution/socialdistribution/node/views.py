@@ -1308,6 +1308,7 @@ def local_api_follow(request, author_id):
         print(f"Author to follow: {inbox_url}")
         
         print(f"Follow request: {follow_request}")
+        print(f"remote node:", RemoteNode.objects.filter(url=node, is_active=True).first() )
         response = post_request_to_node(node, inbox_url, data=follow_request)
         if response is None:
             print("Error: The response from post_request_to_node is None")
