@@ -451,7 +451,7 @@ def add_post(request, author_id):
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
 
         # Send the POST request to the follower's inbox
-        inbox_url = follower_url.rstrip('/') + '/inbox/'
+        inbox_url = follower_url.rstrip('/') + '/inbox'
 
         print("base_url: ", base_url)
         print("inbox_url: ", inbox_url)
