@@ -97,7 +97,7 @@ class PostLikesSerializer(serializers.Serializer):
         page_number = self.context.get('page_number', 1)
         page_size = self.context.get('size', 50)
 
-        likes = PostLike.objects.filter(owner=obj).order_by('-published')
+        likes = PostLike.objects.filter(owner=obj).order_by('-created_at')
 
         start = (page_number - 1) * page_size
         end = start + page_size
@@ -133,7 +133,7 @@ class CommentLikesSerializer(serializers.Serializer):
         page_number = self.context.get('page_number', 1)
         page_size = self.context.get('size', 50)
 
-        likes = CommentLike.objects.filter(owner=obj).order_by('-published')
+        likes = CommentLike.objects.filter(owner=obj).order_by('-created_at')
 
         start = (page_number - 1) * page_size
         end = start + page_size
