@@ -471,7 +471,90 @@ def author_posts(request, author_id):
     Create a new post or return author's posts.
     """
     if request.method == 'POST':
-        return add_post(request, author_id)
+        author = get_author(request)
+        contentType = request.POST["contentType"]
+        print(request.POST)
+        if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
+            # Check whether content is from AJAX or an external API call
+            # For AJAX formatting:
+            if contentType != "image":
+                contentType = 'text/' + contentType
+                content = request.POST.getlist("content")
+                if contentType == 'text/plain':
+                    content = content[0]
+                else:
+                    content = content[1]
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            text_content=content,
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+            else:
+                image = request.FILES["content"]
+                file_suffix = os.path.splitext(image.name)[1]
+                contentType = request.POST["contentType"]
+                contentType += '/' + file_suffix[1:]
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            image_content=image,
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+        else:   # Post creation for API spec
+            if 'image' in contentType:
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            image_content=request.POST["image"],
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+            else:
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            text_content=request.POST["content"],
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+        print(f"Searching for followers following: http://{request.get_host()}/api/authors/{author_id}")
+        followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{author_id}")
+        print("Sending to the following followers: " + str(followers))
+        
+        # for follower in followers:
+        #     json_content = PostSerializer(post).data
+        #     print("sending POST to: " + follower.follower)
+        #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+            
+        for follower in followers:
+            json_content = PostSerializer(post).data
+            follower_url = follower.follower
+            print("sending POST to: " + follower_url)
+
+            # Extract base URL from follower's URL
+            parsed_url = urlparse(follower_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+            # Send the POST request to the follower's inbox
+            inbox_url = follower_url.rstrip('/') + '/inbox'
+
+            print("base_url: ", base_url)
+            print("inbox_url: ", inbox_url)
+            print("json_content: ", json_content)
+            # Now call post_request_to_node with base_url
+            post_request_to_node(base_url, inbox_url, 'POST', json_content)
+        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
