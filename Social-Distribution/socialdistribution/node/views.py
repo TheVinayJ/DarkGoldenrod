@@ -1242,6 +1242,8 @@ def followers_following_friends(request, author_id):
 
     print("these are the users")
     print(users)
+    for user in users:
+        print(user.display_name)
     return render(request, 'follower_following.html', {
         'authors': users,
         'DisplayTitle': title,
