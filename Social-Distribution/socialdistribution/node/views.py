@@ -1185,14 +1185,19 @@ def followers_following_friends(request, author_id):
     '''
     author = get_object_or_404(Author, id=author_id)
     profileUserUrl = author.url  # user of the profile
-
+    users = []
 
     see_follower = request.GET.get('see_follower')
+
+    # see friends
     if see_follower is None:
         follow_objects = Follow.objects.filter(follower=profileUserUrl, approved=True)
-        users = [person.following for person in follow_objects if person.is_friend()]
+        friends = [person.following for person in follow_objects if person.is_friend()]
+        for friend_id in friends:
+            users.append(get_object_or_404(Author, id=friend_id))
         title = "Friends"
     else:
+        # see followers
         if see_follower == "true":
             # use the api to get followers
 
@@ -1207,7 +1212,6 @@ def followers_following_friends(request, author_id):
             print(response.json())
             responses.append(response)
 
-            users = []
             for response in responses:
                 users += response.json().get('followers', []) if response.status_code == 200 else []
 
