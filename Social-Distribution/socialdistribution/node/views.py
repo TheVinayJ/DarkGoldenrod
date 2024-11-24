@@ -161,14 +161,14 @@ def api_authors_list(request):
 #         author_from_db = Author.objects.filter(url=author['id']).first()
 
 #         print(author['id'])
-#         # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
-#         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
+#         # author['id_num']= int((author['id'].split('https://darkgoldenrod/api/authors/')[0])[0])
+#         author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
 #         print(author['id'])
-#         print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
+#         print(author['id'].split(f'https://{request.get_host()}/api/authors/'))
 #         author['id_num'] = author_from_db.id
 #         print(author['id_num'])
 #         # find authors logged-in user is already following
-#         author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
+#         author['is_following'] = Follow.objects.filter(follower=f"https://{request.get_host()}/api/authors/"+str(user.id)).exists()
 #         # print(author['is_following'])
 
 #     context = {
@@ -258,11 +258,11 @@ def authors_list(request):
 
     # Update author data with additional info
     for author in authors:
-        author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
+        author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
         author_from_db = Author.objects.filter(url=author['id']).first()
         author['id_num'] = author_from_db.id if author_from_db else None
         author['is_following'] = Follow.objects.filter(
-            follower=f"http://{request.get_host()}/api/authors/{user.id}",
+            follower=f"https://{request.get_host()}/api/authors/{user.id}",
             following=author['id'],
             approved=True
         ).exists()
@@ -356,11 +356,11 @@ def edit_post(request, post_id):
         print("markdown_content:", request.POST.get('markdown_content'))
         print("image_content:", request.FILES.get('image_content'))
 
-        if author.host == f'http://{request.get_host()}/api/':
+        if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
             for follower in followers:
-                processed_nodes = [f'http://{request.get_host()}/api/']
+                processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
                     json_content = PostSerializer(post).data
                     send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)
@@ -433,8 +433,8 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
-    print(f"Searching for followers following: http://{request.get_host()}/api/authors/{author_id}")
-    followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{author_id}")
+    print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
+    followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
     print("Sending to the following followers: " + str(followers))
     
     # for follower in followers:
@@ -512,9 +512,9 @@ def local_api_like(request, id):
     # like_data = {
     #     "type": "like",
     #     "author": current_author,
-    #     "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
+    #     "object": f"https://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
     #     "published": datetime.datetime.now(),
-    #     "id" : f"http://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
+    #     "id" : f"https://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
     # }
 
     new_like = PostLike(liker=current_author, owner=liked_post)
@@ -594,8 +594,8 @@ def get_post_likes(request, author_id, post_id):
     
     response_data = {
         "type": "likes",
-        "id": f"http://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"http://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -627,8 +627,8 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"http://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"http://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -657,8 +657,8 @@ def get_comment_likes(request, author_id, post_id, comment_url):
     
     response_data = {
         "type": "likes",
-        "id": f"http://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
-        "page": f"http://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
+        "id": f"https://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
+        "page": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -705,8 +705,8 @@ def likes_by_author(request, author_id):
     
     response_data = {
         "type": "likes",
-        "page": f"http://{author.host}/authors/{author_id}/liked",
-        "id": f"http://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}/authors/{author_id}/liked",
+        "id": f"https://{author.host}/api/authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
         "count": len(all_likes),
@@ -766,8 +766,8 @@ def get_author_likes_by_id(request, author_fqid):
     
     response_data = {
         "type": "likes",
-        "page": f"http://{author.host}/api/authors/{author_id}/liked",
-        "id": f"http://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}/api/authors/{author_id}/liked",
+        "id": f"https://{author.host}/api/authors/{author_id}/liked",
         "page_number": page_number,
         "size": size,
         "count": len(all_likes),
@@ -905,22 +905,22 @@ def view_post(request, post_id):
 #         }
 
 #     is_following = Follow.objects.filter( # if logged in author following the user
-#         follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
-#         following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+#         follower=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
+#         following=f"https://{request.get_host()}/api/authors/" + str(author_id),
 #         approved=True,
 #     ).exists()
 #     if is_following:
 #         is_followback = Follow.objects.filter(  # ... see if user is following back
-#             follower=f"http://{request.get_host()}/api/authors/" + str(author_id),
-#             following=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
+#             follower=f"https://{request.get_host()}/api/authors/" + str(author_id),
+#             following=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
 #             approved=True,
 #         ).exists()
 #         is_pending = False
 #     else:
 #         is_followback = False
 #         is_pending = Follow.objects.filter( # if logged in author following the user
-#             follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
-#             following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+#             follower=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
+#             following=f"https://{request.get_host()}/api/authors/" + str(author_id),
 #             approved=False,
 #         ).exists()
 
@@ -936,19 +936,19 @@ def view_post(request, post_id):
 
 #     # Followers: people who follow the user
 #     followers_count = Follow.objects.filter(
-#         following=f"http://{request.get_host()}/api/authors/{author_id}",
+#         following=f"https://{request.get_host()}/api/authors/{author_id}",
 #         approved=True
 #     ).count()
 
 #     # Following: people the user follows
 #     # This returns a list of users that `author_id` is following
 #     followed_users = Follow.objects.filter(
-#         follower=f"http://{request.get_host()}/api/authors/{author_id}",
+#         follower=f"https://{request.get_host()}/api/authors/{author_id}",
 #         approved=True).values_list('following', flat=True)
 #     following_count = followed_users.count()
 #     print(followed_users)
 
-#     author_url = f"http://{request.get_host()}/api/authors/{author_id}"
+#     author_url = f"https://{request.get_host()}/api/authors/{author_id}"
 
 #     # Friends: mutual follows
 #     friends_count = Follow.objects.filter(
@@ -994,7 +994,7 @@ def profile(request, author_id):
 
     # Determine if the current user is following the viewing author
     is_following = Follow.objects.filter(
-        follower=f"http://{request.get_host()}/api/authors/{current_author.id}",
+        follower=f"https://{request.get_host()}/api/authors/{current_author.id}",
         following=viewing_author.url,
         approved=True,
     ).exists()
@@ -1003,7 +1003,7 @@ def profile(request, author_id):
     is_pending = False
     if not is_following:
         is_pending = Follow.objects.filter(
-            follower=f"http://{request.get_host()}/api/authors/{current_author.id}",
+            follower=f"https://{request.get_host()}/api/authors/{current_author.id}",
             following=viewing_author.url,
             approved=False,
         ).exists()
@@ -1011,7 +1011,7 @@ def profile(request, author_id):
     # Determine if the viewing author is following back
     is_followback = Follow.objects.filter(
         follower=viewing_author.url,
-        following=f"http://{request.get_host()}/api/authors/{current_author.id}",
+        following=f"https://{request.get_host()}/api/authors/{current_author.id}",
         approved=True,
     ).exists()
 
@@ -1191,7 +1191,7 @@ def api_single_author_fqid(request, author_fqid):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1213,7 +1213,7 @@ def api_single_author_fqid(request, author_fqid):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1283,7 +1283,7 @@ def api_single_author(request, author_id):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1305,7 +1305,7 @@ def api_single_author(request, author_id):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1455,7 +1455,7 @@ def local_api_follow(request, author_id):
     inbox_url = author_to_follow.url + "/inbox"
     access_token = AccessToken.for_user(current_author)
     try:
-        node = author_to_follow.host[:-4].replace('http://','https://')
+        node = author_to_follow.host[:-4].replace('https://','https://')
         print(f"Node: {node}")
         print(f"Author to follow: {inbox_url}")
         
@@ -1626,7 +1626,7 @@ def follow_requests(request, author_id):
     print(current_follow_requests)
     follower_authors = []
     for a_request in current_follow_requests:
-        # follower_id = a_request.follower.replace("http://darkgoldenrod/api/authors/", "")
+        # follower_id = a_request.follower.replace("https://darkgoldenrod/api/authors/", "")
         follower_author = get_object_or_404(Author, url=a_request.follower)
         follower_authors.append(follower_author)
 
@@ -1693,7 +1693,7 @@ def display_feed(request):
     friends = [follow.following for follow in follow_objects if follow.is_friend()]
     friends_authors = Author.objects.filter(url__in=friends)
     cleaned_friends = friends_authors.values_list('id', flat=True)
-    # cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
+    # cleaned_friends = [int(url.replace('https://darkgoldenrod/api/authors/', '')) for url in friends]
 
 
     public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
@@ -1824,11 +1824,11 @@ def edit_post_api(request, author_id, post_id):
     serializer = PostSerializer(post, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        if author.host == f'http://{request.get_host()}/api/':
+        if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
             for follower in followers:
-                processed_nodes = [f'http://{request.get_host()}/api/']
+                processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
                     json_content = PostSerializer(post).data
                     post_request_to_node(follower.host[:-4], follower.url + '/inbox', 'POST', json_content)
