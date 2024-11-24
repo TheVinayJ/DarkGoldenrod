@@ -1211,7 +1211,6 @@ def followers_following_friends(request, author_id):
             for response in responses:
                 users += response.json().get('followers', []) if response.status_code == 200 else []
 
-            print(users)
             # for follower in users:
             #     Author.objects.update_or_create(
             #         url=follower['id'],
@@ -1240,6 +1239,8 @@ def followers_following_friends(request, author_id):
     #         'title': title,
     #         'authors': author_data
     #     })
+
+    print(users)
     return render(request, 'follower_following.html', {
         'authors': users,
         'DisplayTitle': title,
