@@ -1825,7 +1825,8 @@ def add_external_post(request, author_id):
     Add a post to the database from an inbox call
     """
     body = json.loads(request.body)
-    serializer = PostSerializer(data=body)
+    author = get_author_by_id(author_id)
+    serializer = PostSerializer(data=body, author = author)
     if serializer.is_valid():
         serializer.save()
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
