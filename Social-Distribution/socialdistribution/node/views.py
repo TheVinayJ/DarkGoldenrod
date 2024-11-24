@@ -619,7 +619,7 @@ def local_api_like(request, id):
         "object" : object_id
     }
 
-    inbox_url = post_author + '/inbox'
+    inbox_url = post_author.url + '/inbox'
     access_token = AccessToken.for_user(current_author)
 
     try:
@@ -663,7 +663,7 @@ def local_api_like_comment(request, id):
         "object" : object_id
     }
 
-    inbox_url = post_author + '/inbox'
+    inbox_url = post_author.url + '/inbox'
     access_token = AccessToken.for_user(current_author)
 
     try:
@@ -709,9 +709,12 @@ def comment_like(request, author_id):
 @permission_classes([IsAuthenticated])
 def get_post_likes(request, author_id, post_id):
     #post = get_object_or_404(Post, pk=post_id, author_id=author_id)
+    
+    author_id = author_id.split('/')[-1]
+    post_id = post_id.split('/')[-1]
     post = get_post_by_id_and_author(post_id, author_id)
-    #author = get_object_or_404(Author, pk=author_id)
     author = get_author_by_id(author_id)
+    
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
