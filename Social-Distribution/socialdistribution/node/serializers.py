@@ -80,15 +80,15 @@ class PostLikesSerializer(serializers.Serializer):
 
     def get_page(self, obj):
         if hasattr(obj, 'post'):  
-            return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
+            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/comments/{obj.id}"
         else:  
-            return f"{obj.post.author.host}authors/{obj.author.id}/posts/{obj.id}"
+            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_id(self, obj):
         if hasattr(obj, 'post'):  
-            return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
+            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/comments/{obj.id}/likes"
         else:  
-            return f"{obj.post.author.host}authors/{obj.author.id}/posts/{obj.id}/likes"
+            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/likes"
 
     def get_count(self, obj):
         return  PostLike.objects.filter(owner=obj).count()
