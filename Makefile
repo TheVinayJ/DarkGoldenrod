@@ -51,3 +51,8 @@ tag-part5:
 	@git tag -a -s "part5" -m "Tagging the latest commit on the Production branch as part 5"
 	@git push origin "part5"
 	@echo "Tag 'part5' has been created and pushed to GitHub."
+
+uuid:
+	@heroku pg:reset --confirm
+	@heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate"
+	@heroku run "python3.11 Social-Distribution/socialdistribution/manage.py createsuperuser"
