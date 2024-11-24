@@ -53,6 +53,6 @@ tag-part5:
 	@echo "Tag 'part5' has been created and pushed to GitHub."
 
 uuid:
-	@heroku pg:reset --confirm
+	@heroku pg:reset --confirm darkgoldenrod
 	@heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate"
 	@heroku run "python3.11 Social-Distribution/socialdistribution/manage.py createsuperuser"
