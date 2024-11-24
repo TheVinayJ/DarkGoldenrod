@@ -594,68 +594,89 @@ def delete_post(request, post_id):
 def local_api_like(request, id):
     #liked_post = get_object_or_404(Post, id=id)
     liked_post = get_post_by_id(id)
+    post_author = liked_post.author
     current_author = get_author(request)
 
     post_owner = liked_post.author
     print(current_author)
     print(post_owner)
 
-    author_data = AuthorSerializer(current_author).data
-
-
-
-    like_data = {
-        "type": "like",
-        "author": {
-            "type": "author",
-            "id": f"{current_author.url}",
+    like_id = f"{current_author.url}/liked/{PostLike.objects.count()+1}"
+    object_id = f"{post_author.url}/posts/{liked_post.id}"
+    like_request = {
+        "type" : "like",
+        "author" : {
+            "type" : "author",
+            "id": current_author.url,
             "host": current_author.host,
             "displayName": current_author.display_name,
             "github": current_author.github,
-            "profileImage": current_author.profile_image.url if author.profile_image else '',
-            "page": current_author.page
-
+            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+            "page": current_author.url,
         },
-        "published": datetime.datetime.now(),
-        "id": f"https://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}",
-        "object": f"https://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
+        "published" : datetime.datetime.now().isoformat(),
+        "id" : like_id,
+        "object" : object_id
     }
 
+    inbox_url = post_author + '/inbox'
+    access_token = AccessToken.for_user(current_author)
 
-    response = post_request_to_node(node, inbox_url, data=like_data)
+    try:
+        node = post_author.host[:-4].replace('http://', 'https://')
+        if current_author.host.replace('http://', 'https://') != (node+"api/"):
+            response = post_request_to_node(node, inbox_url, data=like_request)
+        else:
+            PostLike.objects.create(liker=current_author, owner=liked_post)
 
-    new_like = PostLike(liker=current_author, owner=liked_post)
-    new_like.save()
-    return(redirect(f'/node/posts/{id}/'))
+        return(redirect(f'/node/posts/{id}/'))
+    except Exception as e:
+        print(f"Failed to send post like request: {str(e)}")
+        messages.error(request, "Failed to send post like request. Please try again.")
     
-    # serializer = LikeSerializer(data=like_data, context={'request': request})
-    # if not serializer.is_valid():
-    #     print("Validation errors:", serializer.errors)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    # like_object = serializer.data
-
-    # inbox_url = request.build_absolute_uri(reverse('inbox', args=[liked_post.author.id]))
-    
-    # try:
-    #     response = requests.post(inbox_url, json=like_object, headers={'Content-Type' : 'application/json'})
-    #     response.raise_for_status()
-
-    #     return Response({"message": "Like sent to inbox"}, status=status.HTTP_201_CREATED)
-    # except request.ReqestException as e:
-    #     return Response({"error": f"Failed to send like to inbox: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like_comment(request, id):
     #liked_comment = get_object_or_404(Comment, id=id)
     liked_comment = get_comment_by_id(id)
+    post_author = liked_comment.author
     current_author = get_author(request)
     print(current_author)
 
-    new_comment = CommentLike(liker=current_author, owner=liked_comment)
-    new_comment.save()
-    return(redirect(f'/node/posts/{liked_comment.post.id}/'))
+    like_id = f"{current_author.url}/liked/{CommentLike.objects.count()+1}"
+    object_id = f"{post_author.url}/posts/{liked_comment.id}"
+    like_request = {
+        "type" : "like",
+        "author" : {
+            "type" : "author",
+            "id": current_author.url,
+            "host": current_author.host,
+            "displayName": current_author.display_name,
+            "github": current_author.github,
+            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+            "page": current_author.url,
+        },
+        "published" : datetime.datetime.now().isoformat(),
+        "id" : like_id,
+        "object" : object_id
+    }
+
+    inbox_url = post_author + '/inbox'
+    access_token = AccessToken.for_user(current_author)
+
+    try:
+        node = post_author.host[:-4].replace('http://', 'https://')
+        if current_author.host.replace('http://', 'https://') != (node+"api/"):
+            response = post_request_to_node(node, inbox_url, data=like_request)
+        else:
+            CommentLike.objects.create(liker=current_author, owner=liked_comment)
+
+        return(redirect(f'/node/posts/{id}/'))
+    except Exception as e:
+        print(f"Failed to send post like request: {str(e)}")
+        messages.error(request, "Failed to send post like request. Please try again.")
    
 
 
