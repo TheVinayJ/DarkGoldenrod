@@ -3,7 +3,7 @@ from . import views, login
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import routers
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 from .login import SignupView, LoginView, LogoutView, UserInfoView
 
 
@@ -54,6 +54,7 @@ urlpatterns = [
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
     path('api/user-info/', UserInfoView.as_view(), name='user_info'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
 
     path('api/posts/<int:post_id>', views.get_post, name='get_post'),
     path('api/authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
