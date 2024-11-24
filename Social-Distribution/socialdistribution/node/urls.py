@@ -5,7 +5,26 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 from .login import SignupView, LoginView, LogoutView, UserInfoView
+from django.urls.converters import register_converter
+from uuid import UUID
 
+class UUIDOrIntConverter:
+    regex = r'[0-9]+|[a-f0-9\-]{36}'  # Matches either an int or a UUID
+
+    def to_python(self, value):
+        try:
+            # Attempt to parse as UUID
+            return UUID(value)
+        except ValueError:
+            # Fallback to treating it as an int
+            return int(value)
+
+    def to_url(self, value):
+        return str(value)
+
+
+# Register the custom converter
+register_converter(UUIDOrIntConverter, 'uuid_or_int')
 
 urlpatterns = [
     path("", views.display_feed, name="index"),

@@ -204,17 +204,21 @@ def get_model_instance_by_id(model, id_value):
     :raises Http404: If no matching instance is found.
     """
     try:
-        # Attempt to parse as UUID
-        uuid_id = UUID(id_value, version=4)
+        # If id_value is already a UUID object, use it directly
+        if isinstance(id_value, UUID):
+            return get_object_or_404(model, id=id_value)
+        
+        # Attempt to parse id_value as a UUID string
+        uuid_id = UUID(str(id_value), version=4)
         return get_object_or_404(model, id=uuid_id)
-    except ValueError:
+    except (ValueError, TypeError):
         try:
             # Fallback to int ID
             int_id = int(id_value)
             return get_object_or_404(model, id=int_id)
-        except ValueError:
+        except (ValueError, TypeError):
             raise Http404(f"{model.__name__} with the provided ID does not exist.")
-
+        
 def get_author_by_id(id_value):
     return get_model_instance_by_id(Author, id_value)
 
@@ -241,30 +245,27 @@ def get_post_by_id_and_author(post_id, author_id):
     :return: The Post instance if found.
     :raises Http404: If no matching instance is found.
     """
+    # Parse post_id
     try:
-        # Attempt to parse post_id as UUID
-        post_uuid = UUID(post_id, version=4)
-    except ValueError:
+        post_uuid = post_id if isinstance(post_id, UUID) else UUID(str(post_id), version=4)
+    except (ValueError, TypeError):
         try:
-            # Fallback to parsing post_id as int
             post_uuid = int(post_id)
-        except ValueError:
+        except (ValueError, TypeError):
             raise Http404("Invalid post_id provided.")
 
+    # Parse author_id
     try:
-        # Attempt to parse author_id as UUID
-        author_uuid = UUID(author_id, version=4)
-    except ValueError:
+        author_uuid = author_id if isinstance(author_id, UUID) else UUID(str(author_id), version=4)
+    except (ValueError, TypeError):
         try:
-            # Fallback to parsing author_id as int
             author_uuid = int(author_id)
-        except ValueError:
+        except (ValueError, TypeError):
             raise Http404("Invalid author_id provided.")
 
     # Fetch the post with the parsed IDs
     return get_object_or_404(Post, pk=post_uuid, author_id=author_uuid)
 
-from django.db.models import Q
 
 def get_like_instance(model, like_id, liker_id):
     """
@@ -282,24 +283,22 @@ def get_like_instance(model, like_id, liker_id):
     Raises:
         Http404: If the object does not exist.
     """
+    # Parse like_id
     try:
-        # Attempt to parse like_id as UUID
-        like_uuid = UUID(like_id, version=4)
-    except ValueError:
+        like_uuid = like_id if isinstance(like_id, UUID) else UUID(str(like_id), version=4)
+    except (ValueError, TypeError):
         try:
-            # Fallback to parsing like_id as int
             like_uuid = int(like_id)
-        except ValueError:
+        except (ValueError, TypeError):
             raise Http404("Invalid like_id provided.")
 
+    # Parse liker_id
     try:
-        # Attempt to parse liker_id as UUID
-        liker_uuid = UUID(liker_id, version=4)
-    except ValueError:
+        liker_uuid = liker_id if isinstance(liker_id, UUID) else UUID(str(liker_id), version=4)
+    except (ValueError, TypeError):
         try:
-            # Fallback to parsing liker_id as int
             liker_uuid = int(liker_id)
-        except ValueError:
+        except (ValueError, TypeError):
             raise Http404("Invalid liker_id provided.")
 
     # Fetch the like instance with the parsed IDs
