@@ -31,7 +31,7 @@ import http.client
 import json
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed, send_request_to_node, post_request_to_node
@@ -801,6 +801,66 @@ def get_like_by_id(request, like_id):
     except (IndexError, ValueError):
         return Response({"error": "Invalid like ID format"}, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([JSONParser])
+def post_comments(request, author_id, post_id):
+    """
+    GET: Retrieve comments on a post
+    POST: Add a comment to a post
+    """
+    try:
+        author = Author.objects.get(id=author_id)
+        post = Post.objects.get(id=post_id)
+    except (Author.DoesNotExist, Post.DoesNotExist):
+        return JsonResponse({'error': 'Author or Post not found'}, status=404)
+
+    if request.method == 'GET':
+        comments = Comment.objects.filter(post=post).order_by('-published')
+        serializer = CommentSerializer(comments, many=True)
+        response_data = {
+            "type": "comments",
+            "page": request.build_absolute_uri(),
+            "id": f"{post.author.url}/posts/{post.id}/comments",
+            "page_number": 1,
+            "size": len(comments),
+            "count": len(comments),
+            "src": serializer.data,
+        }
+        return Response(response_data)
+
+    elif request.method == 'POST':
+        # Add a comment to the post
+        data = request.data
+
+        if data.get('type') != 'comment':
+            return JsonResponse({'error': 'Invalid type, expected "comment".'}, status=400)
+
+        authenticated_author = get_author(request)
+        if authenticated_author is None:
+            return HttpResponseForbidden("You must be logged in to post a comment.")
+
+        comment = Comment(
+            post=post,
+            author=authenticated_author,
+            text=data.get('comment', ''),
+            published=timezone.now(),
+        )
+        comment.save()
+
+        # Serialize the comment
+        comment_data = CommentSerializer(comment).data
+
+        # Forward the comment to the post's author inbox if the post is from a remote author
+        if post.author.host != f'http://{request.get_host()}/api/':
+            inbox_url = f"{post.author.url}/inbox"
+            try:
+                post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
+            except Exception as e:
+                print(f"Failed to send comment to inbox: {str(e)}")
+
+        return Response(comment_data, status=201)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_comment(request, id):
@@ -1465,13 +1525,40 @@ def add_external_comment(request, author_id):
     body = json.loads(request.body)
 
     if body['type'] == 'comment':   # Single comment
-        new_comment = Comment.objects.create(author_id=author_id,
-                                             post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
-        serializer = CommentSerializer(new_comment, data=body)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        post_url = body.get('post', '')
+        post_id = post_url.rstrip('/').split('/')[-1]
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return JsonResponse({'error': 'Post not found.'}, status=404)
+
+        # Ensure the author exists or create if necessary
+        author_data = body.get('author')
+        if not author_data:
+            return JsonResponse({'error': 'Author data is required.'}, status=400)
+
+        author_id = author_data.get('id', '').rstrip('/').split('/')[-1]
+        author, created = Author.objects.get_or_create(
+            url=author_data.get('id'),
+            defaults={
+                'display_name': author_data.get('displayName', 'Unknown'),
+                'host': author_data.get('host', ''),
+                'github': author_data.get('github', ''),
+                'profile_image': author_data.get('profileImage', ''),
+                'email': f"{author_id}@foreignnode.com",
+            }
+        )
+
+        comment = Comment(
+            post=post,
+            author=author,
+            text=body.get('comment', ''),
+            published=body.get('published', timezone.now()),
+        )
+        comment.save()
+
+        serializer = CommentSerializer(comment)
+        return Response(serializer.data, status=201)
 
     if body['type'] == 'comments':
         for comment in body['src']:

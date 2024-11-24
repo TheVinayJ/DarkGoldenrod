@@ -148,13 +148,14 @@ class CommentSerializer(serializers.ModelSerializer):
     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
-    likes = CommentLikesSerializer(source='*')
+    likes = CommentLikesSerializer(source='*', required=False)
 
     class Meta:
         model = Comment
         fields = ['type', 'author', 'comment', 'contentType', 'published', 'id', 'post', 'likes']
 
     def get_id(self, obj):
+        # if error, try return f"{obj.author.url}/commented/{obj.id}"
         return f"http://darkgoldenrod/api/authors/{obj.author.id}/commented/{obj.id}"
 
     def get_post(self, obj):
