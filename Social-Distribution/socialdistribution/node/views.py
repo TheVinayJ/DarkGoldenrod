@@ -1673,7 +1673,7 @@ def followers_following_friends(request, author_id):
             # for response in responses:
             #     users += response.json().get('followers', []) if response.status_code == 200 else []
 
-            follow_objects= Follow.objects.filter(following=profileUserUrl, approved=True).values_list('following', flat=True)
+            follow_objects= Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
             for url in follow_objects:
                 users.append(get_object_or_404(Author, url=url))
             title = "Followers"
