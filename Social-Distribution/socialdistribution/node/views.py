@@ -647,7 +647,8 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    post_like = PostLike.objects.create(liker=author_id, owner=post)
+    liker = get_object_or_404(id=author_id)
+    post_like = PostLike.objects.create(liker=liker, owner=post)
     serializer = PostLikeSerializer(post_like, data=body)
     if serializer.is_valid():
         serializer.save()
