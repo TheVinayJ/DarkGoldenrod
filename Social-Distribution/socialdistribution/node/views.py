@@ -989,8 +989,8 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
-    followers = Follow.objects.filter(following=f"https://{post.author.host}authors/{post.author.id}")
-    print("Sending comment to people following: ", f"https://{post.author.host}authors/{post.author.id}")
+    followers = Follow.objects.filter(following=f"{post.author.host}authors/{post.author.id}")
+    print("Sending comment to people following: ", f"{post.author.host}authors/{post.author.id}")
     print("Sending comment to: ", followers)
     for follower in followers:
         try:
