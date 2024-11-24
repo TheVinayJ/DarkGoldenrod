@@ -882,6 +882,27 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
+    followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{post.author.id}")
+    for follower in followers:
+        try:
+            json_content = CommentSerializer(new_comment).data
+            follower_url = follower.follower
+            print("sending POST to: " + follower_url)
+
+            # Extract base URL from follower's URL
+            parsed_url = urlparse(follower_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+            # Send the POST request to the follower's inbox
+            inbox_url = follower_url.rstrip('/') + '/inbox'
+
+            print("base_url: ", base_url)
+            print("inbox_url: ", inbox_url)
+            print("json_content: ", json_content)
+            # Now call post_request_to_node with base_url
+            post_request_to_node(base_url, inbox_url, 'POST', json_content)
+        except Exception as e:
+            print(e)
     # Return to question
     return(redirect(f'/node/posts/{id}/'))
 
@@ -1373,15 +1394,19 @@ def followers_following_friends(request, author_id):
     '''
     author = get_object_or_404(Author, id=author_id)
     profileUserUrl = author.url  # user of the profile
+    users = []
 
-
-    # find a diff way to do this tbh
     see_follower = request.GET.get('see_follower')
+
+    # see friends
     if see_follower is None:
         follow_objects = Follow.objects.filter(follower=profileUserUrl, approved=True)
-        users = [person.following for person in follow_objects if person.is_friend()]
+        friends = [person.following for person in follow_objects if person.is_friend()]
+        for friend_url in friends:
+            users.append(get_object_or_404(Author, url=friend_url))
         title = "Friends"
     else:
+        # see followers
         if see_follower == "true":
             # use the api to get followers
 
@@ -1396,11 +1421,9 @@ def followers_following_friends(request, author_id):
             print(response.json())
             responses.append(response)
 
-            users = []
             for response in responses:
                 users += response.json().get('followers', []) if response.status_code == 200 else []
 
-            print(users)
             # for follower in users:
             #     Author.objects.update_or_create(
             #         url=follower['id'],
@@ -1429,6 +1452,11 @@ def followers_following_friends(request, author_id):
     #         'title': title,
     #         'authors': author_data
     #     })
+
+    print("these are the users")
+    print(users)
+    for user in users:
+        print(user.display_name)
     return render(request, 'follower_following.html', {
         'authors': users,
         'DisplayTitle': title,
@@ -1492,30 +1520,35 @@ def local_api_follow(request, author_id):
         node = author_to_follow.host[:-4].replace('http://','https://')
         print(f"Node: {node}")
         print(f"Author to follow: {inbox_url}")
-        
         print(f"Follow request: {follow_request}")
-        response = post_request_to_node(node, inbox_url, data=follow_request)
-        print(f"Response: {response}")
-        Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
-    except Exception as e:
-        print(f"Failed to send follow request: {str(e)}")
-        headers = {
-            'Authorization': f'Bearer {access_token}'
-        }
-        print("not good")
-        print(f"Follow request: {follow_request}")
-        response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
 
-    if response.status_code in [200, 201]:
+        print(current_author.host.replace('http://','https://'))
+        print(node+"api/")
+        # if remote node
+        if current_author.host.replace('http://','https://') != (node+"api/"):
+            response = post_request_to_node(node, inbox_url, data=follow_request)
+        # else local node
+        else:
+            headers = {
+                'Authorization': f'Bearer {access_token}'
+            }
+            # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+        # create follow object after successful post
+            Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
+
+        # if response.status_code in [200, 201]:
         print("Sent Follow request")
         print(f"Sent to: {inbox_url}")
-        print(f"Response URL: {response.url}")
+        # print(f"Response URL: {response.url}")
         messages.success(request, "Follow request sent successfully.")
-    else:
-        print("Failed to send Follow request")
-        messages.error(request, "Failed to send follow request. Please try again.")
+        # else:
+        #     print("Failed to send Follow request")
+        #     messages.error(request, "Failed to send follow request. Please try again.")
 
-    return redirect('authors')
+        return redirect('authors')
+    except Exception as e:
+        print(f"Failed to send follow request: {str(e)}")
+        messages.error(request, "Failed to send follow request. Please try again.")
 
 def add_external_comment(request, author_id):
     """

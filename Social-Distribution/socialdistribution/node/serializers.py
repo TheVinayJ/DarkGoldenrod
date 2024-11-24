@@ -26,7 +26,7 @@ class AuthorSerializer(serializers.ModelSerializer):
         return obj.host
 
     def get_page(self, obj):
-        return f"http://darkgoldenrod/{obj.id}/profile"
+        return obj.url
 
     def get_profileImage(self, obj):
         if obj.profile_image:
@@ -45,10 +45,10 @@ class PostLikeSerializer(serializers.ModelSerializer):
         fields = ['type', 'author', 'object', 'published', 'id']
     
     def get_id(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.author.id}/liked/{obj.id}"
+        return f"{obj.host}authors/{obj.author.id}/liked/{obj.id}"
     
     def get_object(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.owner.author.id}/posts/{obj.owner.id}"
+        return f"{obj.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
     
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
@@ -62,10 +62,10 @@ class CommentLikeSerializer(serializers.ModelSerializer):
         fields = ['type', 'author', 'object', 'published', 'id']
 
     def get_id(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.liker.id}/liked/{obj.object_id}"
+        return f"{obj.liker.host}authors/{obj.liker.id}/liked/{obj.object_id}"
 
     def get_object(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
+        return f"{obj.liker.host}authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
     
     
 class PostLikesSerializer(serializers.Serializer):
@@ -80,15 +80,15 @@ class PostLikesSerializer(serializers.Serializer):
 
     def get_page(self, obj):
         if hasattr(obj, 'post'):  
-            return f"http://darkgoldenrod/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
+            return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
         else:  
-            return f"http://darkgoldenrod/authors/{obj.author.id}/posts/{obj.id}"
+            return f"{obj.post.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_id(self, obj):
         if hasattr(obj, 'post'):  
-            return f"http://darkgoldenrod/api/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
+            return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
         else:  
-            return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/likes"
+            return f"{obj.post.author.host}authors/{obj.author.id}/posts/{obj.id}/likes"
 
     def get_count(self, obj):
         return  PostLike.objects.filter(owner=obj).count()
@@ -116,15 +116,15 @@ class CommentLikesSerializer(serializers.Serializer):
 
     def get_page(self, obj):
         if hasattr(obj, 'post'):  
-            return f"http://darkgoldenrod/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
+            return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
         else:  
-            return f"http://darkgoldenrod/authors/{obj.author.id}/posts/{obj.id}"
+            return f"{obj.post.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_id(self, obj):
         if hasattr(obj, 'post'):  
-            return f"http://darkgoldenrod/api/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
+            return f"{obj.post.author.host}api/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
         else:  
-            return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/likes"
+            return f"{obj.post.author.host}api/authors/{obj.author.id}/posts/{obj.id}/likes"
 
     def get_count(self, obj):
         return  CommentLike.objects.filter(owner=obj).count()
@@ -155,11 +155,10 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['type', 'author', 'comment', 'contentType', 'published', 'id', 'post', 'likes']
 
     def get_id(self, obj):
-        # if error, try return f"{obj.author.url}/commented/{obj.id}"
-        return f"http://darkgoldenrod/api/authors/{obj.author.id}/commented/{obj.id}"
+        return f"{obj.post.author.host}api/authors/{obj.author.id}/commented/{obj.id}"
 
     def get_post(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.post.author.id}/posts/{obj.post.id}"
+        return f"{obj.post.author.host}api/authors/{obj.post.author.id}/posts/{obj.post.id}"
 
 
 class CommentsSerializer(serializers.Serializer):
@@ -173,10 +172,10 @@ class CommentsSerializer(serializers.Serializer):
     src = serializers.SerializerMethodField()
 
     def get_page(self, obj):
-        return f"http://darkgoldenrod/authors/{obj.author.id}/posts/{obj.id}"
+        return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_id(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}/comments"
+        return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/comments"
 
     def get_count(self, obj):
         return  Comment.objects.filter(post=obj).count()
@@ -210,7 +209,7 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def get_id(self, obj):
-        return f"http://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}"
+        return f"{obj.author.host}api/authors/{obj.author.id}/posts/{obj.id}"
 
     def get_author(self, obj):
         return AuthorSerializer(obj.author).data
