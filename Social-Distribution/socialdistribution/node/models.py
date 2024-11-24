@@ -40,9 +40,9 @@ class AuthorManager(BaseUserManager):
 
 class Author(AbstractBaseUser, PermissionsMixin):
     #id = models.AutoField(primary_key=True)
-    #id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    id = models.AutoField(primary_key=True)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    #id = models.AutoField(primary_key=True)
+    #uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     url = models.CharField(max_length=255, unique=True, null=True, default=None)
     display_name = models.CharField(max_length=255, null=False)
     email = models.EmailField(max_length=255, unique=True)
@@ -112,7 +112,7 @@ class Post(models.Model):
 
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
-    author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='posts_by_uuid', to_field='uuid')
+    #author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='posts_by_uuid', to_field='uuid')
     title = models.CharField(max_length=100)
     description = models.TextField()  # Posts need a short description
     contentType = models.CharField(max_length=50, default="text/plain")
@@ -136,7 +136,7 @@ class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='comments_by_uuid', to_field='uuid')
+    #author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='comments_by_uuid', to_field='uuid')
     published = models.DateTimeField(auto_now_add=True, null=True, db_index=True)
     text = models.TextField()
 
@@ -148,7 +148,7 @@ class CommentLike(Like):
     
 class Image(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='images_by_uuid', to_field='uuid')
+    #author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='images_by_uuid', to_field='uuid')
     image = models.ImageField(upload_to='images/')
     uploaded_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
