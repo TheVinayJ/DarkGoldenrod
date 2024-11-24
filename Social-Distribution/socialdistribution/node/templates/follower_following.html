@@ -14,7 +14,7 @@
         {% for author in authors %}
         <li>
             <!-- Link to the author's profile page -->
-            {{ author.displayName }}<br>
+            {{ author.display_name }}<br>
             Host: {{ author.host }}<br>
             {% if author.github %}
                 GitHub: <a href="https://github.com/{{ author.github }}">{{ author.github }}</a><br>
