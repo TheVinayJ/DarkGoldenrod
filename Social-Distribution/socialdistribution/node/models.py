@@ -7,6 +7,7 @@ from django.core.validators import URLValidator
 from solo.models import SingletonModel
 import django
 import datetime
+import uuid
 
 
 class AuthorManager(BaseUserManager):
@@ -38,7 +39,10 @@ class AuthorManager(BaseUserManager):
 
 
 class Author(AbstractBaseUser, PermissionsMixin):
+    #id = models.AutoField(primary_key=True)
+    #id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     id = models.AutoField(primary_key=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     url = models.CharField(max_length=255, unique=True, null=True, default=None)
     display_name = models.CharField(max_length=255, null=False)
     email = models.EmailField(max_length=255, unique=True)
@@ -68,18 +72,18 @@ class Author(AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         if not self.email and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
-            self.email = f"{self.id}@foreignnode.com"
+            self.email = f"{self.uuid}@foreignnode.com"
             # Now save only the 'url' field
             super().save(update_fields=['email'])
         elif not self.url and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
-            self.url = f"{self.host}authors/{self.id}"
+            self.url = f"{self.host}authors/{self.uuid}"
             # Now save only the 'url' field
             super().save(update_fields=['url'])
         elif not self.url and not self.email and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
-            self.url = f"{self.host}authors/{self.id}"
-            self.email = f"{self.id}@foreignnode.com"
+            self.url = f"{self.host}authors/{self.uuid}"
+            self.email = f"{self.uuid}@foreignnode.com"
             # Now save only the 'url' field
             super().save(update_fields=['url', 'email'])
         else:
@@ -108,6 +112,7 @@ class Post(models.Model):
 
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
+    author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='posts_by_uuid', to_field='uuid')
     title = models.CharField(max_length=100)
     description = models.TextField()  # Posts need a short description
     contentType = models.CharField(max_length=50, default="text/plain")
@@ -131,6 +136,7 @@ class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='comments_by_uuid', to_field='uuid')
     published = models.DateTimeField(auto_now_add=True, null=True, db_index=True)
     text = models.TextField()
 
@@ -142,6 +148,7 @@ class CommentLike(Like):
     
 class Image(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    author_uuid = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name='images_by_uuid', to_field='uuid')
     image = models.ImageField(upload_to='images/')
     uploaded_at = models.DateTimeField(auto_now_add=True, db_index=True)
 

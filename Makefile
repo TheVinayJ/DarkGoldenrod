@@ -21,8 +21,10 @@ static:
 superuser:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py createsuperuser"
 
-migrate:
+makemigrations:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py makemigrations"
+
+migrate:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate"
 
 test_all:
