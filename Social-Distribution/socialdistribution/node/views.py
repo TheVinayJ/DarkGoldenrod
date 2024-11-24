@@ -595,17 +595,34 @@ def local_api_like(request, id):
     #liked_post = get_object_or_404(Post, id=id)
     liked_post = get_post_by_id(id)
     current_author = get_author(request)
+
+    post_owner = liked_post.author
     print(current_author)
+    print(post_owner)
 
     author_data = AuthorSerializer(current_author).data
 
-    # like_data = {
-    #     "type": "like",
-    #     "author": current_author,
-    #     "object": f"https://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
-    #     "published": datetime.datetime.now(),
-    #     "id" : f"https://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
-    # }
+
+
+    like_data = {
+        "type": "like",
+        "author": {
+            "type": "author",
+            "id": f"{current_author.url}",
+            "host": current_author.host,
+            "displayName": current_author.display_name,
+            "github": current_author.github,
+            "profileImage": current_author.profile_image.url if author.profile_image else '',
+            "page": current_author.page
+
+        },
+        "published": datetime.datetime.now(),
+        "id": f"https://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}",
+        "object": f"https://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
+    }
+
+
+    response = post_request_to_node(node, inbox_url, data=like_data)
 
     new_like = PostLike(liker=current_author, owner=liked_post)
     new_like.save()
