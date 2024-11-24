@@ -1240,6 +1240,7 @@ def followers_following_friends(request, author_id):
     #         'authors': author_data
     #     })
 
+    print("these are the users")
     print(users)
     return render(request, 'follower_following.html', {
         'authors': users,
