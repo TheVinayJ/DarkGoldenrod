@@ -8,7 +8,8 @@ from django.contrib.auth import authenticate
 
 class AuthorSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='author')
-    id = serializers.SerializerMethodField()
+    #id = serializers.SerializerMethodField()
+    id = serializers.UUIDField(format='hex_verbose')
     host = serializers.SerializerMethodField()
     displayName = serializers.CharField(source='display_name')
     github = serializers.CharField(allow_null=True,allow_blank=False)
