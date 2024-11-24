@@ -989,7 +989,7 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
-    followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
+    followers = Follow.objects.filter(following=f"https://{post.author.host}authors/{post.author.id}")
     for follower in followers:
         try:
             json_content = CommentSerializer(new_comment).data
