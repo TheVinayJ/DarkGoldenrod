@@ -1193,8 +1193,8 @@ def followers_following_friends(request, author_id):
     if see_follower is None:
         follow_objects = Follow.objects.filter(follower=profileUserUrl, approved=True)
         friends = [person.following for person in follow_objects if person.is_friend()]
-        for friend_id in friends:
-            users.append(get_object_or_404(Author, id=friend_id))
+        for friend_url in friends:
+            users.append(get_object_or_404(Author, url=friend_url))
         title = "Friends"
     else:
         # see followers
