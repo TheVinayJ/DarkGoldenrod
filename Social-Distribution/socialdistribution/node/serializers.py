@@ -188,7 +188,7 @@ class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     id = serializers.SerializerMethodField()
-    author = serializers.SerializerMethodField
+    author = AuthorSerializer()
     comments = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
 
@@ -211,8 +211,8 @@ class PostSerializer(serializers.ModelSerializer):
     def get_id(self, obj):
         return f"{obj.author.host}api/authors/{obj.author.id}/posts/{obj.id}"
 
-    def get_author(self, obj):
-        return AuthorSerializer(obj.author).data
+    # def get_author(self, obj):
+    #     return AuthorSerializer(obj.author).data
 
     def get_content(self, obj):
         if obj.contentType.startswith('text'):
