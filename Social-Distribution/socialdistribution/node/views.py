@@ -1472,23 +1472,23 @@ def local_api_follow(request, author_id):
             headers = {
                 'Authorization': f'Bearer {access_token}'
             }
-            response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
+            # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
         # create follow object after successful post
             Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
+
+        # if response.status_code in [200, 201]:
+        print("Sent Follow request")
+        print(f"Sent to: {inbox_url}")
+        # print(f"Response URL: {response.url}")
+        messages.success(request, "Follow request sent successfully.")
+        # else:
+        #     print("Failed to send Follow request")
+        #     messages.error(request, "Failed to send follow request. Please try again.")
+
+        return redirect('authors')
     except Exception as e:
         print(f"Failed to send follow request: {str(e)}")
         messages.error(request, "Failed to send follow request. Please try again.")
-
-    # if response.status_code in [200, 201]:
-    print("Sent Follow request")
-    print(f"Sent to: {inbox_url}")
-    # print(f"Response URL: {response.url}")
-    messages.success(request, "Follow request sent successfully.")
-    # else:
-    #     print("Failed to send Follow request")
-    #     messages.error(request, "Failed to send follow request. Please try again.")
-
-    return redirect('authors')
 
 def add_external_comment(request, author_id):
     """
