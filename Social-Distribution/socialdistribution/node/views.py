@@ -992,26 +992,25 @@ def add_comment(request, id):
     followers = Follow.objects.filter(following=f"{post.author.host}authors/{post.author.id}")
     print("Sending comment to people following: ", f"{post.author.host}authors/{post.author.id}")
     print("Sending comment to: ", followers)
-    for follower in followers:
-        try:
-            json_content = CommentSerializer(new_comment).data
-            follower_url = follower.follower
-            print("sending POST to: " + follower_url)
+    try:
+        json_content = CommentSerializer(new_comment).data
+        url = post.author.url
+        print("sending POST to: " + url)
 
-            # Extract base URL from follower's URL
-            parsed_url = urlparse(follower_url)
-            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+        # Extract base URL from follower's URL
+        parsed_url = urlparse(url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
 
-            # Send the POST request to the follower's inbox
-            inbox_url = follower_url.rstrip('/') + '/inbox'
+        # Send the POST request to the follower's inbox
+        inbox_url = url.rstrip('/') + '/inbox'
 
-            print("base_url: ", base_url)
-            print("inbox_url: ", inbox_url)
-            print("json_content: ", json_content)
-            # Now call post_request_to_node with base_url
-            post_request_to_node(base_url, inbox_url, 'POST', json_content)
-        except Exception as e:
-            print(e)
+        print("base_url: ", base_url)
+        print("inbox_url: ", inbox_url)
+        print("json_content: ", json_content)
+        # Now call post_request_to_node with base_url
+        post_request_to_node(base_url, inbox_url, 'POST', json_content)
+    except Exception as e:
+        print(e)
     # Return to question
     return(redirect(f'/node/posts/{id}/'))
 
@@ -1622,32 +1621,24 @@ def followers_following_friends(request, author_id):
         if see_follower == "true":
             # use the api to get followers
 
-            access_token = AccessToken.for_user(author)
-            headers = {
-                'Authorization': f'Bearer {access_token}'
-            }
+            # access_token = AccessToken.for_user(author)
+            # headers = {
+            #     'Authorization': f'Bearer {access_token}'
+            # }
+            #
+            # responses = []
+            # api_url = request.build_absolute_uri(reverse('list_all_followers', kwargs={'author_id': author_id}))
+            # response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
+            # print(response.json())
+            # responses.append(response)
+            #
+            # for response in responses:
+            #     users += response.json().get('followers', []) if response.status_code == 200 else []
 
-            responses = []
-            api_url = request.build_absolute_uri(reverse('list_all_followers', kwargs={'author_id': author_id}))
-            response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
-            print(response.json())
-            responses.append(response)
-
-            for response in responses:
-                users += response.json().get('followers', []) if response.status_code == 200 else []
-
-            # for follower in users:
-            #     Author.objects.update_or_create(
-            #         url=follower['id'],
-            #         defaults={
-            #             'url': follower['id'],
-            #             'host': follower['host'],
-            #             'display_name': follower['displayName'],
-            #             'github': follower['github'],
-            #             'page': follower['page'],
-            #             'profile_image': follower['profileImage'],
-            #         }
-            #     )
+            follow_objects= Follow.objects.filter(following=profileUserUrl, approved=True).values_list('following', flat=True)
+            followers = [person.follower for person in follow_objects]
+            for url in followers:
+                users.append(get_object_or_404(Author, url=url))
             title = "Followers"
         elif see_follower == 'false':
             users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
@@ -1825,7 +1816,8 @@ def add_external_post(request, author_id):
     Add a post to the database from an inbox call
     """
     body = json.loads(request.body)
-    serializer = PostSerializer(data=body)
+    author = get_author_by_id(author_id)
+    serializer = PostSerializer(data=body, author = author)
     if serializer.is_valid():
         serializer.save()
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
