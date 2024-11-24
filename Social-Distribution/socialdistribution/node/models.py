@@ -72,18 +72,18 @@ class Author(AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         if not self.email and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
-            self.email = f"{self.uuid}@foreignnode.com"
+            self.email = f"{self.id}@foreignnode.com"
             # Now save only the 'url' field
             super().save(update_fields=['email'])
         elif not self.url and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
-            self.url = f"{self.host}authors/{self.uuid}"
+            self.url = f"{self.host}authors/{self.id}"
             # Now save only the 'url' field
             super().save(update_fields=['url'])
         elif not self.url and not self.email and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
-            self.url = f"{self.host}authors/{self.uuid}"
-            self.email = f"{self.uuid}@foreignnode.com"
+            self.url = f"{self.host}authors/{self.id}"
+            self.email = f"{self.id}@foreignnode.com"
             # Now save only the 'url' field
             super().save(update_fields=['url', 'email'])
         else:
