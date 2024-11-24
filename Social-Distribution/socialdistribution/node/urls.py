@@ -25,7 +25,7 @@ urlpatterns = [
     path("node/authors/<int:author_id>/friends/", views.followers_following_friends, name='friends'),
 
     path('node/authors/<int:author_id>/follower_requests/', views.follow_requests, name='follow_requests'),
-    path('node/authors/<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
+    # path('node/authors/<int:author_id>/follower_requests/approve/<int:follower_id>/', views.approve_follow, name='approve_follow'),
     path('node/authors/<int:author_id>/follower_requests/decline/<int:follower_id>/', views.decline_follow, name='decline_follow'),
 
     path("node/authors/<int:author_id>/profile/", views.profile, name='profile'),
@@ -71,7 +71,7 @@ urlpatterns = [
     path('api/authors/<int:author_id>/followers', views.followers_view, name='list_all_followers'),
     path('api/authors/<int:author_id>/followers/', views.followers_view, name='list_all_followers'),
     path('api/authors/<int:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
-    path('api/authors/<int:author_id>/followers/<int:follower_id>/approve', views.followers_view, name='approve_follow'),
+    path('api/authors/<int:author_id>/followers/approve', views.followers_view, name='approve_follow'),
     path("api/authors/<int:author_id>/", views.api_single_author, name='single_author'),
     path("api/authors/<int:author_id>", views.api_single_author, name='single_author'),
     path("api/authors/<str:host>/api/authors/<int:author_id>", views.api_single_author, name='single_author'),

@@ -1488,6 +1488,10 @@ def followers_following_friends(request, author_id):
     :return: html rendition of follower_following.html with the appropriate content
     '''
     author = get_object_or_404(Author, id=author_id)
+    current_author = get_author(request)
+    # check if user viewing the follow is viewing their own followings
+    is_own = (author==current_author)
+
     profileUserUrl = author.url  # user of the profile
     users = []
 
@@ -1555,6 +1559,7 @@ def followers_following_friends(request, author_id):
     return render(request, 'follower_following.html', {
         'authors': users,
         'DisplayTitle': title,
+        'is_own': is_own,
     })
 
 def get_author(request):

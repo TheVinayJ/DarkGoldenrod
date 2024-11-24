@@ -21,6 +21,14 @@
             {% else %}
                 GitHub: None <br>
             {% endif %}
+        
+            {% if is_own %}
+                {% if DisplayTitle == "Followers" %}
+                    <button type="submit">
+                        Remove Follower
+                    </button>
+                {% endif %}
+            {% endif %}
             <!-- Follow form -->
 {#            <form method="POST" action="{% url 'follow_author' author.id %}">#}
 {#                {% csrf_token %}#}
