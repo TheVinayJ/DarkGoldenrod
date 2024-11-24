@@ -36,7 +36,7 @@ class SignupView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        host = f"http://{request.get_host()}/api/"
+        host = f"https://{request.get_host()}/api/"
         
         try:
             # Retrieve the SiteSetting singleton instance
