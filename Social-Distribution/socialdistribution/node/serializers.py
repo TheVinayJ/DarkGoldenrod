@@ -214,8 +214,8 @@ class PostSerializer(serializers.ModelSerializer):
     def get_id(self, obj):
         return f"https://darkgoldenrod/api/authors/{obj.author.id}/posts/{obj.id}"
 
-    def get_author(self, obj):
-        return AuthorSerializer(obj.author).data
+    # def get_author(self, obj):
+    #     return AuthorSerializer(obj.author).data
 
     def get_content(self, obj):
         if obj.contentType.startswith('text'):
