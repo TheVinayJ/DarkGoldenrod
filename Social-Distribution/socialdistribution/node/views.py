@@ -32,6 +32,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.decorators import login_required
 from .utils import get_authenticated_user_id, AuthenticationFailed, send_request_to_node, post_request_to_node
@@ -374,7 +375,8 @@ def edit_post(request, post_id):
             'author_id': author.id,
         })
 
-@login_required
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def add_post(request, author_id):
     author = get_author(request)
     contentType = request.POST["contentType"]
@@ -905,6 +907,99 @@ def add_comment(request, id):
             print(e)
     # Return to question
     return(redirect(f'/node/posts/{id}/'))
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def author_commented(request, author_id):
+    """
+    Handles GET and POST requests for `://service/api/authors/{AUTHOR_SERIAL}/commented`
+    """
+    try:
+        author = Author.objects.get(id=author_id)
+    except Author.DoesNotExist:
+        return JsonResponse({"error": "Author not found"}, status=404)
+
+    if request.method == 'GET':
+        # Get the list of comments made by the author
+        comments = Comment.objects.filter(author=author).order_by('-published')
+
+        # Pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = request.GET.get('size', 10)
+        result_page = paginator.paginate_queryset(comments, request)
+
+        serializer = CommentSerializer(result_page, many=True)
+        response_data = {
+            "type": "comments",
+            "page": request.build_absolute_uri(),
+            "id": f"{author.url}/commented",
+            "page_number": paginator.page.number,
+            "size": paginator.page_size,
+            "count": paginator.page.paginator.count,
+            "src": serializer.data,
+        }
+        return Response(response_data)
+
+    elif request.method == 'POST':
+        # Ensure the authenticated user is the author
+        if request.user != author:
+            return HttpResponseForbidden("You are not allowed to post comments as this author.")
+
+        data = request.data
+
+        if data.get('type') != 'comment':
+            return JsonResponse({'error': 'Invalid type, expected "comment".'}, status=400)
+
+        # Get post ID from data['post']
+        post_url = data.get('post', '')
+        if not post_url:
+            return JsonResponse({'error': 'Post URL is required.'}, status=400)
+
+        post_id = post_url.rstrip('/').split('/')[-1]
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return JsonResponse({'error': 'Post not found.'}, status=404)
+
+        # Create the comment
+        comment = Comment(
+            post=post,
+            author=author,
+            text=data.get('comment', ''),
+            published=timezone.now(),
+        )
+        comment.save()
+
+        # Serialize the comment
+        comment_data = CommentSerializer(comment).data
+
+        # Forward the comment to the post's author inbox
+        inbox_url = f"{post.author.url}/inbox"
+        try:
+            post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
+        except Exception as e:
+            print(f"Failed to send comment to inbox: {str(e)}")
+
+        return Response(comment_data, status=201)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_comment_by_fqid(request, comment_fqid):
+    """
+    GET [local] get this comment by its Fully Qualified ID (FQID)
+    URL: `://service/api/commented/{COMMENT_FQID}`
+    """
+    # Decode the FQID
+    decoded_comment_fqid = unquote(comment_fqid)
+    comment_id = decoded_comment_fqid.rstrip('/').split('/')[-1]
+
+    try:
+        comment = Comment.objects.get(id=comment_id)
+    except Comment.DoesNotExist:
+        return JsonResponse({"error": "Comment not found"}, status=404)
+
+    serializer = CommentSerializer(comment)
+    return Response(serializer.data)
 
 
 @api_view(['GET'])
@@ -1959,8 +2054,13 @@ def get_comments_from_post(request, post_url):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment(request, author_id, comment_id):
-    comment = get_object_or_404(Comment, pk=comment_id)
-    return CommentSerializer(comment).data
+    try:
+        comment = Comment.objects.get(id=comment_id, author__id=author_id)
+    except Comment.DoesNotExist:
+        return JsonResponse({"error": "Comment not found"}, status=404)
+
+    serializer = CommentSerializer(comment)
+    return Response(serializer.data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
