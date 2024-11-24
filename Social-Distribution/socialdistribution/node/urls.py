@@ -3,7 +3,7 @@ from . import views, login
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import routers
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 from .login import SignupView, LoginView, LogoutView, UserInfoView
 
 
@@ -54,6 +54,7 @@ urlpatterns = [
     path('api/logout/', LogoutView.as_view(), name='api_logout'),
     path('api/user-info/', UserInfoView.as_view(), name='user_info'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
 
     path('api/posts/<int:post_id>', views.get_post, name='get_post'),
     path('api/authors/<int:author_id>/posts', views.author_posts, name='author_posts'),
@@ -63,8 +64,10 @@ urlpatterns = [
     path('api/posts/<str:post_url>/likes/', views.get_post_likes_by_id, name='post_likes_by_id'),
     path('api/authors/<str:author_id>/posts/<str:post_id>/comments/<str:comment_id>/likes/', views.get_comment_likes, name='get_comment_likes'),
     path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
-    path('api/authors/<int:author_id>/posts/<int:post_id>/comments', views.get_comments, name='get_comments'),
+    path('api/authors/<int:author_id>/posts/<int:post_id>/comments', views.post_comments, name='post_comments'),
     path('api/authors/<int:author_id>/commented/<int:comment_id>', views.get_comment, name='get_comment'),
+    path('api/authors/<int:author_id>/commented/', views.author_commented, name='author_commented'),
+    path('api/commented/<path:comment_fqid>', views.get_comment_by_fqid, name='get_comment_by_fqid'),
     path('api/authors/<int:author_id>/followers', views.followers_view, name='list_all_followers'),
     path('api/authors/<int:author_id>/followers/', views.followers_view, name='list_all_followers'),
     path('api/authors/<int:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
