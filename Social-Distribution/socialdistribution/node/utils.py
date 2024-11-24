@@ -10,6 +10,10 @@ import requests
 import aiohttp
 from asgiref.sync import sync_to_async
 from django.db import connections
+from uuid import UUID
+from django.shortcuts import get_object_or_404
+from django.http import Http404
+from .models import Author, Post, Comment, Repost, PostLike, CommentLike
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -190,3 +194,112 @@ async def send_request_to_node(node_name, endpoint, method='GET', data=None):
 #                 raise Exception(f"Unsupported HTTP method: {method}")
 #         except aiohttp.ClientError as e:
 #             raise Exception(f"HTTP request to node at '{url}' failed: {str(e)}")
+
+def get_model_instance_by_id(model, id_value):
+    """
+    Retrieve a model instance by UUID or int ID.
+    :param model: The model class to query.
+    :param id_value: The ID value (UUID or int).
+    :return: The model instance if found.
+    :raises Http404: If no matching instance is found.
+    """
+    try:
+        # If id_value is already a UUID object, use it directly
+        if isinstance(id_value, UUID):
+            return get_object_or_404(model, id=id_value)
+        
+        # Attempt to parse id_value as a UUID string
+        uuid_id = UUID(str(id_value), version=4)
+        return get_object_or_404(model, id=uuid_id)
+    except (ValueError, TypeError):
+        try:
+            # Fallback to int ID
+            int_id = int(id_value)
+            return get_object_or_404(model, id=int_id)
+        except (ValueError, TypeError):
+            raise Http404(f"{model.__name__} with the provided ID does not exist.")
+        
+def get_author_by_id(id_value):
+    return get_model_instance_by_id(Author, id_value)
+
+def get_post_by_id(id_value):
+    return get_model_instance_by_id(Post, id_value)
+
+def get_comment_by_id(id_value):
+    return get_model_instance_by_id(Comment, id_value)
+
+def get_repost_by_id(id_value):
+    return get_model_instance_by_id(Repost, id_value)
+
+def get_post_like_by_id(id_value):
+    return get_model_instance_by_id(PostLike, id_value)
+
+def get_comment_like_by_id(id_value):
+    return get_model_instance_by_id(CommentLike, id_value)
+
+def get_post_by_id_and_author(post_id, author_id):
+    """
+    Retrieve a Post instance by UUID or int for both `post_id` and `author_id`.
+    :param post_id: The ID of the Post (UUID or int).
+    :param author_id: The ID of the Author (UUID or int).
+    :return: The Post instance if found.
+    :raises Http404: If no matching instance is found.
+    """
+    # Parse post_id
+    try:
+        post_uuid = post_id if isinstance(post_id, UUID) else UUID(str(post_id), version=4)
+    except (ValueError, TypeError):
+        try:
+            post_uuid = int(post_id)
+        except (ValueError, TypeError):
+            raise Http404("Invalid post_id provided.")
+
+    # Parse author_id
+    try:
+        author_uuid = author_id if isinstance(author_id, UUID) else UUID(str(author_id), version=4)
+    except (ValueError, TypeError):
+        try:
+            author_uuid = int(author_id)
+        except (ValueError, TypeError):
+            raise Http404("Invalid author_id provided.")
+
+    # Fetch the post with the parsed IDs
+    return get_object_or_404(Post, pk=post_uuid, author_id=author_uuid)
+
+
+def get_like_instance(model, like_id, liker_id):
+    """
+    Retrieve an instance of a like model (PostLike or CommentLike) 
+    by object_id and liker__id, supporting both UUID and integer keys.
+
+    Args:
+        model (models.Model): The model to query (PostLike or CommentLike).
+        like_id (str): The object_id to filter by, as UUID or int.
+        liker_id (str): The liker__id to filter by, as UUID or int.
+
+    Returns:
+        models.Model: An instance of the specified model.
+
+    Raises:
+        Http404: If the object does not exist.
+    """
+    # Parse like_id
+    try:
+        like_uuid = like_id if isinstance(like_id, UUID) else UUID(str(like_id), version=4)
+    except (ValueError, TypeError):
+        try:
+            like_uuid = int(like_id)
+        except (ValueError, TypeError):
+            raise Http404("Invalid like_id provided.")
+
+    # Parse liker_id
+    try:
+        liker_uuid = liker_id if isinstance(liker_id, UUID) else UUID(str(liker_id), version=4)
+    except (ValueError, TypeError):
+        try:
+            liker_uuid = int(liker_id)
+        except (ValueError, TypeError):
+            raise Http404("Invalid liker_id provided.")
+
+    # Fetch the like instance with the parsed IDs
+    return get_object_or_404(model, object_id=like_uuid, liker__id=liker_uuid)

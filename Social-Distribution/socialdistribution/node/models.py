@@ -7,6 +7,7 @@ from django.core.validators import URLValidator
 from solo.models import SingletonModel
 import django
 import datetime
+import uuid
 
 
 class AuthorManager(BaseUserManager):
@@ -38,7 +39,8 @@ class AuthorManager(BaseUserManager):
 
 
 class Author(AbstractBaseUser, PermissionsMixin):
-    id = models.AutoField(primary_key=True)
+    #id = models.AutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     url = models.CharField(max_length=255, unique=True, null=True, default=None)
     display_name = models.CharField(max_length=255, null=False)
     email = models.EmailField(max_length=255, unique=True)
@@ -90,7 +92,8 @@ class Author(AbstractBaseUser, PermissionsMixin):
     
 
 class Like(models.Model):
-    object_id = models.AutoField(primary_key=True)
+    #object_id = models.AutoField(primary_key=True)
+    object_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     created_at = models.DateTimeField(default=django.utils.timezone.now, db_index=True)
     liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
 
@@ -106,7 +109,8 @@ class Post(models.Model):
         ('DELETED', 'Deleted'),
     ]
 
-    id = models.AutoField(primary_key=True)
+    #id = models.AutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100)
     description = models.TextField()  # Posts need a short description
@@ -122,13 +126,15 @@ class Post(models.Model):
 
 
 class Repost(models.Model):
-    id = models.AutoField(primary_key=True)
+    #id = models.AutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     original_post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True)
     shared_by = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True)
     shared_date = models.DateTimeField(auto_now_add=True)
 
 class Comment(models.Model):
-    id = models.AutoField(primary_key=True)
+    #id = models.AutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
     published = models.DateTimeField(auto_now_add=True, null=True, db_index=True)

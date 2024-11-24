@@ -10,7 +10,7 @@ import asyncio
 from asgiref.sync import sync_to_async
 from django.db import connections
 from urllib.parse import urlparse
-
+from .utils import get_author_by_id, get_post_by_id, get_comment_by_id, get_repost_by_id, get_post_like_by_id, get_comment_like_by_id, get_post_by_id_and_author, get_like_instance
 from django.views.generic import ListView
 from rest_framework.views import APIView
 
@@ -162,14 +162,14 @@ def api_authors_list(request):
 #         author_from_db = Author.objects.filter(url=author['id']).first()
 
 #         print(author['id'])
-#         # author['id_num']= int((author['id'].split('http://darkgoldenrod/api/authors/')[0])[0])
-#         author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
+#         # author['id_num']= int((author['id'].split('https://darkgoldenrod/api/authors/')[0])[0])
+#         author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
 #         print(author['id'])
-#         print(author['id'].split(f'http://{request.get_host()}/api/authors/'))
+#         print(author['id'].split(f'https://{request.get_host()}/api/authors/'))
 #         author['id_num'] = author_from_db.id
 #         print(author['id_num'])
 #         # find authors logged-in user is already following
-#         author['is_following'] = Follow.objects.filter(follower=f"http://{request.get_host()}/api/authors/"+str(user.id)).exists()
+#         author['is_following'] = Follow.objects.filter(follower=f"https://{request.get_host()}/api/authors/"+str(user.id)).exists()
 #         # print(author['is_following'])
 
 #     context = {
@@ -259,11 +259,11 @@ def authors_list(request):
 
     # Update author data with additional info
     for author in authors:
-        author['linkable'] = author['id'].startswith(f"http://{request.get_host()}/api/authors/")
+        author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
         author_from_db = Author.objects.filter(url=author['id']).first()
         author['id_num'] = author_from_db.id if author_from_db else None
         author['is_following'] = Follow.objects.filter(
-            follower=f"http://{request.get_host()}/api/authors/{user.id}",
+            follower=f"https://{request.get_host()}/api/authors/{user.id}",
             following=author['id'],
             approved=True
         ).exists()
@@ -288,7 +288,8 @@ def editor(request):
 @permission_classes([IsAuthenticated])
 def edit_post(request, post_id):
     author = get_author(request)
-    post = get_object_or_404(Post, id=post_id)
+    #post = get_object_or_404(Post, id=post_id)
+    post = get_post_by_id(post_id)
 
     if author is None:
         return HttpResponseForbidden("You must be logged in to edit posts.")
@@ -357,11 +358,11 @@ def edit_post(request, post_id):
         print("markdown_content:", request.POST.get('markdown_content'))
         print("image_content:", request.FILES.get('image_content'))
 
-        if author.host == f'http://{request.get_host()}/api/':
+        if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
             for follower in followers:
-                processed_nodes = [f'http://{request.get_host()}/api/']
+                processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
                     json_content = PostSerializer(post).data
                     send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)
@@ -435,8 +436,8 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
-    print(f"Searching for followers following: http://{request.get_host()}/api/authors/{author_id}")
-    followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{author_id}")
+    print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
+    followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
     print("Sending to the following followers: " + str(followers))
     
     # for follower in followers:
@@ -470,7 +471,90 @@ def author_posts(request, author_id):
     Create a new post or return author's posts.
     """
     if request.method == 'POST':
-        return add_post(request, author_id)
+        author = get_author(request)
+        contentType = request.POST["contentType"]
+        print(request.POST)
+        if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
+            # Check whether content is from AJAX or an external API call
+            # For AJAX formatting:
+            if contentType != "image":
+                contentType = 'text/' + contentType
+                content = request.POST.getlist("content")
+                if contentType == 'text/plain':
+                    content = content[0]
+                else:
+                    content = content[1]
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            text_content=content,
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+            else:
+                image = request.FILES["content"]
+                file_suffix = os.path.splitext(image.name)[1]
+                contentType = request.POST["contentType"]
+                contentType += '/' + file_suffix[1:]
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            image_content=image,
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+        else:   # Post creation for API spec
+            if 'image' in contentType:
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            image_content=request.POST["image"],
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+            else:
+                post = Post(title=request.POST["title"],
+                            description=request.POST["description"],
+                            text_content=request.POST["content"],
+                            contentType=contentType,
+                            visibility=request.POST["visibility"],
+                            published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                            author=author,
+                            )
+                post.save()
+        print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
+        followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
+        print("Sending to the following followers: " + str(followers))
+        
+        # for follower in followers:
+        #     json_content = PostSerializer(post).data
+        #     print("sending POST to: " + follower.follower)
+        #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+            
+        for follower in followers:
+            json_content = PostSerializer(post).data
+            follower_url = follower.follower
+            print("sending POST to: " + follower_url)
+
+            # Extract base URL from follower's URL
+            parsed_url = urlparse(follower_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+            # Send the POST request to the follower's inbox
+            inbox_url = follower_url.rstrip('/') + '/inbox'
+
+            print("base_url: ", base_url)
+            print("inbox_url: ", inbox_url)
+            print("json_content: ", json_content)
+            # Now call post_request_to_node with base_url
+            post_request_to_node(base_url, inbox_url, 'POST', json_content)
+        return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
     elif request.method == 'GET':
         return get_posts_from_author(request, author_id)
 
@@ -479,7 +563,9 @@ def author_posts(request, author_id):
 
 def get_posts_from_author(request, author_id):
     requester = get_author(request)
-    author = get_object_or_404(Author, id=author_id)
+    #author = get_object_or_404(Author, id=author_id)
+    author = get_author_by_id(author_id)
+    
     if requester == author:
         posts = Post.objects.filter(author=author)
     else:
@@ -490,7 +576,8 @@ def get_posts_from_author(request, author_id):
 
 def delete_post(request, post_id):
     author = get_author(request)
-    post = get_object_or_404(Post, id=post_id)
+    #post = get_object_or_404(Post, id=post_id)
+    post = get_post_by_id(post_id)
 
     # if post.author != author:
     #     return HttpResponseForbidden(f"You are not allowed to delete this post. Author: {post.author} but user: {author}")
@@ -505,7 +592,8 @@ def delete_post(request, post_id):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like(request, id):
-    liked_post = get_object_or_404(Post, id=id)
+    #liked_post = get_object_or_404(Post, id=id)
+    liked_post = get_post_by_id(id)
     current_author = get_author(request)
     print(current_author)
 
@@ -514,9 +602,9 @@ def local_api_like(request, id):
     # like_data = {
     #     "type": "like",
     #     "author": current_author,
-    #     "object": f"http://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
+    #     "object": f"https://{request.get_host()}/api/authors/{liked_post.author.id}/posts/{liked_post.id}",
     #     "published": datetime.datetime.now(),
-    #     "id" : f"http://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
+    #     "id" : f"https://{request.get_host()}/api/authors/{current_author.id}/liked/{PostLike.objects.filter(liker=current_author).count()}"
     # }
 
     new_like = PostLike(liker=current_author, owner=liked_post)
@@ -543,7 +631,8 @@ def local_api_like(request, id):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like_comment(request, id):
-    liked_comment = get_object_or_404(Comment, id=id)
+    #liked_comment = get_object_or_404(Comment, id=id)
+    liked_comment = get_comment_by_id(id)
     current_author = get_author(request)
     print(current_author)
 
@@ -556,7 +645,8 @@ def local_api_like_comment(request, id):
 def post_like(request, author_id):
     body = json.loads(request.body)
 
-    post = get_object_or_404(Post, id=body['object'].split('/')[-1])
+    #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
+    post = get_post_by_id(body['object'].split('/')[-1])
     post_like = PostLike.objects.create(liker=author_id, owner=post)
     serializer = PostLikeSerializer(post_like, data=body)
     if serializer.is_valid():
@@ -567,8 +657,8 @@ def post_like(request, author_id):
 
 def comment_like(request, author_id):
     body = json.loads(request.body)
-
-    post = get_object_or_404(Post, id=body['object'].split('/')[-1])
+    #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
+    post = get_post_by_id(body['object'].split('/')[-1])
     comment_like = CommentLike.objects.create(author_id=author_id, owner=post)
     serializer = CommentLikeSerializer(comment_like, data=body)
     if serializer.is_valid():
@@ -579,8 +669,10 @@ def comment_like(request, author_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_likes(request, author_id, post_id):
-    post = get_object_or_404(Post, pk=post_id, author_id=author_id)
-    author = get_object_or_404(Author, pk=author_id)
+    #post = get_object_or_404(Post, pk=post_id, author_id=author_id)
+    post = get_post_by_id_and_author(post_id, author_id)
+    #author = get_object_or_404(Author, pk=author_id)
+    author = get_author_by_id(author_id)
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
@@ -596,8 +688,8 @@ def get_post_likes(request, author_id, post_id):
     
     response_data = {
         "type": "likes",
-        "id": f"http://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"http://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -612,8 +704,10 @@ def get_post_likes_by_id(request, post_url):
     post_id = post_url.split('/')[-1]
     author_id = post_url.split('/authors/')[-1].split('/')[0]
     
-    post = get_object_or_404(Post, pk=post_id, author_id=author_id)
-    author = get_object_or_404(Author, pk=author_id)
+    #post = get_object_or_404(Post, pk=post_id, author_id=author_id)
+    post = get_post_by_id_and_author(post_id, author_id)
+    #author = get_object_or_404(Author, pk=author_id)
+    author = get_author_by_id(author_id)
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
@@ -629,8 +723,8 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"http://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"http://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -643,8 +737,10 @@ def get_post_likes_by_id(request, post_url):
 @permission_classes([IsAuthenticated])
 def get_comment_likes(request, author_id, post_id, comment_url):
     comment_id = comment_url.split('/')[-1]
-    comment = get_object_or_404(Comment, id=comment_id)
-    author = get_object_or_404(Author, pk=author_id)
+    #comment = get_object_or_404(Comment, id=comment_id)
+    comment = get_comment_by_id(comment_id)
+    #author = get_object_or_404(Author, pk=author_id)
+    author = get_author_by_id(author_id)
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
@@ -659,8 +755,8 @@ def get_comment_likes(request, author_id, post_id, comment_url):
     
     response_data = {
         "type": "likes",
-        "id": f"http://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
-        "page": f"http://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
+        "id": f"https://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
+        "page": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -672,7 +768,8 @@ def get_comment_likes(request, author_id, post_id, comment_url):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def likes_by_author(request, author_id):
-    author = get_object_or_404(Author, id=author_id)
+    #author = get_object_or_404(Author, id=author_id)
+    author = get_author_by_id(author_id)
 
     post_likes = PostLike.objects.filter(liker=author)
     comment_likes = CommentLike.objects.filter(liker=author)
@@ -707,8 +804,8 @@ def likes_by_author(request, author_id):
     
     response_data = {
         "type": "likes",
-        "page": f"http://{author.host}/authors/{author_id}/liked",
-        "id": f"http://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}/authors/{author_id}/liked",
+        "id": f"https://{author.host}/api/authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
         "count": len(all_likes),
@@ -725,12 +822,14 @@ def get_like(request, author_id, like_id):
     """
     try:
         if PostLike.objects.filter(object_id=like_id, liker__id=author_id).exists():
-            like = get_object_or_404(PostLike, object_id=like_id, liker__id=author_id)
+            #like = get_object_or_404(PostLike, object_id=like_id, liker__id=author_id)
+            like = get_like_instance(PostLike, like_id, author_id)
             serializer = PostLikeSerializer(like)
             return Response(serializer.data)
         
         elif CommentLike.objects.filter(object_id=like_id, liker__id=author_id).exists():
-            like = get_object_or_404(CommentLike, object_id=like_id, liker__id=author_id)
+            #like = get_object_or_404(CommentLike, object_id=like_id, liker__id=author_id)
+            like = get_like_instance(CommentLike, like_id, author_id)
             serializer = CommentLikeSerializer(like)
             return Response(serializer.data)
         else:
@@ -743,7 +842,8 @@ def get_like(request, author_id, like_id):
 @permission_classes([IsAuthenticated])
 def get_author_likes_by_id(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
-    author = get_object_or_404(Author, id=author_id)
+    #author = get_object_or_404(Author, id=author_id)
+    author = get_author_by_id(author_id)
 
     post_likes = PostLike.objects.filter(liker=author)
     comment_likes = CommentLike.objects.filter(liker=author)
@@ -768,8 +868,8 @@ def get_author_likes_by_id(request, author_fqid):
     
     response_data = {
         "type": "likes",
-        "page": f"http://{author.host}/api/authors/{author_id}/liked",
-        "id": f"http://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}/api/authors/{author_id}/liked",
+        "id": f"https://{author.host}/api/authors/{author_id}/liked",
         "page_number": page_number,
         "size": size,
         "count": len(all_likes),
@@ -787,13 +887,16 @@ def get_like_by_id(request, like_id):
         author_id = split_like[-2] 
         
         like = None
-        author = get_object_or_404(Author, id=author_id)
+        #author = get_object_or_404(Author, id=author_id)
+        author = get_author_by_id(author_id)
         
         if PostLike.objects.filter(object_id=id, liker=author).exists():
-            like = get_object_or_404(PostLike, object_id=id, liker=author)
+            #like = get_object_or_404(PostLike, object_id=id, liker=author)
+            like = get_like_instance(PostLike, id, author)
             serializer = PostLikeSerializer(like)
         elif CommentLike.objects.filter(object_id=id, liker=author).exists():
-            like = get_object_or_404(CommentLike, object_id=id, liker=author)
+            #like = get_object_or_404(CommentLike, object_id=id, liker=author)
+            like = get_like_instance(CommentLike, id, author)
             serializer = CommentLikeSerializer(like)
         else:
             return Response({"error": "Like not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -854,7 +957,7 @@ def post_comments(request, author_id, post_id):
         comment_data = CommentSerializer(comment).data
 
         # Forward the comment to the post's author inbox if the post is from a remote author
-        if post.author.host != f'http://{request.get_host()}/api/':
+        if post.author.host != f'https://{request.get_host()}/api/':
             inbox_url = f"{post.author.url}/inbox"
             try:
                 post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
@@ -873,7 +976,8 @@ def add_comment(request, id):
     """
     if request.method != "POST":
         return HttpResponse(status=400)
-    post = get_object_or_404(Post, pk=id)
+    #post = get_object_or_404(Post, pk=id)
+    post = get_post_by_id(id)
 
     # Get request contents
     author = get_author(request)
@@ -884,7 +988,7 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
-    followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{post.author.id}")
+    followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
     for follower in followers:
         try:
             json_content = CommentSerializer(new_comment).data
@@ -1011,7 +1115,8 @@ def view_post(request, post_id):
     Otherwise, render the post
     """
 
-    post = get_object_or_404(Post, id=post_id)
+    #post = get_object_or_404(Post, id=post_id)
+    post = get_post_by_id(post_id)
     author = get_author(request)
     liked = False
 
@@ -1081,22 +1186,22 @@ def view_post(request, post_id):
 #         }
 
 #     is_following = Follow.objects.filter( # if logged in author following the user
-#         follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
-#         following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+#         follower=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
+#         following=f"https://{request.get_host()}/api/authors/" + str(author_id),
 #         approved=True,
 #     ).exists()
 #     if is_following:
 #         is_followback = Follow.objects.filter(  # ... see if user is following back
-#             follower=f"http://{request.get_host()}/api/authors/" + str(author_id),
-#             following=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
+#             follower=f"https://{request.get_host()}/api/authors/" + str(author_id),
+#             following=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
 #             approved=True,
 #         ).exists()
 #         is_pending = False
 #     else:
 #         is_followback = False
 #         is_pending = Follow.objects.filter( # if logged in author following the user
-#             follower=f"http://{request.get_host()}/api/authors/" + str(current_author.id),
-#             following=f"http://{request.get_host()}/api/authors/" + str(author_id),
+#             follower=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
+#             following=f"https://{request.get_host()}/api/authors/" + str(author_id),
 #             approved=False,
 #         ).exists()
 
@@ -1112,19 +1217,19 @@ def view_post(request, post_id):
 
 #     # Followers: people who follow the user
 #     followers_count = Follow.objects.filter(
-#         following=f"http://{request.get_host()}/api/authors/{author_id}",
+#         following=f"https://{request.get_host()}/api/authors/{author_id}",
 #         approved=True
 #     ).count()
 
 #     # Following: people the user follows
 #     # This returns a list of users that `author_id` is following
 #     followed_users = Follow.objects.filter(
-#         follower=f"http://{request.get_host()}/api/authors/{author_id}",
+#         follower=f"https://{request.get_host()}/api/authors/{author_id}",
 #         approved=True).values_list('following', flat=True)
 #     following_count = followed_users.count()
 #     print(followed_users)
 
-#     author_url = f"http://{request.get_host()}/api/authors/{author_id}"
+#     author_url = f"https://{request.get_host()}/api/authors/{author_id}"
 
 #     # Friends: mutual follows
 #     friends_count = Follow.objects.filter(
@@ -1153,7 +1258,8 @@ def profile(request, author_id):
     Render the contents of the profile of the desired author,
     including the author's posts, GitHub activity, and profile details.
     '''
-    viewing_author = get_object_or_404(Author, id=author_id)
+    #viewing_author = get_object_or_404(Author, id=author_id)
+    viewing_author = get_author_by_id(author_id)
     current_author = get_author(request)  # Logged-in author
     own_profile = (viewing_author == current_author)
 
@@ -1170,7 +1276,7 @@ def profile(request, author_id):
 
     # Determine if the current user is following the viewing author
     is_following = Follow.objects.filter(
-        follower=f"http://{request.get_host()}/api/authors/{current_author.id}",
+        follower=f"https://{request.get_host()}/api/authors/{current_author.id}",
         following=viewing_author.url,
         approved=True,
     ).exists()
@@ -1179,7 +1285,7 @@ def profile(request, author_id):
     is_pending = False
     if not is_following:
         is_pending = Follow.objects.filter(
-            follower=f"http://{request.get_host()}/api/authors/{current_author.id}",
+            follower=f"https://{request.get_host()}/api/authors/{current_author.id}",
             following=viewing_author.url,
             approved=False,
         ).exists()
@@ -1187,7 +1293,7 @@ def profile(request, author_id):
     # Determine if the viewing author is following back
     is_followback = Follow.objects.filter(
         follower=viewing_author.url,
-        following=f"http://{request.get_host()}/api/authors/{current_author.id}",
+        following=f"https://{request.get_host()}/api/authors/{current_author.id}",
         approved=True,
     ).exists()
 
@@ -1322,7 +1428,8 @@ def api_single_author_fqid(request, author_fqid):
 
     # First, try to get by primary key (integer ID)
     try:
-        user = Author.objects.get(pk=int(author_id))
+        #user = Author.objects.get(pk=int(author_id))
+        user = get_author_by_id(author_id)
     except (ValueError, Author.DoesNotExist):
         pass  # Not an integer ID or author with this ID does not exist
 
@@ -1354,7 +1461,7 @@ def api_single_author_fqid(request, author_fqid):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1376,7 +1483,7 @@ def api_single_author_fqid(request, author_fqid):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1401,7 +1508,8 @@ def api_single_author(request, author_id):
 
     # First, try to get by primary key (integer ID)
     try:
-        user = Author.objects.get(pk=int(author_id))
+        #user = Author.objects.get(pk=int(author_id))
+        user = get_author_by_id(author_id)
     except (ValueError, Author.DoesNotExist):
         pass  # Not an integer ID or author with this ID does not exist
 
@@ -1433,7 +1541,7 @@ def api_single_author(request, author_id):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1455,7 +1563,7 @@ def api_single_author(request, author_id):
                 "id": user.url,
                 "host": user.host,
                 "displayName": user.display_name,
-                "github": "http://github.com/" + user.github if user.github else "",
+                "github": "https://github.com/" + user.github if user.github else "",
                 "profileImage": user.profile_image.url if user.profile_image else None,
                 "page": user.page,
                 "description": user.description,
@@ -1475,7 +1583,8 @@ def edit_profile(request,author_id):
     :param author_id: id of logged in author who is attempting to edit their own profile
     :return: html rendition of edit_profile.html with the appropriate content
     '''
-    user = get_object_or_404(Author, id=author_id)
+    #user = get_object_or_404(Author, id=author_id)
+    user = get_author_by_id(author_id)
     serializer = AuthorProfileSerializer(user)
     return render(request, 'profile/edit_profile.html', {'user': serializer.data})
 
@@ -1487,7 +1596,8 @@ def followers_following_friends(request, author_id):
     :param author_id: id of author whose profile is currently being viewed
     :return: html rendition of follower_following.html with the appropriate content
     '''
-    author = get_object_or_404(Author, id=author_id)
+    #author = get_object_or_404(Author, id=author_id)
+    author = get_author_by_id(author_id)
     current_author = get_author(request)
     # check if user viewing the follow is viewing their own followings
     is_own = (author==current_author)
@@ -1572,7 +1682,8 @@ def local_api_follow(request, author_id):
     # get current author id and follow author id for POST request body
     # author_id should have the full url (include node and everything) inside.
     current_author = get_author(request)
-    author_to_follow = get_object_or_404(Author, id=author_id)
+    #author_to_follow = get_object_or_404(Author, id=author_id)
+    author_to_follow = get_author_by_id(author_id)
 
 
     # Construct the follow request object
@@ -1609,15 +1720,15 @@ def local_api_follow(request, author_id):
     inbox_url = author_to_follow.url + "/inbox"
     access_token = AccessToken.for_user(current_author)
     try:
-        node = author_to_follow.host[:-4].replace('http://','https://')
+        node = author_to_follow.host[:-4].replace('https://','https://')
         print(f"Node: {node}")
         print(f"Author to follow: {inbox_url}")
         print(f"Follow request: {follow_request}")
 
-        print(current_author.host.replace('http://','https://'))
+        print(current_author.host.replace('https://','https://'))
         print(node+"api/")
         # if remote node
-        if current_author.host.replace('http://','https://') != (node+"api/"):
+        if current_author.host.replace('https://','https://') != (node+"api/"):
             response = post_request_to_node(node, inbox_url, data=follow_request)
         # else local node
         else:
@@ -1687,7 +1798,8 @@ def add_external_comment(request, author_id):
 
     if body['type'] == 'comments':
         for comment in body['src']:
-            new_comment = Comment.objects.create(author_id=author_id, post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
+            #new_comment = Comment.objects.create(author_id=author_id, post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
+            new_comment = Comment.objects.create(author_id=author_id, post=get_post_by_id(body['post'].split('/')[-1]))
             serializer = CommentSerializer(new_comment, data=comment)
             if serializer.is_valid():
                 serializer.save()
@@ -1702,11 +1814,11 @@ def add_external_post(request, author_id):
     Add a post to the database from an inbox call
     """
     body = json.loads(request.body)
-    body['author'] = author_id
     serializer = PostSerializer(data=body)
     if serializer.is_valid():
         serializer.save()
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+    print(serializer.errors)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -1739,6 +1851,7 @@ def inbox(request, author_id):
             if body['type'] == 'comment' or body['type'] == 'comments':
                 return add_external_comment(request, author_id)
         except (json.JSONDecodeError, KeyError) as e:
+            print(f"Failed to parse request body: {str(e)}")
             return JsonResponse({'error': str(e)}, status=400)
     
     return JsonResponse({'message': 'Method not allowed'}, status=405)
@@ -1773,7 +1886,8 @@ def follow_author(follower, following):
 @permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
-    author_to_unfollow = get_object_or_404(Author, id=author_id)
+    #author_to_unfollow = get_object_or_404(Author, id=author_id)
+    author_to_unfollow = get_author_by_id(author_id)
 
     # Get the logged-in author (assuming you have a user to author mapping)
     current_author = get_author(request) # Adjust this line to match your user-author mapping
@@ -1806,13 +1920,14 @@ def unfollow_author(request, author_id):
     return redirect('authors')
 
 def follow_requests(request, author_id):
-    current_author = get_object_or_404(Author, id=author_id)  # logged in author
+    #current_author = get_object_or_404(Author, id=author_id)  # logged in author
+    current_author = get_author_by_id(author_id)
     print(current_author.url)
     current_follow_requests = Follow.objects.filter(following=current_author.url, approved=False)
     print(current_follow_requests)
     follower_authors = []
     for a_request in current_follow_requests:
-        # follower_id = a_request.follower.replace("http://darkgoldenrod/api/authors/", "")
+        # follower_id = a_request.follower.replace("https://darkgoldenrod/api/authors/", "")
         follower_author = get_object_or_404(Author, url=a_request.follower)
         follower_authors.append(follower_author)
 
@@ -1831,8 +1946,10 @@ def approve_follow(request, author_id, follower_id):
     :param follower_id: id of author who submitted follow request
     :return: redirection to follow_requests view
     '''
-    follower_author = get_object_or_404(Author, id=follower_id)
-    current_author = get_object_or_404(Author, id=author_id)
+    #follower_author = get_object_or_404(Author, id=follower_id)
+    follower_author = get_author_by_id(follower_id)
+    #current_author = get_object_or_404(Author, id=author_id)
+    current_author = get_author_by_id(author_id)
     follow_request = get_object_or_404(Follow, follower=follower_author.url, following=current_author.url)
     follow_request.approved = True
     follow_request.save()
@@ -1846,8 +1963,10 @@ def decline_follow(request, author_id, follower_id):
     :param follower_id: id of author who submitted follow request
     :return: redirection to follow_requests view
     '''
-    follower_author = get_object_or_404(Author, id=follower_id)
-    current_author = get_object_or_404(Author, id=author_id)
+    #follower_author = get_object_or_404(Author, id=follower_id)
+    follower_author = get_author_by_id(follower_id)
+    #current_author = get_object_or_404(Author, id=author_id)
+    current_author = get_author_by_id(author_id)
     follow_request = get_object_or_404(Follow, follower=follower_author.url, following=current_author.url)
     follow_request.delete()
     return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
@@ -1879,7 +1998,7 @@ def display_feed(request):
     friends = [follow.following for follow in follow_objects if follow.is_friend()]
     friends_authors = Author.objects.filter(url__in=friends)
     cleaned_friends = friends_authors.values_list('id', flat=True)
-    # cleaned_friends = [int(url.replace('http://darkgoldenrod/api/authors/', '')) for url in friends]
+    # cleaned_friends = [int(url.replace('https://darkgoldenrod/api/authors/', '')) for url in friends]
 
 
     public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
@@ -1962,7 +2081,8 @@ def display_feed(request):
 
 
 def repost_post(request, id):
-    post = get_object_or_404(Post, pk=id)
+    #post = get_object_or_404(Post, pk=id)
+    post = get_post_by_id(id)
     # Only public posts can be shared
     if post.visibility != "PUBLIC":
         return HttpResponseForbidden("Post cannot be shared.")
@@ -1977,7 +2097,8 @@ def repost_post(request, id):
 def upload_image(request):
     signed_id = request.COOKIES.get('id')
     id = signing.loads(signed_id)
-    author = get_object_or_404(Author, id=id)
+    #author = get_object_or_404(Author, id=id)
+    author = get_author_by_id(id)
 
     if request.method == 'POST':
         form = ImageUploadForm(request.POST, request.FILES)
@@ -2002,7 +2123,8 @@ def api_get_post_from_author(request, author_id, post_id):
 
 def edit_post_api(request, author_id, post_id):
     author = get_author(request)
-    post = get_object_or_404(Post, id=post_id)
+    #post = get_object_or_404(Post, id=post_id)
+    post = get_post_by_id(post_id)
     if post.author != author:
         return HttpResponseForbidden("Post cannot be edited.", status=403)
 
@@ -2010,11 +2132,11 @@ def edit_post_api(request, author_id, post_id):
     serializer = PostSerializer(post, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        if author.host == f'http://{request.get_host()}/api/':
+        if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
             followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
             for follower in followers:
-                processed_nodes = [f'http://{request.get_host()}/api/']
+                processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
                     json_content = PostSerializer(post).data
                     post_request_to_node(follower.host[:-4], follower.url + '/inbox', 'POST', json_content)
@@ -2024,7 +2146,8 @@ def edit_post_api(request, author_id, post_id):
 
 def delete_post_api(request, author_id, post_id):
     author = get_author(request)
-    post = get_object_or_404(Post, id=post_id)
+    #post = get_object_or_404(Post, id=post_id)
+    post = get_post_by_id(post_id)
     if post.author != author:
         return HttpResponseForbidden("Post cannot be deleted.", status=403)
 
@@ -2034,8 +2157,10 @@ def delete_post_api(request, author_id, post_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post(request, post_id):
-    post = get_object_or_404(Post, pk=post_id)
-    author = get_object_or_404(Author, id=post.author_id)
+    #post = get_object_or_404(Post, pk=post_id)
+    post = get_post_by_id(post_id)
+    #author = get_object_or_404(Author, id=post.author_id)
+    author = get_author_by_id(post.author_id)
     if post.visibility == "FRIENDS":
         follow = get_object_or_404(Follow, follower=author, following=post.author)
         if not follow.is_friend():
@@ -2065,7 +2190,8 @@ def get_comments(request, author_id, post_id):
     #TO-DO: Pagination/query handling
     # page_number = request.GET.get('page', 1)
     # size = request.GET.get('size', 5)
-    post = get_object_or_404(Post, id=post_id)
+    #post = get_object_or_404(Post, id=post_id)
+    post = get_post_by_id(post_id)
     # page = ((page_number - 1) * size)
     # comments = post.comment_set.all()[page:page + size]
     serializer = CommentsSerializer(post)
@@ -2178,12 +2304,13 @@ def get_serialized_post(post):
 @permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
     # Since your local authors have integer IDs, convert author_id to integer
-    try:
-        author_id_int = int(author_id)
-    except ValueError:
-        return JsonResponse({"error": "Invalid author ID"}, status=400)
-
-    author = get_object_or_404(Author, id=author_id_int)
+    # try:
+    #     author_id_int = int(author_id)
+    # except ValueError:
+    #     return JsonResponse({"error": "Invalid author ID"}, status=400)
+    # author = get_object_or_404(Author, id=author_id_int)
+    
+    author = get_author_by_id(author_id)
     follower_id_param = request.GET.get('follower_id')  # Get the follower_id from query params
     follower_host = request.GET.get('follower')  # Get the follower's host from query params
 
