@@ -1859,6 +1859,7 @@ def inbox(request, author_id):
             if body['type'] == 'comment' or body['type'] == 'comments':
                 return add_external_comment(request, author_id)
         except (json.JSONDecodeError, KeyError) as e:
+            print(f"Failed to parse request body: {str(e)}")
             return JsonResponse({'error': str(e)}, status=400)
     
     return JsonResponse({'message': 'Method not allowed'}, status=405)
