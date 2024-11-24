@@ -142,6 +142,7 @@ class Comment(models.Model):
 
 class PostLike(Like):
     owner = models.ForeignKey(Post, on_delete=models.CASCADE)
+    liker = models.ForeignKey(Author, on_delete=models.CASCADE)
 
 class CommentLike(Like):
     owner = models.ForeignKey(Comment, on_delete=models.CASCADE)
