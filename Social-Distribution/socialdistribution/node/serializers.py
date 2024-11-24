@@ -35,7 +35,7 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class PostLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = AuthorSerializer()
+    author = serializers.SerializerMethodField()
     object = serializers.SerializerMethodField()
     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
@@ -52,7 +52,7 @@ class PostLikeSerializer(serializers.ModelSerializer):
     
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = AuthorSerializer()
+    author = serializers.SerializerMethodField()
     object = serializers.SerializerMethodField()
     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
