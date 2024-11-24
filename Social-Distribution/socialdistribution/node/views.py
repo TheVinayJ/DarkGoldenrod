@@ -826,6 +826,27 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
+    followers = Follow.objects.filter(following=f"http://{request.get_host()}/api/authors/{post.author.id}")
+    for follower in followers:
+        try:
+            json_content = CommentSerializer(new_comment).data
+            follower_url = follower.follower
+            print("sending POST to: " + follower_url)
+
+            # Extract base URL from follower's URL
+            parsed_url = urlparse(follower_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+            # Send the POST request to the follower's inbox
+            inbox_url = follower_url.rstrip('/') + '/inbox'
+
+            print("base_url: ", base_url)
+            print("inbox_url: ", inbox_url)
+            print("json_content: ", json_content)
+            # Now call post_request_to_node with base_url
+            post_request_to_node(base_url, inbox_url, 'POST', json_content)
+        except Exception as e:
+            print(e)
     # Return to question
     return(redirect(f'/node/posts/{id}/'))
 
