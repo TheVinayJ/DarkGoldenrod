@@ -263,7 +263,6 @@ def authors_list(request):
                 ))
             except Exception as e:
                 print("Author has issue with: ", e)
-                authors.remove(author)
     Author.objects.bulk_create(authors_to_create)
 
     # Update author data with additional info
@@ -278,7 +277,7 @@ def authors_list(request):
         ).exists()
 
     context = {
-        'authors': authors,
+        'authors': authors_to_create,
         'query': query,
         'total_pages': 1,  # Adjust as needed
     }
