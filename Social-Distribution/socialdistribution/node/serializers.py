@@ -50,12 +50,12 @@ class PostLikeSerializer(serializers.ModelSerializer):
     def get_object(self, obj):
         return f"{obj.owner.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
     
-    def get_author(self, obj):
-        if isinstance(obj.author, Author):
-            return AuthorSerializer(obj.owner).data
-        else:
-            author = Author.objects.filter(url=obj.owner.id).first()
-            return AuthorSerializer(author).data
+    # def get_author(self, obj):
+    #     if isinstance(obj.liker, Author):
+    #         return AuthorSerializer(obj.liker).data
+    #     else:
+    #         author = Author.objects.filter(url=obj.liker.id).first()
+    #         return AuthorSerializer(author).data
     
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
@@ -74,12 +74,12 @@ class CommentLikeSerializer(serializers.ModelSerializer):
     def get_object(self, obj):
         return f"{obj.liker.host}authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
     
-    def get_author(self, obj):
-        if isinstance(obj.author, Author):
-            return AuthorSerializer(obj.owner).data
-        else:
-            author = Author.objects.filter(url=obj.owner.id).first()
-            return AuthorSerializer(author).data
+    # def get_author(self, obj):
+    #     if isinstance(obj.liker, Author):
+    #         return AuthorSerializer(obj.liker).data
+    #     else:
+    #         author = Author.objects.filter(url=obj.liker.id).first()
+    #         return AuthorSerializer(author).data
     
     
 class PostLikesSerializer(serializers.Serializer):
