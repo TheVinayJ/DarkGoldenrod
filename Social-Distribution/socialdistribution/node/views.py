@@ -2073,7 +2073,7 @@ def local_api_follow(request, author_id):
             "host": current_author.host,
             "displayName": current_author.display_name,
             "github": current_author.github,
-            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+            "profileImage": current_author.profile_image if current_author.profile_image else None,
             "page": current_author.url,
         },
         "object": {
@@ -2082,7 +2082,7 @@ def local_api_follow(request, author_id):
             "host": author_to_follow.host,
             "displayName": author_to_follow.display_name,
             "github": author_to_follow.github,
-            "profileImage": author_to_follow.profile_image.url if current_author.profile_image else None,
+            "profileImage": author_to_follow.profile_image if current_author.profile_image else None,
             "page": author_to_follow.url,
         }
     }
@@ -2553,11 +2553,11 @@ def get_post(request, post_id):
             return HttpResponse(403, 'Cannot view this post')
     return JsonResponse(get_serialized_post(post), safe=False)
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_comments_from_post(request, post_url):
-    post_id = post_url.split('/')[-1]
-    return get_comments(request, post_id)
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_comments_from_post(request, post_url):
+#     post_id = post_url.split('/')[-1]
+#     return get_comments(request, post_id)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -2570,18 +2570,18 @@ def get_comment(request, author_id, comment_id):
     serializer = CommentSerializer(comment)
     return Response(serializer.data)
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_comments(request, author_id, post_id):
-    #TO-DO: Pagination/query handling
-    # page_number = request.GET.get('page', 1)
-    # size = request.GET.get('size', 5)
-    #post = get_object_or_404(Post, id=post_id)
-    post = get_post_by_id(post_id)
-    # page = ((page_number - 1) * size)
-    # comments = post.comment_set.all()[page:page + size]
-    serializer = CommentsSerializer(post)
-    return JsonResponse(serializer.data, safe=False)
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_comments(request, author_id, post_id):
+#     #TO-DO: Pagination/query handling
+#     # page_number = request.GET.get('page', 1)
+#     # size = request.GET.get('size', 5)
+#     #post = get_object_or_404(Post, id=post_id)
+#     post = get_post_by_id(post_id)
+#     # page = ((page_number - 1) * size)
+#     # comments = post.comment_set.all()[page:page + size]
+#     serializer = CommentsSerializer(post)
+#     return JsonResponse(serializer.data, safe=False)
 
 
 def get_serialized_post(post):
