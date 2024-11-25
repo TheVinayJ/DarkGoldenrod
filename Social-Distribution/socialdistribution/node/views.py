@@ -1694,7 +1694,7 @@ def retrieve_github(request, user):
                 post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
