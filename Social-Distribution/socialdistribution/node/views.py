@@ -262,7 +262,8 @@ def authors_list(request):
                     email=f"{author['id']}@foreignnode.com",
                 ))
             except Exception as e:
-                print(e)
+                print("Author has issue with: ", e)
+                authors.remove(author)
     Author.objects.bulk_create(authors_to_create)
 
     # Update author data with additional info
