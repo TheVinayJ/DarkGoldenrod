@@ -722,7 +722,9 @@ def local_api_like(request, id):
             response = post_request_to_node(node, inbox_url, data=like_request)
             if response and response.status_code in [200, 201]:
                 like = PostLike.objects.create(
+                    object_id=uuid.uuid4(),
                     liker=current_author,
+                    owner=liked_post,
                     created_at=django.utils.timezone.now(),
                 )
                 like.save()
@@ -733,6 +735,7 @@ def local_api_like(request, id):
             like = PostLike.objects.create(
                 object_id=like_uuid,
                 liker=current_author,
+                owner=liked_post,
                 created_at=django.utils.timezone.now(),
             )
             like.save()
