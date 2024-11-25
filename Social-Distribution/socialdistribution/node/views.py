@@ -1885,10 +1885,10 @@ def add_external_post(request, author_id):
     """
     body = json.loads(request.body)
     author = get_author_by_id(author_id)
-    body['author'] = author.id
+    #body['author'] = author.id
     serializer = PostSerializer(data=body)
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(author=author)
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
     print(serializer.errors)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
