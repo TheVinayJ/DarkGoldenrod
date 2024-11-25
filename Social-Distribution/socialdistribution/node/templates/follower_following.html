@@ -51,15 +51,13 @@
 <script>
     document.querySelectorAll('.remove-follower').forEach(function(button) {
         button.addEventListener('click', function() {
-            const currentAuthorId = "{{ current_author_id }}";
             const follower_id = this.getAttribute('data-follower-id');
             const follower_url = this.getAttribute('data-follower-url');
             const encodedFollowerUrl = encodeURIComponent(follower_url);
             console.log(encodedFollowerUrl);
-            apiURL = `/api/authors/${currentAuthorId}/followers/${encodedFollowerUrl}`;
-            console.log(apiURL);
+            apiURL = `api/authors/{{current_author_id}}/followers/<path:follower_id>`
 
-            fetch(apiUrl, {
+            fetch(`{% url 'list_follower' author_id=current_author_id follower_id=encodedFollowerUrl %}?follower_id=${encodedFollowerUrl}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
