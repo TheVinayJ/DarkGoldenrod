@@ -690,7 +690,7 @@ def post_like(request, author_id):
     serializer = PostLikeSerializer(post_like, data=body)
     if serializer.is_valid():
         serializer.save()
-        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -730,7 +730,7 @@ def get_post_likes(request, author_id, post_id):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}/likes",
+        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
         "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
@@ -765,7 +765,7 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}/likes",
+        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
         "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
