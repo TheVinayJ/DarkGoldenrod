@@ -1065,7 +1065,7 @@ def add_comment(request, id):
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
 
-        return Response(comment_data, status=201)
+        #return Response(comment_data, status=201)
 
     # json_content = CommentSerializer(new_comment).data
 
