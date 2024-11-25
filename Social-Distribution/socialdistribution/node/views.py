@@ -475,9 +475,15 @@ def edit_post(request, post_id):
             json_content = PostSerializer(post).data
             follower_url = follower.follower
             inbox_url = f"{follower_url.rstrip('/')}/inbox"
+        
+            print("sending POST to: " + follower_url)
+
+            # Extract base URL from follower's URL
+            parsed_url = urlparse(follower_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
 
             try:
-                post_request_to_node(follower_url, inbox_url, 'POST', json_content)
+                post_request_to_node(base_url, inbox_url, 'POST', json_content)
             except Exception as e:
                 print(f"Failed to notify {follower_url}: {str(e)}")
 
