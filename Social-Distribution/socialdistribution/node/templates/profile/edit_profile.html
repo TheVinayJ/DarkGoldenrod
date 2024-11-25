@@ -34,7 +34,7 @@
         const userId = "{{ user.id }}";
 
         formData.append('type', 'author');
-        formData.append('id', `http://darkgoldenrod/api/authors/${userId}`);
+        formData.append('id', userId);
         formData.append('host', 'http://darkgoldenrod/api/');
         formData.append('page', `http://darkgoldenrod/api/authors/${userId}/profile`);
 
