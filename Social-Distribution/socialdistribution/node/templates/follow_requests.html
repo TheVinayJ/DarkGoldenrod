@@ -33,7 +33,7 @@
                 const access_token = "{{ access_token }}";
                 console.log(follower_url);
                 
-                const baseURL = "{% url 'list_follower' author_id=current_author_id follower_id='null' %}";
+                const baseURL = "{% url 'list_follower' author_id=author.id follower_id='null' %}";
                 const apiURL = baseURL.replace("null", encodedFollowerUrl);
         
                 fetch(apiURL, {
