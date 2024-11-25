@@ -360,7 +360,7 @@ def edit_post(request, post_id):
 
         if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
-            followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
+            followers = Follow.objects.filter(following=f"{author.host}authors/{author.id})")
             for follower in followers:
                 processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
@@ -619,8 +619,8 @@ def local_api_like(request, id):
         "object" : object_id
     }
 
-    inbox_url = post_author + '/inbox'
-    access_token = AccessToken.for_user(current_author)
+    inbox_url = post_author.url + '/inbox'
+    # access_token = AccessToken.for_user(current_author)
 
     try:
         node = post_author.host[:-4].replace('http://', 'https://')
@@ -663,7 +663,7 @@ def local_api_like_comment(request, id):
         "object" : object_id
     }
 
-    inbox_url = post_author + '/inbox'
+    inbox_url = post_author.url + '/inbox'
     access_token = AccessToken.for_user(current_author)
 
     try:
@@ -685,33 +685,54 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    liker = get_object_or_404(id=author_id)
-    post_like = PostLike.objects.create(liker=liker, owner=post)
-    serializer = PostLikeSerializer(post_like, data=body)
-    if serializer.is_valid():
-        serializer.save()
-        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
-    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    liker = get_author_by_id(author_id)
+    # liker = get_object_or_404(id=author_id)
+    like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
+    if not like_exists:
+        print('Creating post like object')
+        post_like = PostLike.objects.create(liker=liker, owner=post)
+        # serializer = PostLikeSerializer(post_like, data=body)
+        # if serializer.is_valid():
+        #     serializer.save()
+        #     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+        return JsonResponse({'message' : 'PostLike request processed and created.'}, status=200)
+    else:
+        return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
+        
 
 def comment_like(request, author_id):
     body = json.loads(request.body)
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
-    post = get_post_by_id(body['object'].split('/')[-1])
-    comment_like = CommentLike.objects.create(author_id=author_id, owner=post)
-    serializer = CommentLikeSerializer(comment_like, data=body)
-    if serializer.is_valid():
-        serializer.save()
-        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
-    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    comment = get_comment_by_id(body['object'].split('/')[-1])
+    liker = get_author_by_id(author_id)
+
+    comment_like_exists = PostLike.objects.filter(liker=liker, owner=comment)
+    
+
+    if not comment_like_exists:
+        print('creating comment like object')
+        comment_like = CommentLike.objects.create(liker=liker, owner=comment)
+        return JsonResponse({'message': 'comment like request processed and created'}, status=200)
+    else:
+        return JsonResponse({'message': 'comment like already exists, unlike instead'}, status=400)
+
+    # serializer = CommentLikeSerializer(comment_like, data=body)
+    # if serializer.is_valid():
+    #     serializer.save()
+    #     return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
+    # return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_likes(request, author_id, post_id):
     #post = get_object_or_404(Post, pk=post_id, author_id=author_id)
+    
+    author_id = author_id.split('/')[-1]
+    post_id = post_id.split('/')[-1]
     post = get_post_by_id_and_author(post_id, author_id)
-    #author = get_object_or_404(Author, pk=author_id)
     author = get_author_by_id(author_id)
+    
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
@@ -727,8 +748,8 @@ def get_post_likes(request, author_id, post_id):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -762,8 +783,8 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -794,7 +815,7 @@ def get_comment_likes(request, author_id, post_id, comment_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
+        "id": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
         "page": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
         "page_number": page_number,
         "size": size,
@@ -843,8 +864,8 @@ def likes_by_author(request, author_id):
     
     response_data = {
         "type": "likes",
-        "page": f"https://{author.host}/authors/{author_id}/liked",
-        "id": f"https://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}authors/{author_id}/liked",
+        "id": f"https://{author.host}authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
         "count": len(all_likes),
@@ -907,8 +928,8 @@ def get_author_likes_by_id(request, author_fqid):
     
     response_data = {
         "type": "likes",
-        "page": f"https://{author.host}/api/authors/{author_id}/liked",
-        "id": f"https://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}authors/{author_id}/liked",
+        "id": f"https://{author.host}authors/{author_id}/liked",
         "page_number": page_number,
         "size": size,
         "count": len(all_likes),
@@ -999,7 +1020,7 @@ def post_comments(request, author_id, post_id):
         if post.author.host != f'https://{request.get_host()}/api/':
             inbox_url = f"{post.author.url}/inbox"
             try:
-                post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
+                post_request_to_node(post.author.host, inbox_url, 'POST', comment_data)
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
 
@@ -1413,6 +1434,11 @@ def retrieve_github(user):
     activity = json.loads(data.decode("utf-8")) if res.status == 200 else []
     # Ends here
 
+
+    followers = Follow.objects.filter(following=user.url, approved = True)
+    print(followers)
+
+
     # 10/28/2024
     # Me: Retrieve the different event types, the repo, the date in each event in the json and create them into post if they do not yet exist in the database
     # OpenAI ChatGPT 40 mini generated:
@@ -1443,7 +1469,7 @@ def retrieve_github(user):
         # Check for existing post and create new post if it doesn't exist
         if not Post.objects.filter(author=user, title=event_type, text_content=post_description,
                                    published=published_date).exists():
-            Post.objects.create(
+            post = Post.objects.create(
                 author=user,
                 title=event_type,
                 description="Public Github Activity",
@@ -1453,6 +1479,26 @@ def retrieve_github(user):
             )
     # Ends here
 
+            #  then send the new github activity post to all followers
+            for follower in followers:
+                json_content = PostSerializer(post).data
+                follower_url = follower.follower
+                print("sending POST to: " + follower_url)
+
+                # Extract base URL from follower's URL
+                parsed_url = urlparse(follower_url)
+                base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+                # Send the POST request to the follower's inbox
+                inbox_url = follower_url.rstrip('/') + '/inbox'
+
+                print("base_url: ", base_url)
+                print("inbox_url: ", inbox_url)
+                print("json_content: ", json_content)
+                # Now call post_request_to_node with base_url
+                post_request_to_node(base_url, inbox_url, 'POST', json_content)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
@@ -1460,7 +1506,8 @@ def api_single_author_fqid(request, author_fqid):
     # print(author_id)
     # return api_single_author(request, author_id)
     #user = get_object_or_404(Author, id=author_id)
-    
+    print("uuid????????")
+    print(author_fqid)
     author_id = unquote(author_id)
 
     # Initialize user to None
@@ -1498,7 +1545,7 @@ def api_single_author_fqid(request, author_fqid):
         else:
             author_data = {
                 "type": "author",
-                "id": user.url,
+                "id": user.id,
                 "host": user.host,
                 "displayName": user.display_name,
                 "github": "https://github.com/" + user.github if user.github else "",
@@ -1509,18 +1556,20 @@ def api_single_author_fqid(request, author_fqid):
             return JsonResponse(author_data, status=200)
 
     if request.method == 'PUT':
+        print("serializer")
         serializer = AuthorProfileSerializer(user, data=request.data)
-
+        print("giithub")
         original_github = user.github
 
         if serializer.is_valid():
             if original_github != serializer.validated_data.get('github'):
                 Post.objects.filter(author=user, description="Public Github Activity").delete()
-
+            print("uuid?")
+            print (user.id)
             serializer.save()
             author_data = {
                 "type": "author",
-                "id": user.url,
+                "id": author_fqid,
                 "host": user.host,
                 "displayName": user.display_name,
                 "github": "https://github.com/" + user.github if user.github else "",
@@ -1536,85 +1585,85 @@ def api_single_author_fqid(request, author_fqid):
             }
             return JsonResponse(error_data, status=400)
 
-@api_view(['GET', 'PUT'])
-@permission_classes([IsAuthenticated])
-def api_single_author(request, author_id):
-    #user = get_object_or_404(Author, id=author_id)
-    
-    author_id = unquote(author_id)
-
-    # Initialize user to None
-    user = None
-
-    # First, try to get by primary key (integer ID)
-    try:
-        #user = Author.objects.get(pk=int(author_id))
-        user = get_author_by_id(author_id)
-    except (ValueError, Author.DoesNotExist):
-        pass  # Not an integer ID or author with this ID does not exist
-
-    if not user:
-        # Try to get by URL equals author_id (in case it's a full URL)
-        user = Author.objects.filter(url=author_id).first()
-
-    if not user:
-        # Try to get by URL ending with /authors/{author_id}
-        user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
-
-    if not user:
-        # Author not found
-        nonexistent_author = {
-            "message": "This user does not exist",
-        }
-        return JsonResponse(nonexistent_author, status=404)
-
-
-    if request.method == 'GET':
-        if user is None:
-            nonexistent_author = {
-                "message": "This user does not exist",
-            }
-            return JsonResponse(nonexistent_author, status=404)
-        else:
-            author_data = {
-                "type": "author",
-                "id": user.url,
-                "host": user.host,
-                "displayName": user.display_name,
-                "github": "https://github.com/" + user.github if user.github else "",
-                "profileImage": user.profile_image.url if user.profile_image else None,
-                "page": user.page,
-                "description": user.description,
-            }
-            return JsonResponse(author_data, status=200)
-
-    if request.method == 'PUT':
-        serializer = AuthorProfileSerializer(user, data=request.data)
-
-        original_github = user.github
-
-        if serializer.is_valid():
-            if original_github != serializer.validated_data.get('github'):
-                Post.objects.filter(author=user, description="Public Github Activity").delete()
-
-            serializer.save()
-            author_data = {
-                "type": "author",
-                "id": user.url,
-                "host": user.host,
-                "displayName": user.display_name,
-                "github": "https://github.com/" + user.github if user.github else "",
-                "profileImage": user.profile_image.url if user.profile_image else None,
-                "page": user.page,
-                "description": user.description,
-            }
-            return JsonResponse(author_data, status=200)
-        else:
-            error_data = {
-                "message": "Invalid edit made.",
-                'errors': serializer.errors,
-            }
-            return JsonResponse(error_data, status=400)
+# @api_view(['GET', 'PUT'])
+# @permission_classes([IsAuthenticated])
+# def api_single_author(request, author_id):
+#     #user = get_object_or_404(Author, id=author_id)
+#
+#     author_id = unquote(author_id)
+#     print(author_id)
+#     # Initialize user to None
+#     user = None
+#
+#     # First, try to get by primary key (integer ID)
+#     try:
+#         #user = Author.objects.get(pk=int(author_id))
+#         user = get_author_by_id(author_id)
+#     except (ValueError, Author.DoesNotExist):
+#         pass  # Not an integer ID or author with this ID does not exist
+#
+#     if not user:
+#         # Try to get by URL equals author_id (in case it's a full URL)
+#         user = Author.objects.filter(url=author_id).first()
+#
+#     if not user:
+#         # Try to get by URL ending with /authors/{author_id}
+#         user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
+#
+#     if not user:
+#         # Author not found
+#         nonexistent_author = {
+#             "message": "This user does not exist",
+#         }
+#         return JsonResponse(nonexistent_author, status=404)
+#
+#
+#     if request.method == 'GET':
+#         if user is None:
+#             nonexistent_author = {
+#                 "message": "This user does not exist",
+#             }
+#             return JsonResponse(nonexistent_author, status=404)
+#         else:
+#             author_data = {
+#                 "type": "author",
+#                 "id": user.id,
+#                 "host": user.host,
+#                 "displayName": user.display_name,
+#                 "github": "https://github.com/" + user.github if user.github else "",
+#                 "profileImage": user.profile_image.url if user.profile_image else None,
+#                 "page": user.page,
+#                 "description": user.description,
+#             }
+#             return JsonResponse(author_data, status=200)
+#
+#     if request.method == 'PUT':
+#         serializer = AuthorProfileSerializer(user, data=request.data)
+#
+#         original_github = user.github
+#
+#         if serializer.is_valid():
+#             if original_github != serializer.validated_data.get('github'):
+#                 Post.objects.filter(author=user, description="Public Github Activity").delete()
+#
+#             serializer.save()
+#             author_data = {
+#                 "type": "author",
+#                 "id": user.id,
+#                 "host": user.host,
+#                 "displayName": user.display_name,
+#                 "github": "https://github.com/" + user.github if user.github else "",
+#                 "profileImage": user.profile_image.url if user.profile_image else None,
+#                 "page": user.page,
+#                 "description": user.description,
+#             }
+#             return JsonResponse(author_data, status=200)
+#         else:
+#             error_data = {
+#                 "message": "Invalid edit made.",
+#                 'errors': serializer.errors,
+#             }
+#             return JsonResponse(error_data, status=400)
 
 def edit_profile(request,author_id):
     '''
@@ -1673,9 +1722,8 @@ def followers_following_friends(request, author_id):
             # for response in responses:
             #     users += response.json().get('followers', []) if response.status_code == 200 else []
 
-            follow_objects= Follow.objects.filter(following=profileUserUrl, approved=True).values_list('following', flat=True)
-            followers = [person.follower for person in follow_objects]
-            for url in followers:
+            follow_objects= Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
+            for url in follow_objects:
                 users.append(get_object_or_404(Author, url=url))
             title = "Followers"
         elif see_follower == 'false':
@@ -1855,9 +1903,10 @@ def add_external_post(request, author_id):
     """
     body = json.loads(request.body)
     author = get_author_by_id(author_id)
-    serializer = PostSerializer(data=body, author = author)
+    #body['author'] = author.id
+    serializer = PostSerializer(data=body)
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(author=author)
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
     print(serializer.errors)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -2175,7 +2224,7 @@ def edit_post_api(request, author_id, post_id):
         serializer.save()
         if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
-            followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
+            followers = Follow.objects.filter(following=f"{author.host}authors/{author_id})")
             for follower in followers:
                 processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
