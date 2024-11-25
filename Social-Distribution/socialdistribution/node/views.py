@@ -44,6 +44,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
+import base64
 
 
 #NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
@@ -625,7 +626,7 @@ def delete_post(request, post_id):
 # def local_api_like(request, id):
 #     #liked_post = get_object_or_404(Post, id=id)
 #     liked_post = get_post_by_id(id)
-#     post_author = liked_post.author
+#     comment_author = liked_post.author
 #     current_author = get_author(request)
 
 #     post_owner = liked_post.author
@@ -723,11 +724,12 @@ def local_api_like(request, id):
             return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
             # Save the like locally using the `Like` model
-            PostLike.objects.create(
+            like = PostLike.objects.create(
                 object_id=like_uuid,
                 liker=current_author,
                 created_at=django.utils.timezone.now(),
             )
+            like.save()
 
         # Redirect to the post after liking
         return redirect(f'/node/posts/{id}/')
@@ -744,12 +746,14 @@ def local_api_like(request, id):
 def local_api_like_comment(request, id):
     #liked_comment = get_object_or_404(Comment, id=id)
     liked_comment = get_comment_by_id(id)
-    post_author = liked_comment.author
+    comment_author = liked_comment.author
     current_author = get_author(request)
     print(current_author)
 
-    like_id = f"{current_author.url}/liked/{CommentLike.objects.count()+1}"
-    object_id = f"{post_author.url}/commented/{liked_comment.id}"
+    like_uuid = uuid.uuid4()
+    like_id = f"{current_author.url}/liked/{like_uuid}"
+    object_id = f"{comment_author.url}/commented/{liked_comment.id}"
+    print(object_id)
     like_request = {
         "type" : "like",
         "author" : {
@@ -766,20 +770,25 @@ def local_api_like_comment(request, id):
         "object" : object_id
     }
 
-    inbox_url = post_author.url + '/inbox'
+    inbox_url = f"{comment_author.url}/inbox"
     access_token = AccessToken.for_user(current_author)
 
     try:
-        node = post_author.host[:-4].replace('http://', 'https://')
-        if current_author.host.replace('http://', 'https://') != (node+"api/"):
+        node = comment_author.host.rstrip('/').replace('http://', 'https://')
+        node = node[:-3]
+        if current_author.host.rstrip('/') != node.rstrip('/'):
             response = post_request_to_node(node, inbox_url, data=like_request)
+            if response and response.status_code in [200, 201]:
+                return redirect(f'/node/posts/{id}/')
         else:
-            CommentLike.objects.create(liker=current_author, owner=liked_comment)
+            like = CommentLike.objects.create(liker=current_author, owner=liked_comment)
+            like.save()
 
         return(redirect(f'/node/posts/{id}/'))
     except Exception as e:
-        print(f"Failed to send post like request: {str(e)}")
-        messages.error(request, "Failed to send post like request. Please try again.")
+        print(f"Failed to send comment like request: {str(e)}")
+        messages.error(request, "Failed to send comment like request. Please try again.")
+        return JsonResponse({"error": "An error occurred while processing the like"}, status=500)
    
 
 
@@ -2827,3 +2836,52 @@ def followers_view(request, author_id, follower_id=None):
                 return JsonResponse({"error": "Follow relationship not found"}, status=404)
         else:
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post_image(request, author_id, post_id):
+    """
+    GET [local, remote] get the public post converted to binary as an image.
+    Returns 404 if not an image.
+    """
+    post = get_post_by_id_and_author(post_id, author_id)
+        
+    if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
+        return HttpResponse("Not an image post", status=404)
+        
+    try:
+        post_data = PostSerializer(post).data
+        decoded_image = base64.b64decode(post.text_content)
+        post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
+            
+        return JsonResponse(post_data)
+            
+    except Exception as e:
+        return HttpResponse("Invalid image data", status=400)    
+            
+    
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post_image_by_id(request, post_fqid):
+    """
+    GET [local, remote] get the public post converted to binary as an image using FQID.
+    Returns 404 if not an image.
+    """
+    post_id = post_fqid.split('/')[-1]
+    post = get_post_by_id(post_id)
+        
+        # Check if this is an image post
+    if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
+        return HttpResponse("Not an image post", status=404)
+        
+    try:
+        post_data = PostSerializer(post).data
+        decoded_image = base64.b64decode(post.text_content)
+            
+        post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
+            
+        return JsonResponse(post_data)
+            
+    except Exception as e:
+        return HttpResponse("Invalid image data", status=400)

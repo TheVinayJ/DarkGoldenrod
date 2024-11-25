@@ -72,7 +72,7 @@ class CommentLikeSerializer(serializers.ModelSerializer):
         return f"{obj.liker.host}authors/{obj.liker.id}/liked/{obj.object_id}"
 
     def get_object(self, obj):
-        return f"{obj.liker.host}authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
+        return f"{obj.owner.host}authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
     
     # def get_author(self, obj):
     #     if isinstance(obj.liker, Author):
