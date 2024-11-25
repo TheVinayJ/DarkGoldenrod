@@ -77,7 +77,7 @@ def api_authors_list(request):
             "id": f"{author.url}",
             "host": author.host,
             "displayName": author.display_name,
-            "github": author.github,
+            "github": "https://github.com/" + author.github,
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
         } for author in current_page if '@foreignnode.com' not in author.email])
@@ -87,7 +87,7 @@ def api_authors_list(request):
             "id": f"{author.url}",
             "host": author.host,
             "displayName": author.display_name,
-            "github": author.github,
+            "github": "https://github.com/" + author.github,
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
         } for author in authors if '@foreignnode.com' not in author.email]
@@ -620,12 +620,19 @@ def local_api_like(request, id):
     }
 
     inbox_url = post_author.url + '/inbox'
-    access_token = AccessToken.for_user(current_author)
+    # access_token = AccessToken.for_user(current_author)
 
     try:
         node = post_author.host[:-4].replace('http://', 'https://')
+        print(f"Node: {node}")
+        print(f"Sent to inbox: {inbox_url}")
+        print(f"Like request: {like_request}")
+
         if current_author.host.replace('http://', 'https://') != (node+"api/"):
             response = post_request_to_node(node, inbox_url, data=like_request)
+            if response and response.status_code in [200, 201]:
+                return JsonResponse({"message": "Like sent successfully"}, status=201)
+            return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
             PostLike.objects.create(liker=current_author, owner=liked_post)
 
@@ -646,7 +653,7 @@ def local_api_like_comment(request, id):
     print(current_author)
 
     like_id = f"{current_author.url}/liked/{CommentLike.objects.count()+1}"
-    object_id = f"{post_author.url}/posts/{liked_comment.id}"
+    object_id = f"{post_author.url}/commented/{liked_comment.id}"
     like_request = {
         "type" : "like",
         "author" : {
@@ -685,25 +692,43 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    liker = get_object_or_404(id=author_id)
-    post_like = PostLike.objects.create(liker=liker, owner=post)
-    serializer = PostLikeSerializer(post_like, data=body)
-    if serializer.is_valid():
-        serializer.save()
-        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    liker = get_author_by_id(body['id'].split('/')[-3])
+    # liker = get_object_or_404(id=author_id)
+    like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
+    if not like_exists:
+        print('Creating post like object')
+        post_like = PostLike.objects.create(liker=liker, owner=post)
+        # serializer = PostLikeSerializer(post_like, data=body)
+        # if serializer.is_valid():
+        #     serializer.save()
+        #     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+        return JsonResponse({'message' : 'PostLike request processed and created.'}, status=200)
+    else:
+        return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
+        
 
 def comment_like(request, author_id):
     body = json.loads(request.body)
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
-    post = get_post_by_id(body['object'].split('/')[-1])
-    comment_like = CommentLike.objects.create(author_id=author_id, owner=post)
-    serializer = CommentLikeSerializer(comment_like, data=body)
-    if serializer.is_valid():
-        serializer.save()
-        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
-    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    comment = get_comment_by_id(body['object'].split('/')[-1])
+    liker = get_author_by_id(body['id'].split('/')[-3])
+
+    comment_like_exists = PostLike.objects.filter(liker=liker, owner=comment)
+    
+
+    if not comment_like_exists:
+        print('creating comment like object')
+        comment_like = CommentLike.objects.create(liker=liker, owner=comment)
+        return JsonResponse({'message': 'comment like request processed and created'}, status=200)
+    else:
+        return JsonResponse({'message': 'comment like already exists, unlike instead'}, status=400)
+
+    # serializer = CommentLikeSerializer(comment_like, data=body)
+    # if serializer.is_valid():
+    #     serializer.save()
+    #     return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
+    # return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -765,8 +790,8 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"https://{author.host}authors/{post.author.id}/posts/{post_id}",
+        "id": f"{author.host}authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"{author.host}authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -777,12 +802,22 @@ def get_post_likes_by_id(request, post_url):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_comment_likes(request, author_id, post_id, comment_url):
-    comment_id = comment_url.split('/')[-1]
-    #comment = get_object_or_404(Comment, id=comment_id)
+def get_comment_likes(request, author_id, post_id, comment_fqid):
+
+    comment_id = comment_fqid.split('/')[-1]
+    comment_id = unquote(comment_id)
+
     comment = get_comment_by_id(comment_id)
-    #author = get_object_or_404(Author, pk=author_id)
-    author = get_author_by_id(author_id)
+
+    try:
+        author = get_author_by_id(author_id)
+    except (ValueError, Author.DoesNotExist) as e:
+        author = None
+        print(f"Comments not found: ")
+
+    # if not author:
+    #     author = Author.objects.filter()
+
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
@@ -797,8 +832,8 @@ def get_comment_likes(request, author_id, post_id, comment_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
-        "page": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
+        "id": f"{author.host()}/authors/{author_id}/comments/{comment_id}/likes",
+        "page": f"{author.host()}/authors/{author_id}/comments/{comment_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -846,8 +881,8 @@ def likes_by_author(request, author_id):
     
     response_data = {
         "type": "likes",
-        "page": f"https://{author.host}authors/{author_id}/liked",
-        "id": f"https://{author.host}authors/{author_id}/liked",
+        "page": f"{author.host}/authors/{author_id}/liked",
+        "id": f"{author.host}/authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
         "count": len(all_likes),
@@ -922,11 +957,14 @@ def get_author_likes_by_id(request, author_fqid):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_like_by_id(request, like_id):
+def get_like_by_id(request, like_fqid):
+    like_id = unquote(like_fqid)
+    like_id = like_id.rstrip('/').split('/')
+
     try:
-        split_like = like_id.split('/')
-        id = split_like[-1]
-        author_id = split_like[-2] 
+        # split_like = like_fqid.split('/')
+        id = like_id[-1]
+        author_id = like_id[-2] 
         
         like = None
         #author = get_object_or_404(Author, id=author_id)
@@ -1002,7 +1040,9 @@ def post_comments(request, author_id, post_id):
         if post.author.host != f'https://{request.get_host()}/api/':
             inbox_url = f"{post.author.url}/inbox"
             try:
-                post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
+                print("Sending comment to: ", inbox_url)
+                print("Host: ", post.author.host)
+                post_request_to_node(post.author.host, inbox_url, 'POST', comment_data)
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
 
@@ -1030,29 +1070,84 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
-    followers = Follow.objects.filter(following=f"{post.author.host}authors/{post.author.id}")
-    print("Sending comment to people following: ", f"{post.author.host}authors/{post.author.id}")
-    print("Sending comment to: ", followers)
-    try:
-        json_content = CommentSerializer(new_comment).data
-        url = post.author.url
-        print("sending POST to: " + url)
 
-        # Extract base URL from follower's URL
-        parsed_url = urlparse(url)
-        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+    if request.method == 'POST':
+        # Serialize the comment
+        comment_data = CommentSerializer(new_comment).data
 
-        # Send the POST request to the follower's inbox
-        inbox_url = url.rstrip('/') + '/inbox'
+        # Forward the comment to the post's author inbox if the post is from a remote author
+        if post.author.host != f'https://{request.get_host()}/api/':
+            inbox_url = f"{post.author.url}/inbox"
+            try:
+                print("Sending comment to: ", inbox_url)
+                print("Host: ", post.author.host[:-4])
+                post_request_to_node(post.author.host[:-4], inbox_url, 'POST', comment_data)
+            except Exception as e:
+                print(f"Failed to send comment to inbox: {str(e)}")
+        
+        # inbox_url = f"{post.author.url}/inbox"
+        # try:
+        #     print("Sending comment to: ", inbox_url)
+        #     print("Host: ", post.author.host)
+        #     post_request_to_node(post.author.host, inbox_url, 'POST', comment_data)
+        # except Exception as e:
+        #     print(f"Failed to send comment to inbox: {str(e)}")
 
-        print("base_url: ", base_url)
-        print("inbox_url: ", inbox_url)
-        print("json_content: ", json_content)
-        # Now call post_request_to_node with base_url
-        post_request_to_node(base_url, inbox_url, 'POST', json_content)
-    except Exception as e:
-        print(e)
-    # Return to question
+        #return Response(comment_data, status=201)
+
+    # json_content = CommentSerializer(new_comment).data
+
+    # # Iterate through each follower
+    # for follower in followers:
+    #     try:
+    #         # Extract the follower's URL and prepare the inbox URL
+    #         url = follower.follower.url  # Assuming `follower.follower.url` is the follower's URL
+    #         print("Sending POST to: " + url)
+
+    #         # Extract base URL from the follower's URL
+    #         parsed_url = urlparse(url)
+    #         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+    #         # Construct the follower's inbox URL
+    #         inbox_url = url.rstrip('/') + '/inbox'
+
+    #         print("base_url: ", base_url)
+    #         print("inbox_url: ", inbox_url)
+    #         print("json_content: ", json_content)
+
+    #         # Send the POST request to the follower's inbox
+    #         post_request_to_node(base_url, inbox_url, 'POST', json_content)
+    #     except Exception as e:
+    #         print(f"Failed to send comment to {url}: {e}")
+            
+            
+            
+            
+    
+    
+    # followers = Follow.objects.filter(following=f"{post.author.host}authors/{post.author.id}")
+    # print("Sending comment to people following: ", f"{post.author.host}authors/{post.author.id}")
+    # print("Sending comment to: ", followers)
+    # try:
+    #     json_content = CommentSerializer(new_comment).data
+    #     url = post.author.url
+    #     print("sending POST to: " + url)
+
+    #     # Extract base URL from follower's URL
+    #     parsed_url = urlparse(url)
+    #     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+    #     # Send the POST request to the follower's inbox
+    #     inbox_url = url.rstrip('/') + '/inbox'
+
+    #     print("base_url: ", base_url)
+    #     print("inbox_url: ", inbox_url)
+    #     print("json_content: ", json_content)
+    #     # Now call post_request_to_node with base_url
+    #     post_request_to_node(base_url, inbox_url, 'POST', json_content)
+    # except Exception as e:
+    #     print(e)
+    # # Return to question
     return(redirect(f'/node/posts/{id}/'))
 
 @api_view(['GET', 'POST'])
@@ -1887,10 +1982,14 @@ def add_external_post(request, author_id):
     Add a post to the database from an inbox call
     """
     body = json.loads(request.body)
-    author = get_author_by_id(author_id)
-    serializer = PostSerializer(data=body, author = author)
+    
+    author_data = body.get('author', {})
+    author_id_from_body = author_data.get('id')
+    author = get_object_or_404(Author, url=author_id_from_body)
+    #body['author'] = author.id
+    serializer = PostSerializer(data=body)
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(author=author)
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
     print(serializer.errors)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -2385,20 +2484,12 @@ def followers_view(request, author_id, follower_id=None):
     # author = get_object_or_404(Author, id=author_id_int)
     
     author = get_author_by_id(author_id)
-    follower_id_param = request.GET.get('follower_id')  # Get the follower_id from query params
-    follower_host = request.GET.get('follower')  # Get the follower's host from query params
 
     if request.method == 'GET':
-        if follower_id_param:
+        if follower_id:
             # Handle the follower_id as a string (could be UUID or integer)
-            decoded_follower_id = unquote(follower_id_param).rstrip('/')
+            follower_url = unquote(follower_id).rstrip('/')
             # Build the follower's URL
-            if follower_host:
-                decoded_follower_host = unquote(follower_host).rstrip('/')
-                follower_url = f"{decoded_follower_host}/authors/{decoded_follower_id}"
-            else:
-                # If no follower host is provided, assume it's a local author
-                follower_url = f"{author.host}authors/{decoded_follower_id}"
 
             # Check if the follower is in the Follow model
             if not Follow.objects.filter(
@@ -2414,8 +2505,7 @@ def followers_view(request, author_id, follower_id=None):
                 # If the follower is not in the local Author model, you can create a placeholder or return minimal info
                 follower_data = {
                     "type": "author",
-                    "id": decoded_follower_id,
-                    "url": follower_url,
+                    "id": follower_url,
                     "host": decoded_follower_host if follower_host else author.host,
                     "displayName": "",  # You may not have the display name
                     "page": "",
@@ -2425,8 +2515,7 @@ def followers_view(request, author_id, follower_id=None):
             else:
                 follower_data = {
                     "type": "author",
-                    "id": str(follower.id),
-                    "url": follower.url,
+                    "id": follower_url,
                     "host": follower.host,
                     "displayName": follower.display_name,
                     "page": follower.page,
@@ -2449,8 +2538,7 @@ def followers_view(request, author_id, follower_id=None):
                 if follower:
                     follower_data = {
                         "type": "author",
-                        "id": str(follower.id),
-                        "url": follower.url,
+                        "id": follower.url,
                         "host": follower.host,
                         "displayName": follower.display_name,
                         "page": follower.page,
@@ -2465,8 +2553,7 @@ def followers_view(request, author_id, follower_id=None):
 
                     follower_data = {
                         "type": "author",
-                        "id": follower_id_extracted,
-                        "url": follower_url,
+                        "id": follower_url,
                         "host": follower_host_extracted,
                         "displayName": "",
                         "page": "",
@@ -2482,11 +2569,9 @@ def followers_view(request, author_id, follower_id=None):
             })
 
     elif request.method == 'PUT':
-        if follower_id_param and follower_host:
+        if follower_id:
             # Approve a follow request
-            decoded_follower_id = unquote(follower_id_param).rstrip('/')
-            decoded_follower_host = unquote(follower_host).rstrip('/')
-            follower_url = f"{decoded_follower_host}/authors/{decoded_follower_id}"
+            follower_url = unquote(follower_id).rstrip('/')
 
             try:
                 follow = Follow.objects.get(
@@ -2502,10 +2587,9 @@ def followers_view(request, author_id, follower_id=None):
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
 
     elif request.method == 'DELETE':
-        if follower_id_param and follower_host:
-            decoded_follower_id = unquote(follower_id_param).rstrip('/')
-            decoded_follower_host = unquote(follower_host).rstrip('/')
-            follower_url = f"{decoded_follower_host}/authors/{decoded_follower_id}"
+        if follower_id:
+            follower_url = unquote(follower_id).rstrip('/')
+            print('DELETE follower_url: ', follower_url)
 
             try:
                 follow_instance = Follow.objects.get(

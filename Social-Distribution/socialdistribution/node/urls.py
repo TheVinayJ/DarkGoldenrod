@@ -67,6 +67,7 @@ urlpatterns = [
     path('api/authors/<str:author_id>/inbox', views.inbox, name='inbox'),
     
     path('api/authors/', views.api_authors_list, name='api_authors_list'),
+    path('api/authors', views.api_authors_list, name='api_authors_list'),
     
     path('api/signup/', SignupView.as_view(), name='api_signup'),
     path('api/login/', LoginView.as_view(), name='api_login'),
@@ -81,7 +82,7 @@ urlpatterns = [
     path('api/authors/<str:author_id>/posts/<str:post_id>/likes', views.get_post_likes, name='get_post_likes'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
     path('api/posts/<str:post_url>/likes/', views.get_post_likes_by_id, name='post_likes_by_id'),
-    path('api/authors/<str:author_id>/posts/<str:post_id>/comments/<str:comment_id>/likes/', views.get_comment_likes, name='get_comment_likes'),
+    path('api/authors/<str:author_id>/posts/<str:post_id>/comments/<path:comment_fqid>/likes/', views.get_comment_likes, name='get_comment_likes'),
     path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
     path('api/authors/<str:author_id>/posts/<str:post_id>/comments', views.post_comments, name='post_comments'),
     path('api/authors/<str:author_id>/commented/<str:comment_id>', views.get_comment, name='get_comment'),
@@ -100,7 +101,7 @@ urlpatterns = [
     path("api/authors/<str:author_id>/liked", views.likes_by_author, name='likes_by_author'),
     path('api/authors/<str:author_id>/liked/<str:like_id>', views.get_like, name='get_like'),
     path('api/authors/<str:author_fqid>/liked/', views.get_author_likes_by_id, name='liked_by_author_fqid'),
-    path('api/liked/<path:like_id>', views.get_like_by_id, name='get_like'),
+    path('api/liked/<path:like_fqid>', views.get_like_by_id, name='get_like'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
