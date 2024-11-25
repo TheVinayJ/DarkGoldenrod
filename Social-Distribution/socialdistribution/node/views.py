@@ -2629,15 +2629,44 @@ def edit_post_api(request, author_id, post_id):
         return JsonResponse(PostSerializer(post).data)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
 def delete_post_api(request, author_id, post_id):
     author = get_author(request)
-    #post = get_object_or_404(Post, id=post_id)
     post = get_post_by_id(post_id)
-    if post.author != author:
-        return HttpResponseForbidden("Post cannot be deleted.", status=403)
 
-    post.delete()
-    return HttpResponse('Post successfully deleted.', status=204)
+    if post.author != author:
+        return HttpResponseForbidden("You are not allowed to delete this post.", status=403)
+
+    # Set the visibility to 'DELETED' instead of deleting the post
+    post.visibility = 'DELETED'
+    post.save()
+
+    # Notify followers about the deletion
+    if author.host == f'https://{request.get_host()}/api/':
+        # Get followers of the author
+        followers = Follow.objects.filter(following=author.url, approved=True)
+        processed_nodes = [author.host]
+
+        for follower in followers:
+            follower_url = follower.follower
+            # Extract base URL from follower's URL
+            parsed_url = urlparse(follower_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+            # Send the updated post to the follower's inbox
+            inbox_url = follower_url.rstrip('/') + '/inbox'
+
+            json_content = PostSerializer(post).data
+            try:
+                # Avoid sending to the same host multiple times
+                if base_url not in processed_nodes:
+                    post_request_to_node(base_url, inbox_url, 'POST', json_content)
+                    processed_nodes.append(base_url)
+            except Exception as e:
+                print(f"Failed to send post deletion to {inbox_url}: {str(e)}")
+
+    return Response({'message': 'Post successfully deleted.'}, status=200)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
