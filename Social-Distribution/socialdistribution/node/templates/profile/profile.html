@@ -92,7 +92,7 @@
         <h2 class="desc">{{ user.description }}</h2>
     {% endif %}
 
-    <nav class="post-github">
+    <nav class="section-nav">
         <a href="#" onclick="showSection('posts')" style="margin-right: 15px;">Posts</a>
         <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
     </nav>
@@ -186,7 +186,7 @@
         {% endif %}
     </div>
     
-        <div id="posts" class="section active">
+    <div id="github-posts">
         {% if activity %}
                 <ul class="post-github">
                 {% for post in activity %}
