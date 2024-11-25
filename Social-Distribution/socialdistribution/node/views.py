@@ -1958,7 +1958,10 @@ def add_external_post(request, author_id):
     Add a post to the database from an inbox call
     """
     body = json.loads(request.body)
-    author = get_author_by_id(author_id)
+    
+    author_data = body.get('author', {})
+    author_id_from_body = author_data.get('id')
+    author = get_object_or_404(Author, url=author_id_from_body)
     #body['author'] = author.id
     serializer = PostSerializer(data=body)
     if serializer.is_valid():
