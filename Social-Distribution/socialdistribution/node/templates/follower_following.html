@@ -55,9 +55,14 @@
             const follower_url = this.getAttribute('data-follower-url');
             const encodedFollowerUrl = encodeURIComponent(follower_url);
             console.log(encodedFollowerUrl);
-            apiURL = `api/authors/{{current_author_id}}/followers/<path:follower_id>`
+            
+            const baseURL = "{% url 'list_follower' author_id=current_author_id follower_id='null' %}";
+            const apiURL = baseURL.replace("null", encodedFollowerUrl);
 
-            fetch(`{% url 'list_follower' author_id=current_author_id follower_id=encodedFollowerUrl %}?follower_id=${encodedFollowerUrl}`, {
+            
+            {#apiURL = `api/authors/{{current_author_id}}/followers/<path:follower_id>`#}
+
+            fetch(apiURL, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
