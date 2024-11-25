@@ -362,15 +362,32 @@ def edit_post(request, post_id):
         print("markdown_content:", request.POST.get('markdown_content'))
         print("image_content:", request.FILES.get('image_content'))
 
-        if author.host == f'https://{request.get_host()}/api/':
-            # Distribute posts to connected nodes
-            followers = Follow.objects.filter(following=f"{author.host}authors/{author.id})")
-            for follower in followers:
-                processed_nodes = [f'https://{request.get_host()}/api/']
-                if follower.host not in processed_nodes:
-                    json_content = PostSerializer(post).data
-                    send_request_to_node(follower.host, follower.id + '/inbox', 'POST', json_content)
-                    processed_nodes.append(follower.host)
+        print(f"Searching for followers following: https://{request.get_host()}/api/authors/{post.author.id}")
+        followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
+        print("Sending to the following followers: " + str(followers))
+
+        # for follower in followers:
+        #     json_content = PostSerializer(post).data
+        #     print("sending POST to: " + follower.follower)
+        #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+
+        for follower in followers:
+            json_content = PostSerializer(post).data
+            follower_url = follower.follower
+            print("sending POST to: " + follower_url)
+
+            # Extract base URL from follower's URL
+            parsed_url = urlparse(follower_url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+            # Send the POST request to the follower's inbox
+            inbox_url = follower_url.rstrip('/') + '/inbox'
+
+            print("base_url: ", base_url)
+            print("inbox_url: ", inbox_url)
+            print("json_content: ", json_content)
+            # Now call post_request_to_node with base_url
+            post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
         return redirect('view_post', post_id=post.id)
 
@@ -686,7 +703,7 @@ def local_api_like(request, id):
     try:
         # Determine the node for the post's author
         node = post_author.host.rstrip('/').replace('http://', 'https://')
-
+        node = node[:-3]
         # Log debug information
         print(f"Node: {node}")
         print(f"Sent to inbox: {inbox_url}")
@@ -697,7 +714,7 @@ def local_api_like(request, id):
             # Send the like request to a remote node's inbox
             response = post_request_to_node(node, inbox_url, data=like_request)
             if response and response.status_code in [200, 201]:
-                return JsonResponse({"message": "Like sent successfully"}, status=201)
+                return redirect(f'/node/posts/{id}/')
             return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
             # Save the like locally using the `Like` model
