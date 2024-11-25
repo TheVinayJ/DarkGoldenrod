@@ -1,5 +1,9 @@
 from crypt import methods
-
+import uuid
+import datetime
+from django.shortcuts import render
+from django.http import JsonResponse
+import django
 from django.core import signing
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.utils import timezone
@@ -611,57 +615,122 @@ def delete_post(request, post_id):
         messages.success(request, "Post has been deleted.")
         return redirect('index')
 
+# @api_view(['GET', 'POST'])
+# @permission_classes([IsAuthenticated])
+# def local_api_like(request, id):
+#     #liked_post = get_object_or_404(Post, id=id)
+#     liked_post = get_post_by_id(id)
+#     post_author = liked_post.author
+#     current_author = get_author(request)
+
+#     post_owner = liked_post.author
+#     print(current_author)
+#     print(post_owner)
+
+#     like_id = f"{current_author.url}/liked/{PostLike.objects.count()+1}"
+#     object_id = f"{post_author.url}/posts/{liked_post.id}"
+#     like_request = {
+#         "type" : "like",
+#         "author" : {
+#             "type" : "author",
+#             "id": current_author.url,
+#             "host": current_author.host,
+#             "displayName": current_author.display_name,
+#             "github": current_author.github,
+#             "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+#             "page": current_author.url,
+#         },
+#         "published" : datetime.datetime.now().isoformat(),
+#         "id" : like_id,
+#         "object" : object_id
+#     }
+
+#     inbox_url = post_author.url + '/inbox'
+#     # access_token = AccessToken.for_user(current_author)
+
+#     try:
+#         node = post_author.host[:-4].replace('http://', 'https://')
+#         print(f"Node: {node}")
+#         print(f"Sent to inbox: {inbox_url}")
+#         print(f"Like request: {like_request}")
+
+#         if current_author.host.replace('http://', 'https://') != (node+"api/"):
+#             response = post_request_to_node(node, inbox_url, data=like_request)
+#             if response and response.status_code in [200, 201]:
+#                 return JsonResponse({"message": "Like sent successfully"}, status=201)
+#             return JsonResponse({"error": "Failed to send like"}, status=400)
+#         else:
+#             PostLike.objects.create(liker=current_author, owner=liked_post)
+
+#         return(redirect(f'/node/posts/{id}/'))
+#     except Exception as e:
+#         print(f"Failed to send post like request: {str(e)}")
+#         messages.error(request, "Failed to send post like request. Please try again.")
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like(request, id):
-    #liked_post = get_object_or_404(Post, id=id)
+    # Get the liked post
     liked_post = get_post_by_id(id)
     post_author = liked_post.author
     current_author = get_author(request)
 
-    post_owner = liked_post.author
-    print(current_author)
-    print(post_owner)
+    # Generate a unique UUID for the like object ID
+    like_uuid = uuid.uuid4()
+    like_id = f"{current_author.url}/liked/{like_uuid}"
 
-    like_id = f"{current_author.url}/liked/{PostLike.objects.count()+1}"
-    object_id = f"{post_author.url}/posts/{liked_post.id}"
+    # Create the like request payload
     like_request = {
-        "type" : "like",
-        "author" : {
-            "type" : "author",
+        "type": "like",
+        "author": {
+            "type": "author",
             "id": current_author.url,
+            "page": current_author.url,
             "host": current_author.host,
             "displayName": current_author.display_name,
-            "github": current_author.github,
+            "github": current_author.github or "",
             "profileImage": current_author.profile_image.url if current_author.profile_image else None,
-            "page": current_author.url,
         },
-        "published" : datetime.datetime.now().isoformat(),
-        "id" : like_id,
-        "object" : object_id
+        "published": datetime.datetime.now().isoformat(),
+        "id": like_id,
+        "object": liked_post.url,
     }
 
-    inbox_url = post_author.url + '/inbox'
-    # access_token = AccessToken.for_user(current_author)
+    # Inbox URL for the post author
+    inbox_url = f"{post_author.url}/inbox"
 
     try:
-        node = post_author.host[:-4].replace('http://', 'https://')
+        # Determine the node for the post's author
+        node = post_author.host.rstrip('/').replace('http://', 'https://')
+        node = node[:-3]
+        # Log debug information
         print(f"Node: {node}")
         print(f"Sent to inbox: {inbox_url}")
         print(f"Like request: {like_request}")
 
-        if current_author.host.replace('http://', 'https://') != (node+"api/"):
+        # Handle remote and local likes
+        if current_author.host.rstrip('/') != node.rstrip('/'):
+            # Send the like request to a remote node's inbox
             response = post_request_to_node(node, inbox_url, data=like_request)
             if response and response.status_code in [200, 201]:
                 return JsonResponse({"message": "Like sent successfully"}, status=201)
             return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
-            PostLike.objects.create(liker=current_author, owner=liked_post)
+            # Save the like locally using the `Like` model
+            PostLike.objects.create(
+                object_id=like_uuid,
+                liker=current_author,
+                created_at=django.utils.timezone.now(),
+            )
 
-        return(redirect(f'/node/posts/{id}/'))
+        # Redirect to the post after liking
+        return redirect(f'/node/posts/{id}/')
     except Exception as e:
+        # Handle exceptions and log errors
         print(f"Failed to send post like request: {str(e)}")
         messages.error(request, "Failed to send post like request. Please try again.")
+        return JsonResponse({"error": "An error occurred while processing the like"}, status=500)
     
     
 
@@ -2671,10 +2740,16 @@ def followers_view(request, author_id, follower_id=None):
                 approved=True
             ).values_list('follower', flat=True)
 
+            # Fetch all local authors matching the follower URLs in one query
+            local_authors = Author.objects.filter(url__in=followers)
+
+            # Create a dictionary for quick lookup
+            local_authors_dict = {author.url: author for author in local_authors}
+
             followers_data = []
             for follower_url in followers:
-                follower = Author.objects.filter(url=follower_url).first()
-                if follower:
+                if follower_url in local_authors_dict:
+                    follower = local_authors_dict[follower_url]
                     follower_data = {
                         "type": "author",
                         "id": follower.url,
@@ -2688,8 +2763,8 @@ def followers_view(request, author_id, follower_id=None):
                     # For external authors not in your local Author model
                     # Extract host and id from follower_url
                     follower_id_extracted = follower_url.rstrip('/').split('/')[-1]
-                    follower_host_extracted = follower_url.replace(f'/authors/{follower_id_extracted}', '').rstrip('/')
-
+                    follower_host_extracted = follower_url.replace(f'authors/{follower_id_extracted}', '')
+                    
                     follower_data = {
                         "type": "author",
                         "id": follower_url,
