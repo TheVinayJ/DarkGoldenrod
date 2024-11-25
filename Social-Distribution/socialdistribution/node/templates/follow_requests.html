@@ -12,7 +12,7 @@
                 {% for request_user in follow_authors %}
                     <li>
                         <a href="{% url 'profile' author_id=request_user.id %}">{{ request_user.display_name }}</a> wants to follow you.
-                            <button class="approve-follow" data-follower-id="{{ request_user.id }}" data-follower="{{ request_user.host }}">Approve</button>
+                            <button class="approve-follow" data-follower-id="{{ request_user.id }}">Approve</button>
 
                         <form method="POST" action="{% url 'decline_follow' author_id=author.id follower_id=request_user.id  %}">
                             <button type="submit">Decline</button>
@@ -34,7 +34,7 @@
                 const access_token = "{{ access_token }}";
                 console.log(follower_id);
         
-                fetch(`{% url 'approve_follow' author_id=author.id %}?follower_id=${follower_id}&follower=${follower}`, {
+                fetch(`{% url 'approve_follow' author_id=author.id %}?follower_id=${follower_id}`, {
                     method: 'PUT',
                     headers: {
                         'X-CSRFToken': '{{ csrf_token }}',

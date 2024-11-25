@@ -2573,7 +2573,6 @@ def followers_view(request, author_id, follower_id=None):
             # Approve a follow request
             follower_url = unquote(follower_id).rstrip('/')
             print("attempt to approve")
-            print(follower_url)
             print(follower_id)
             print(author.url)
             try:
