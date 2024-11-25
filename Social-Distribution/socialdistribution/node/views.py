@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 from .utils import get_author_by_id, get_post_by_id, get_comment_by_id, get_repost_by_id, get_post_like_by_id, get_comment_like_by_id, get_post_by_id_and_author, get_like_instance
 from django.views.generic import ListView
 from rest_framework.views import APIView
+from django.utils.timezone import make_aware
 
 # from node.serializers import serializer
 
@@ -2198,29 +2199,109 @@ def add_external_comment(request, author_id):
     return JsonResponse('Failed to add comment(s)', status=status.HTTP_400_BAD_REQUEST)
 
 
+# def add_external_post(request, author_id):
+#     """
+#     Add a post to the database from an inbox call
+#     """
+#     body = json.loads(request.body)
+    
+#     author_data = body.get('author', {})
+#     author_id_from_body = author_data.get('id')
+#     author = get_object_or_404(Author, url=author_id_from_body)
+#     #body['author'] = author.id
+    
+#     post_url = body.get('id')
+#     existing_posts_with_id = Post.objects.filter(url=post_url)
+#     for post in existing_posts_with_id:
+#         post.visibility = 'DELETED'
+#         post.save()
+    
+#     serializer = PostSerializer(data=body)
+#     if serializer.is_valid():
+#         serializer.save(author=author, url=post_url)
+#         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+#     print(serializer.errors)
+#     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 def add_external_post(request, author_id):
     """
-    Add a post to the database from an inbox call
+    Add a post to the database from an inbox call without using serializers
     """
+    # Parse the request body
     body = json.loads(request.body)
     
+    # Get the author details
     author_data = body.get('author', {})
     author_id_from_body = author_data.get('id')
     author = get_object_or_404(Author, url=author_id_from_body)
-    #body['author'] = author.id
     
+    # Get post data
     post_url = body.get('id')
+    
+    # Mark any existing posts with the same URL as deleted
     existing_posts_with_id = Post.objects.filter(url=post_url)
     for post in existing_posts_with_id:
         post.visibility = 'DELETED'
         post.save()
+
+    # Determine the content type and prepare the post fields
+    contentType = body.get('contentType', 'text/plain')
+    title = body.get('title', 'Untitled Post')
+    description = body.get('description', '')
+    content = body.get('content', None)
+    visibility = body.get('visibility', 'PUBLIC')
+    published = body.get('published', make_aware(datetime.datetime.now()))
+    image = None
     
-    serializer = PostSerializer(data=body)
-    if serializer.is_valid():
-        serializer.save(author=author, url=post_url)
-        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-    print(serializer.errors)
-    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    if 'image' in contentType:
+        # Handle image content
+        if content:  # Assume content is a base64 string or URL for the image
+            file_suffix = contentType.split('/')[-1]  # Extract file type
+            image_name = f"external_image_{author.id}.{file_suffix}"
+            image_path = os.path.join("media", "images", image_name)
+            
+            # Save the image locally (if base64 or similar handling needed, implement here)
+            with open(image_path, "wb") as f:
+                f.write(content)  # Assuming content is already binary, modify as needed
+            
+            image = image_path
+    else:
+        # Handle text content
+        if isinstance(content, list):
+            content = content[0] if contentType == 'text/plain' else content[1]
+
+    # Create and save the post
+    post = Post(
+        title=title,
+        description=description,
+        text_content=content if 'image' not in contentType else None,
+        image_content=image if 'image' in contentType else None,
+        contentType=contentType,
+        visibility=visibility,
+        published=published,
+        author=author,
+        url=post_url,
+    )
+    post.save()
+
+    return JsonResponse({
+        "id": post.url,
+        "title": post.title,
+        "description": post.description,
+        "contentType": post.contentType,
+        "content": post.text_content if 'image' not in contentType else None,
+        "image": post.image_content if 'image' in contentType else None,
+        "published": post.published.isoformat(),
+        "visibility": post.visibility,
+        "author": {
+            "id": author.url,
+            "displayName": author.display_name,
+            "host": author.host,
+            "github": author.github,
+            "profileImage": author.profile_image.url if author.profile_image else None,
+        }
+    }, status=201)
+    
 
 
 @api_view(['POST'])
