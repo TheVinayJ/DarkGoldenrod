@@ -715,7 +715,7 @@ def local_api_like(request, id):
         print(f"Like request: {like_request}")
 
         # Handle remote and local likes
-        if current_author.host.rstrip('/') != node.rstrip('/'):
+        if current_author[:-4] != node:
             # Send the like request to a remote node's inbox
             response = post_request_to_node(node, inbox_url, data=like_request)
             if response and response.status_code in [200, 201]:
