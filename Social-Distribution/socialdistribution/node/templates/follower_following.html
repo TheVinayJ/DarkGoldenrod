@@ -24,7 +24,7 @@
         
             {% if is_own %}
                 {% if DisplayTitle == "Followers" %}
-                    <button class="remove-follower" type="submit" data-follower-id="{{ author.url }}">
+                    <button class="remove-follower" type="submit" data-follower-url="{{ author.url }}" data-follower-id="{{ author.id }}">
                         Remove Follower
                     </button>
                 {% endif %}
@@ -51,11 +51,12 @@
 <script>
     document.querySelectorAll('.remove-follower').forEach(function(button) {
         button.addEventListener('click', function() {
-            const authorId = "{{ author.id }}";  // Get the author ID from the context
+            const authorId = "{{ author.id }}";
+            const follower_id = this.getAttribute('data-follower-id');
             const follower_url = this.getAttribute('data-follower-url');
             const encodedFollowerUrl = encodeURIComponent(follower_url);
     
-            fetch("{% url 'list_follower' authorId encodedFollowerUrl %}", {
+            fetch(`{% url 'list_follower' author_id=authorId follower_id=encodedFollowerUrl %}?follower_id=${follower_id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
