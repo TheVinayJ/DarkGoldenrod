@@ -1093,7 +1093,7 @@ def add_comment(request, id):
             "page": author.url,
         },
         "comment": new_comment.text,
-        "contentType": new_comment.content_type,
+        "contentType": "text/plain",
         "published": new_comment.published.isoformat(),
         "id": comment_url,
         "post": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}",
