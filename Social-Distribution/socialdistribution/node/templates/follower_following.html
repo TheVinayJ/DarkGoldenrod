@@ -51,7 +51,7 @@
 <script>
     document.querySelectorAll('.remove-follower').forEach(function(button) {
         button.addEventListener('click', function() {
-            const authorId = "{{ author.id }}";
+            const authorId = "{{ current_author_id }}";
             const follower_id = this.getAttribute('data-follower-id');
             const follower_url = this.getAttribute('data-follower-url');
             const encodedFollowerUrl = encodeURIComponent(follower_url);

@@ -1734,6 +1734,7 @@ def followers_following_friends(request, author_id):
         'authors': users,
         'DisplayTitle': title,
         'is_own': is_own,
+        'current_author_id':current_author.id,
     })
 
 def get_author(request):
