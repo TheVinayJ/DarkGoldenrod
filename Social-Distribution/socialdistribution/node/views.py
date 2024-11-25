@@ -686,7 +686,7 @@ def local_api_like(request, id):
     try:
         # Determine the node for the post's author
         node = post_author.host.rstrip('/').replace('http://', 'https://')
-
+        node = node[:-4]
         # Log debug information
         print(f"Node: {node}")
         print(f"Sent to inbox: {inbox_url}")
