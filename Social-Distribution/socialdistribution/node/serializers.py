@@ -45,17 +45,10 @@ class PostLikeSerializer(serializers.ModelSerializer):
         fields = ['type', 'author', 'object', 'published', 'id']
     
     def get_id(self, obj):
-        return f"{obj.liker.host}authors/{obj.liker.id}/liked/{obj.id}"
+        return f"{obj.host}authors/{obj.author.id}/liked/{obj.id}"
     
     def get_object(self, obj):
-        return f"{obj.owner.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
-    
-    # def get_author(self, obj):
-    #     if isinstance(obj.liker, Author):
-    #         return AuthorSerializer(obj.liker).data
-    #     else:
-    #         author = Author.objects.filter(url=obj.liker.id).first()
-    #         return AuthorSerializer(author).data
+        return f"{obj.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
     
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
@@ -72,51 +65,61 @@ class CommentLikeSerializer(serializers.ModelSerializer):
         return f"{obj.liker.host}authors/{obj.liker.id}/liked/{obj.object_id}"
 
     def get_object(self, obj):
-        return f"{obj.owner.host}authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
-    
-    # def get_author(self, obj):
-    #     if isinstance(obj.liker, Author):
-    #         return AuthorSerializer(obj.liker).data
-    #     else:
-    #         author = Author.objects.filter(url=obj.liker.id).first()
-    #         return AuthorSerializer(author).data
+        return f"{obj.liker.host}authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
     
     
-class PostLikesSerializer(serializers.Serializer):
-    # Microsoft Copilot, Nov. 2024. Serializer for aggregate of models
-    type = serializers.CharField(default='likes')
-    page = serializers.SerializerMethodField()
+# class PostLikesSerializer(serializers.Serializer):
+#     # Microsoft Copilot, Nov. 2024. Serializer for aggregate of models
+#     type = serializers.CharField(default='likes')
+#     page = serializers.SerializerMethodField()
+#     id = serializers.SerializerMethodField()
+#     page_number = serializers.IntegerField(default=1)
+#     size = serializers.IntegerField(default=50)
+#     count = serializers.SerializerMethodField()
+#     src = serializers.SerializerMethodField()
+
+#     def get_page(self, obj):
+#         if hasattr(obj, 'post'):  
+#             return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/comments/{obj.id}"
+#         else:  
+#             return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
+
+#     def get_id(self, obj):
+#         if hasattr(obj, 'post'):  
+#             return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/comments/{obj.id}/likes"
+#         else:  
+#             return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/likes"
+
+#     def get_count(self, obj):
+#         return  PostLike.objects.filter(owner=obj).count()
+
+#     def get_src(self, obj):
+#         page_number = self.context.get('page_number', 1)
+#         page_size = self.context.get('size', 50)
+
+#         likes = PostLike.objects.filter(owner=obj).order_by('-created_at')
+
+#         start = (page_number - 1) * page_size
+#         end = start + page_size
+#         query_likes = likes[start:end]
+#         return PostLikeSerializer(query_likes, many=True).data
+
+class PostLikeSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(default='like')
+    author = AuthorSerializer(source='liker')
+    object = serializers.SerializerMethodField()
+    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
-    page_number = serializers.IntegerField(default=1)
-    size = serializers.IntegerField(default=50)
-    count = serializers.SerializerMethodField()
-    src = serializers.SerializerMethodField()
 
-    def get_page(self, obj):
-        if hasattr(obj, 'post'):  
-            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/comments/{obj.id}"
-        else:  
-            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
-
+    class Meta:
+        model = PostLike
+        fields = ['type', 'author', 'object', 'published', 'id']
+    
     def get_id(self, obj):
-        if hasattr(obj, 'post'):  
-            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/comments/{obj.id}/likes"
-        else:  
-            return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}/likes"
-
-    def get_count(self, obj):
-        return  PostLike.objects.filter(owner=obj).count()
-
-    def get_src(self, obj):
-        page_number = self.context.get('page_number', 1)
-        page_size = self.context.get('size', 50)
-
-        likes = PostLike.objects.filter(owner=obj).order_by('-created_at')
-
-        start = (page_number - 1) * page_size
-        end = start + page_size
-        query_likes = likes[start:end]
-        return PostLikeSerializer(query_likes, many=True).data
+        return f"{obj.liker.host}authors/{obj.liker.id}/liked/{obj.object_id}"
+    
+    def get_object(self, obj):
+        return f"{obj.owner.author.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
     
 class CommentLikesSerializer(serializers.Serializer):
     # Microsoft Copilot, Nov. 2024. Serializer for aggregate of models
@@ -218,20 +221,33 @@ class PostSerializer(serializers.ModelSerializer):
             'content',
             'visibility',
             'author',
+            'url',
             'published',
             'comments',
             'likes',
         ]
 
+    # def get_id(self, obj):
+    #     return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
+
+    # def get_author(self, obj):
+    #     if isinstance(obj.author, Author):
+    #         return AuthorSerializer(obj.author).data
+    #     else:
+    #         author = Author.objects.filter(url=obj.author.id).first()
+    #         return AuthorSerializer(author).data
+        
     def get_id(self, obj):
+        # Use the post's URL if it's from a remote node; otherwise, generate it dynamically
+        if obj.url:
+            return obj.url
         return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
-    def get_author(self, obj):
-        if isinstance(obj.author, Author):
-            return AuthorSerializer(obj.author).data
-        else:
-            author = Author.objects.filter(url=obj.author.id).first()
-            return AuthorSerializer(author).data
+    def get_url(self, obj):
+        # If the URL exists in the model, use it; otherwise, generate it dynamically
+        if obj.url:
+            return obj.url
+        return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_content(self, obj):
         if obj.contentType.startswith('text'):

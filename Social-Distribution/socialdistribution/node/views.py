@@ -295,21 +295,128 @@ def editor(request):
     """
     return render(request, "editor.html")
 
+# @api_view(['GET', 'POST', 'PUT'])
+# @permission_classes([IsAuthenticated])
+# def edit_post(request, post_id):
+#     author = get_author(request)
+#     #post = get_object_or_404(Post, id=post_id)
+#     post = get_post_by_id(post_id)
+
+#     if author is None:
+#         return HttpResponseForbidden("You must be logged in to edit posts.")
+
+#     if post.author != author:
+#         return HttpResponseForbidden("You are not allowed to edit this post.")
+
+#     if request.method == 'POST':
+
+#         title = request.POST.get('title')
+#         description = request.POST.get('description')
+#         contentType = request.POST.get('contentType')
+#         visibility = request.POST.get('visibility')
+
+#         if not title or not description:
+#             messages.error(request, "Title and description cannot be empty.")
+#             return render(request, 'edit_post.html', {
+#                 'post': post,
+#                 'author_id': author.id,
+#             })
+
+#         post.title = title
+#         post.description = description
+#         post.visibility = visibility
+#         post.published = timezone.now()
+
+#         if contentType == 'plain':
+#             content = request.POST.get('plain-content')
+#             if not content:
+#                 messages.error(request, "Content cannot be empty for Plaintext.")
+#                 return render(request, 'edit_post.html', {'post': post})
+#             post.contentType = 'text/plain'
+#             post.text_content = content
+#             post.image_content = None  # Remove image if switching from image to text
+
+#         elif contentType == 'markdown':
+#             content = request.POST.get('markdown-content')
+#             if not content:
+#                 messages.error(request, "Content cannot be empty for Markdown.")
+#                 return render(request, 'edit_post.html', {'post': post})
+#             post.contentType = 'text/markdown'
+#             post.text_content = content
+#             post.image_content = None  # Remove image if switching from image to text
+
+#         elif contentType == 'image':
+#             image = request.FILES.get('image-content')
+#             if image:
+#                 file_suffix = os.path.splitext(image.name)[1][1:]  # Get file extension without dot
+#                 post.contentType = f'image/{file_suffix.lower()}'
+#                 post.image_content = image
+#                 post.text_content = None  # Remove text if switching from text to image
+#             else:
+#                 # If no new image is uploaded, keep the existing image_content
+#                 if not post.image_content:
+#                     messages.error(request, "No image uploaded and no existing image to retain.")
+#                     return render(request, 'edit_post.html', {'post': post})
+#                 # Else, keep the existing image and contentType
+#         else:
+#             messages.error(request, "Invalid content type.")
+#             return render(request, 'edit_post.html', {'post': post})
+
+#         post.save()
+        
+#         print("contentType:", contentType)
+#         print("plain_content:", request.POST.get('plain_content'))
+#         print("markdown_content:", request.POST.get('markdown_content'))
+#         print("image_content:", request.FILES.get('image_content'))
+
+#         print(f"Searching for followers following: https://{request.get_host()}/api/authors/{post.author.id}")
+#         followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
+#         print("Sending to the following followers: " + str(followers))
+
+#         # for follower in followers:
+#         #     json_content = PostSerializer(post).data
+#         #     print("sending POST to: " + follower.follower)
+#         #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+
+#         for follower in followers:
+#             json_content = PostSerializer(post).data
+#             follower_url = follower.follower
+#             print("sending POST to: " + follower_url)
+
+#             # Extract base URL from follower's URL
+#             parsed_url = urlparse(follower_url)
+#             base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+#             # Send the POST request to the follower's inbox
+#             inbox_url = follower_url.rstrip('/') + '/inbox'
+
+#             print("base_url: ", base_url)
+#             print("inbox_url: ", inbox_url)
+#             print("json_content: ", json_content)
+#             # Now call post_request_to_node with base_url
+#             post_request_to_node(base_url, inbox_url, 'POST', json_content)
+
+#         return redirect('view_post', post_id=post.id)
+
+#     else:
+#         return render(request, 'edit_post.html', {
+#             'post': post,
+#             'author_id': author.id,
+#         })
+
 @api_view(['GET', 'POST', 'PUT'])
 @permission_classes([IsAuthenticated])
 def edit_post(request, post_id):
     author = get_author(request)
-    #post = get_object_or_404(Post, id=post_id)
     post = get_post_by_id(post_id)
 
-    if author is None:
+    if not author:
         return HttpResponseForbidden("You must be logged in to edit posts.")
-
+    
     if post.author != author:
         return HttpResponseForbidden("You are not allowed to edit this post.")
 
     if request.method == 'POST':
-
         title = request.POST.get('title')
         description = request.POST.get('description')
         contentType = request.POST.get('contentType')
@@ -317,16 +424,14 @@ def edit_post(request, post_id):
 
         if not title or not description:
             messages.error(request, "Title and description cannot be empty.")
-            return render(request, 'edit_post.html', {
-                'post': post,
-                'author_id': author.id,
-            })
+            return render(request, 'edit_post.html', {'post': post, 'author_id': author.id})
 
         post.title = title
         post.description = description
         post.visibility = visibility
         post.published = timezone.now()
 
+        # Handle content type
         if contentType == 'plain':
             content = request.POST.get('plain-content')
             if not content:
@@ -334,7 +439,7 @@ def edit_post(request, post_id):
                 return render(request, 'edit_post.html', {'post': post})
             post.contentType = 'text/plain'
             post.text_content = content
-            post.image_content = None  # Remove image if switching from image to text
+            post.image_content = None
 
         elif contentType == 'markdown':
             content = request.POST.get('markdown-content')
@@ -343,66 +448,42 @@ def edit_post(request, post_id):
                 return render(request, 'edit_post.html', {'post': post})
             post.contentType = 'text/markdown'
             post.text_content = content
-            post.image_content = None  # Remove image if switching from image to text
+            post.image_content = None
 
         elif contentType == 'image':
             image = request.FILES.get('image-content')
             if image:
-                file_suffix = os.path.splitext(image.name)[1][1:]  # Get file extension without dot
+                file_suffix = os.path.splitext(image.name)[1][1:]
                 post.contentType = f'image/{file_suffix.lower()}'
                 post.image_content = image
-                post.text_content = None  # Remove text if switching from text to image
-            else:
-                # If no new image is uploaded, keep the existing image_content
-                if not post.image_content:
-                    messages.error(request, "No image uploaded and no existing image to retain.")
-                    return render(request, 'edit_post.html', {'post': post})
-                # Else, keep the existing image and contentType
+                post.text_content = None
+            elif not post.image_content:
+                messages.error(request, "No image uploaded and no existing image to retain.")
+                return render(request, 'edit_post.html', {'post': post})
+
         else:
             messages.error(request, "Invalid content type.")
             return render(request, 'edit_post.html', {'post': post})
 
         post.save()
-        
-        print("contentType:", contentType)
-        print("plain_content:", request.POST.get('plain_content'))
-        print("markdown_content:", request.POST.get('markdown_content'))
-        print("image_content:", request.FILES.get('image_content'))
 
-        print(f"Searching for followers following: https://{request.get_host()}/api/authors/{post.author.id}")
+        # Notify followers
         followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
-        print("Sending to the following followers: " + str(followers))
-
-        # for follower in followers:
-        #     json_content = PostSerializer(post).data
-        #     print("sending POST to: " + follower.follower)
-        #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+        print("Notifying the following followers:", followers)
 
         for follower in followers:
             json_content = PostSerializer(post).data
             follower_url = follower.follower
-            print("sending POST to: " + follower_url)
+            inbox_url = f"{follower_url.rstrip('/')}/inbox"
 
-            # Extract base URL from follower's URL
-            parsed_url = urlparse(follower_url)
-            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-
-            # Send the POST request to the follower's inbox
-            inbox_url = follower_url.rstrip('/') + '/inbox'
-
-            print("base_url: ", base_url)
-            print("inbox_url: ", inbox_url)
-            print("json_content: ", json_content)
-            # Now call post_request_to_node with base_url
-            post_request_to_node(base_url, inbox_url, 'POST', json_content)
+            try:
+                post_request_to_node(follower_url, inbox_url, 'POST', json_content)
+            except Exception as e:
+                print(f"Failed to notify {follower_url}: {str(e)}")
 
         return redirect('view_post', post_id=post.id)
 
-    else:
-        return render(request, 'edit_post.html', {
-            'post': post,
-            'author_id': author.id,
-        })
+    return render(request, 'edit_post.html', {'post': post, 'author_id': author.id})
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
