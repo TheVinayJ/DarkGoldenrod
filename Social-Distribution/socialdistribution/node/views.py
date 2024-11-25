@@ -1054,43 +1054,125 @@ def post_comments(request, author_id, post_id):
 
         return Response(comment_data, status=201)
 
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def add_comment(request, id):
+#     """
+#     Add a comment to a question
+#     Get question from ID, fill out model details with request,
+#     save model, go to results page
+#     """
+#     if request.method != "POST":
+#         return HttpResponse(status=400)
+#     #post = get_object_or_404(Post, pk=id)
+#     post = get_post_by_id(id)
+
+#     # Get request contents
+#     author = get_author(request)
+#     text = request.POST["content"]
+
+#     if not author:
+#         return HttpResponseForbidden("You must be logged in to post a comment.")
+
+#     new_comment = Comment(post=post, text=text, author=author)
+#     new_comment.save()
+
+#     if request.method == 'POST':
+#         # Serialize the comment
+#         comment_data = CommentSerializer(new_comment).data
+
+#         # Forward the comment to the post's author inbox if the post is from a remote author
+#         if post.author.host != f'https://{request.get_host()}/api/':
+#             inbox_url = f"{post.author.url}/inbox"
+#             try:
+#                 print("Sending comment to: ", inbox_url)
+#                 print("Host: ", post.author.host[:-4])
+#                 post_request_to_node(post.author.host[:-4], inbox_url, 'POST', comment_data)
+#             except Exception as e:
+#                 print(f"Failed to send comment to inbox: {str(e)}")
+                
+#     return(redirect(f'/node/posts/{id}/'))
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_comment(request, id):
     """
-    Add a comment to a question
-    Get question from ID, fill out model details with request,
-    save model, go to results page
+    Add a comment to a post, with a response matching the specified format.
     """
     if request.method != "POST":
         return HttpResponse(status=400)
-    #post = get_object_or_404(Post, pk=id)
+
+    # Retrieve the post
     post = get_post_by_id(id)
+    if not post:
+        return JsonResponse({"error": "Post not found."}, status=404)
 
-    # Get request contents
+    # Get the authenticated author
     author = get_author(request)
-    text = request.POST["content"]
-
     if not author:
         return HttpResponseForbidden("You must be logged in to post a comment.")
 
-    new_comment = Comment(post=post, text=text, author=author)
+    # Get the comment text and content type
+    text = request.data.get("comment", "")
+    content_type = request.data.get("contentType", "text/plain")
+    if not text:
+        return JsonResponse({"error": "Comment content cannot be empty."}, status=400)
+
+    # Create the comment
+    new_comment = Comment(
+        post=post,
+        text=text,
+        author=author,
+        content_type=content_type,
+        published=timezone.now(),
+    )
     new_comment.save()
 
-    if request.method == 'POST':
-        # Serialize the comment
-        comment_data = CommentSerializer(new_comment).data
+    # Generate comment URL
+    comment_url = f"https://{request.get_host()}/api/authors/{author.id}/commented/{new_comment.id}"
 
-        # Forward the comment to the post's author inbox if the post is from a remote author
-        if post.author.host != f'https://{request.get_host()}/api/':
-            inbox_url = f"{post.author.url}/inbox"
-            try:
-                print("Sending comment to: ", inbox_url)
-                print("Host: ", post.author.host[:-4])
-                post_request_to_node(post.author.host[:-4], inbox_url, 'POST', comment_data)
-            except Exception as e:
-                print(f"Failed to send comment to inbox: {str(e)}")
-        
+    # Construct the response payload
+    comment_data = {
+        "type": "comment",
+        "author": {
+            "type": "author",
+            "id": author.url,
+            "host": author.host,
+            "displayName": author.display_name,
+            "github": author.github,
+            "profileImage": author.profile_image.url if author.profile_image else None,
+            "page": author.url,
+        },
+        "comment": new_comment.text,
+        "contentType": new_comment.content_type,
+        "published": new_comment.published.isoformat(),
+        "id": comment_url,
+        "post": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}",
+        "likes": {
+            "type": "likes",
+            "page": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}",
+            "id": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}/likes",
+            "page_number": 1,
+            "size": 50,
+            "count": 0,
+            "src": [],
+        },
+    }
+
+    # Forward the comment to the post's author's inbox if they are on a remote node
+    if post.author.host != f'https://{request.get_host()}/api/':
+        inbox_url = f"{post.author.url}/inbox"
+        try:
+            print("Sending comment to:", inbox_url)
+            post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
+        except Exception as e:
+            print(f"Failed to send comment to inbox: {str(e)}")
+
+    return JsonResponse(comment_data, status=201)
+
+
+
         # inbox_url = f"{post.author.url}/inbox"
         # try:
         #     print("Sending comment to: ", inbox_url)
@@ -1154,7 +1236,7 @@ def add_comment(request, id):
     # except Exception as e:
     #     print(e)
     # # Return to question
-    return(redirect(f'/node/posts/{id}/'))
+    #return(redirect(f'/node/posts/{id}/'))
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
