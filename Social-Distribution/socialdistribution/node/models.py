@@ -46,8 +46,8 @@ class Author(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=255, unique=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     host = models.CharField(max_length=255, blank=True, null=True, default='http://darkgoldenrod/api/')
-    github = models.CharField(max_length=255, blank=True, null=True)
-    profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True)
+    github = models.CharField(max_length=255, blank=True, null=True, default="")
+    profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True, default="images/default_profile.jpg")
     page = models.CharField(max_length=255, blank=True, null=True)
     friends = models.ManyToManyField('self', blank=True)
     is_active = models.BooleanField(default=True)
@@ -142,7 +142,7 @@ class Comment(models.Model):
 
 class PostLike(Like):
     owner = models.ForeignKey(Post, on_delete=models.CASCADE)
-    liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
+    # liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
 
 class CommentLike(Like):
     owner = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True)
