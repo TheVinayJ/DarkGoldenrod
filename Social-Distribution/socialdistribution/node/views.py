@@ -250,15 +250,19 @@ def authors_list(request):
     authors_to_create = []
     for author in authors:
         if author['id'] not in existing_authors:
-            authors_to_create.append(Author(
-                url=author['id'],
-                host=author['host'],
-                display_name=author['displayName'],
-                github=author['github'],
-                page=author['page'],
-                profile_image=author['profileImage'],
-                email=f"{author['id']}@foreignnode.com",
-            ))
+            print(author)
+            try:
+                authors_to_create.append(Author(
+                    url=author['id'],
+                    host=author['host'],
+                    display_name=author['displayName'],
+                    github=author['github'],
+                    page=author['page'],
+                    profile_image=author['profileImage'],
+                    email=f"{author['id']}@foreignnode.com",
+                ))
+            except Exception as e:
+                print(e)
     Author.objects.bulk_create(authors_to_create)
 
     # Update author data with additional info
@@ -362,8 +366,8 @@ def edit_post(request, post_id):
         print("markdown_content:", request.POST.get('markdown_content'))
         print("image_content:", request.FILES.get('image_content'))
 
-        print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
-        followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
+        print(f"Searching for followers following: https://{request.get_host()}/api/authors/{post.author.id}")
+        followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
         print("Sending to the following followers: " + str(followers))
 
         # for follower in followers:
@@ -2110,7 +2114,7 @@ def local_api_follow(request, author_id):
             # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
         # create follow object after successful post
 
-        Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
+        Follow.objects.create(following=author_to_follow.url, follower=current_author.url, approved=True)
 
         # if response.status_code in [200, 201]:
         print("Sent Follow request")

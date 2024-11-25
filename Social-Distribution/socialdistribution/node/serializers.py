@@ -35,7 +35,7 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class PostLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = serializers.SerializerMethodField()
+    author = AuthorSerializer()
     object = serializers.SerializerMethodField()
     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
@@ -45,14 +45,21 @@ class PostLikeSerializer(serializers.ModelSerializer):
         fields = ['type', 'author', 'object', 'published', 'id']
     
     def get_id(self, obj):
-        return f"{obj.host}authors/{obj.author.id}/liked/{obj.id}"
+        return f"{obj.liker.host}authors/{obj.liker.id}/liked/{obj.id}"
     
     def get_object(self, obj):
-        return f"{obj.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
+        return f"{obj.owner.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
+    
+    def get_author(self, obj):
+        if isinstance(obj.author, Author):
+            return AuthorSerializer(obj.owner).data
+        else:
+            author = Author.objects.filter(url=obj.owner.id).first()
+            return AuthorSerializer(author).data
     
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
-    author = serializers.SerializerMethodField()
+    author = AuthorSerializer()
     object = serializers.SerializerMethodField()
     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
@@ -66,6 +73,13 @@ class CommentLikeSerializer(serializers.ModelSerializer):
 
     def get_object(self, obj):
         return f"{obj.liker.host}authors/{obj.owner.post.author.id}/posts/{obj.owner.post.id}/comments/{obj.owner.id}"
+    
+    def get_author(self, obj):
+        if isinstance(obj.author, Author):
+            return AuthorSerializer(obj.owner).data
+        else:
+            author = Author.objects.filter(url=obj.owner.id).first()
+            return AuthorSerializer(author).data
     
     
 class PostLikesSerializer(serializers.Serializer):
@@ -116,7 +130,7 @@ class CommentLikesSerializer(serializers.Serializer):
 
     def get_page(self, obj):
         if hasattr(obj, 'post'):  
-            return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
+            return f"{obj.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}"
         else:  
             return f"{obj.post.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
