@@ -185,8 +185,8 @@
             <p>No posts available.</p>
         {% endif %}
     </div>
-    
-    <div id="github-posts">
+
+    <div id="github">
         {% if activity %}
                 <ul class="post-github">
                 {% for post in activity %}
@@ -217,7 +217,7 @@
                             <p>By {{ post.author.display_name }} on {{ post.published|date:"d/m/Y" }}</p>
                         </div>
                     </div>
-                    
+
                     {% if post.shared_by %}
                     <!-- This is a repost -->
                     <p>{{ post.description }}</p>
@@ -226,18 +226,18 @@
                     <!-- Normal post -->
                     <p>{{ post.description }}</p>
                     {% endif %}
-            
+
                     {% if post.image_content_url %}
                         <img class="post-image" src="{{ post.image_content_url }}" alt="Post Image">
                     {% endif %}
-            
+
                     <!-- Rendered Markdown Content -->
                     {% if post.text_content %}
                     <p class="markdown-output">
                         {{ post.text_content|safe }}
                     </p>
                     {% endif %}
-                    
+
                     <!-- Display likes and comments count -->
                     <div class="post-actions">
                         <!-- Like Button -->
@@ -253,12 +253,12 @@
                                 </button>
                             {% endif %}
                         </form>
-                    
+
                         <!-- Comment Button -->
                         <a href="{% url 'view_post' post.id %}#comments" class="action-link">
                             <span class="material-symbols-outlined">tooltip</span> {{ post.comments }}
                         </a>
-                    
+
                         <!-- Repost Button -->
                         <form action="{% url 'repost' post.id %}" method="POST" style="display:inline;">
                             {% csrf_token %}
