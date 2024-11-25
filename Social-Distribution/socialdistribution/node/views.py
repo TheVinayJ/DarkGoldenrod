@@ -2061,7 +2061,9 @@ def local_api_follow(request, author_id):
     #author_to_follow = get_object_or_404(Author, id=author_id)
     author_to_follow = get_author_by_id(author_id)
 
-
+    actor_profile_image = current_author.profile_image.url if current_author.profile_image else ""
+    followee_profile_image = author_to_follow.profile_image.url if author_to_follow.profile_image else ""
+    
     # Construct the follow request object
     follow_request = {
         "type": "follow",
@@ -2072,7 +2074,7 @@ def local_api_follow(request, author_id):
             "host": current_author.host,
             "displayName": current_author.display_name,
             "github": current_author.github,
-            "profileImage": current_author.profile_image if current_author.profile_image else None,
+            "profileImage": actor_profile_image,
             "page": current_author.url,
         },
         "object": {
@@ -2081,7 +2083,7 @@ def local_api_follow(request, author_id):
             "host": author_to_follow.host,
             "displayName": author_to_follow.display_name,
             "github": author_to_follow.github,
-            "profileImage": author_to_follow.profile_image if current_author.profile_image else None,
+            "profileImage": followee_profile_image,
             "page": author_to_follow.url,
         }
     }
