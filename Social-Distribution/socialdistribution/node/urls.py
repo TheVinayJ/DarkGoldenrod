@@ -63,8 +63,8 @@ urlpatterns = [
     path('node/authors/<uuid:author_id>/posts/<uuid:post_id>', views.api_get_post_from_author, name='api_get_post_from_author'),
 
     # API
-    path('api/authors/<str:author_id>/inbox/', views.inbox, name='inbox'),
-    path('api/authors/<str:author_id>/inbox', views.inbox, name='inbox'),
+    path('api/authors/<uuid:author_id>/inbox/', views.inbox, name='inbox'),
+    path('api/authors/<uuid:author_id>/inbox', views.inbox, name='inbox'),
     
     path('api/authors/', views.api_authors_list, name='api_authors_list'),
     path('api/authors', views.api_authors_list, name='api_authors_list'),

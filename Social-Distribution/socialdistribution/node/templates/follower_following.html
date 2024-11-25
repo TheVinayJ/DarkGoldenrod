@@ -24,7 +24,7 @@
         
             {% if is_own %}
                 {% if DisplayTitle == "Followers" %}
-                    <button type="submit">
+                    <button class="remove-follower" type="submit" data-follower-url="{{ author.url }}" data-follower-id="{{ author.id }}">
                         Remove Follower
                     </button>
                 {% endif %}
@@ -48,5 +48,42 @@
         <br>
         {% endfor %}
     </ul>
+<script>
+    document.querySelectorAll('.remove-follower').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const follower_id = this.getAttribute('data-follower-id');
+            const follower_url = this.getAttribute('data-follower-url');
+            const encodedFollowerUrl = encodeURIComponent(follower_url);
+            console.log(encodedFollowerUrl);
+            
+            const baseURL = "{% url 'list_follower' author_id=current_author_id follower_id='null' %}";
+            const apiURL = baseURL.replace("null", encodedFollowerUrl);
+
+            
+            {#apiURL = `api/authors/{{current_author_id}}/followers/<path:follower_id>`#}
+
+            fetch(apiURL, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                        return response;
+                    }
+                    throw new Error('Network response was not ok.');
+            })
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+
+        });
+    });
+</script>
 </body>
 </html>

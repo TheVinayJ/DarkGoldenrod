@@ -436,6 +436,11 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
+            
+    post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
+    post.url = post_url
+    post.save()  
+    
     print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
     print("Sending to the following followers: " + str(followers))
@@ -692,7 +697,8 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    liker = get_author_by_id(body['id'].split('/')[-3])
+    #liker = get_author_by_id(body['id'].split('/')[-3])
+    liker = get_object_or_404(Author, url=body["author"]["id"])
     # liker = get_object_or_404(id=author_id)
     like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
@@ -1070,10 +1076,41 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
+    
+    # Generate comment URL
+    comment_url = f"https://{request.get_host()}/api/authors/{author.id}/commented/{new_comment.id}"
+
+    # Construct the response payload
+    comment_data = {
+        "type": "comment",
+        "author": {
+            "type": "author",
+            "id": author.url,
+            "host": author.host,
+            "displayName": author.display_name,
+            "github": author.github,
+            "profileImage": author.profile_image.url if author.profile_image else None,
+            "page": author.url,
+        },
+        "comment": new_comment.text,
+        "contentType": "text/plain",
+        "published": new_comment.published.isoformat(),
+        "id": comment_url,
+        "post": post.url,
+        "likes": {
+            "type": "likes",
+            "page": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}",
+            "id": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}/likes",
+            "page_number": 1,
+            "size": 50,
+            "count": 0,
+            "src": [],
+        },
+    }
 
     if request.method == 'POST':
         # Serialize the comment
-        comment_data = CommentSerializer(new_comment).data
+        #comment_data = CommentSerializer(new_comment).data
 
         # Forward the comment to the post's author inbox if the post is from a remote author
         if post.author.host != f'https://{request.get_host()}/api/':
@@ -1081,10 +1118,91 @@ def add_comment(request, id):
             try:
                 print("Sending comment to: ", inbox_url)
                 print("Host: ", post.author.host[:-4])
+                print("Comment data: ", comment_data)
                 post_request_to_node(post.author.host[:-4], inbox_url, 'POST', comment_data)
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
-        
+                
+    return(redirect(f'/node/posts/{id}/'))
+
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def add_comment(request, id):
+#     """
+#     Add a comment to a post, with a response matching the specified format.
+#     """
+#     if request.method != "POST":
+#         return HttpResponse(status=400)
+
+#     # Retrieve the post
+#     post = get_post_by_id(id)
+#     if not post:
+#         return JsonResponse({"error": "Post not found."}, status=404)
+
+#     # Get the authenticated author
+#     author = get_author(request)
+#     if not author:
+#         return HttpResponseForbidden("You must be logged in to post a comment.")
+
+#     # Get the comment text and content type
+#     text = request.data.get("comment", "")
+#     content_type = request.data.get("contentType", "text/plain")
+#     if not text:
+#         return JsonResponse({"error": "Comment content cannot be empty."}, status=400)
+
+#     # Create the comment
+#     new_comment = Comment(
+#         post=post,
+#         text=text,
+#         author=author,
+#         content_type=content_type,
+#         published=timezone.now(),
+#     )
+#     new_comment.save()
+
+#     # Generate comment URL
+#     comment_url = f"https://{request.get_host()}/api/authors/{author.id}/commented/{new_comment.id}"
+
+#     # Construct the response payload
+#     comment_data = {
+#         "type": "comment",
+#         "author": {
+#             "type": "author",
+#             "id": author.url,
+#             "host": author.host,
+#             "displayName": author.display_name,
+#             "github": author.github,
+#             "profileImage": author.profile_image.url if author.profile_image else None,
+#             "page": author.url,
+#         },
+#         "comment": new_comment.text,
+#         "contentType": new_comment.content_type,
+#         "published": new_comment.published.isoformat(),
+#         "id": comment_url,
+#         "post": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}",
+#         "likes": {
+#             "type": "likes",
+#             "page": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}",
+#             "id": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}/likes",
+#             "page_number": 1,
+#             "size": 50,
+#             "count": 0,
+#             "src": [],
+#         },
+#     }
+
+#     # Forward the comment to the post's author's inbox if they are on a remote node
+#     if post.author.host != f'https://{request.get_host()}/api/':
+#         inbox_url = f"{post.author.url}/inbox"
+#         try:
+#             print("Sending comment to:", inbox_url)
+#             post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
+#         except Exception as e:
+#             print(f"Failed to send comment to inbox: {str(e)}")
+
+#     return JsonResponse(comment_data, status=201)
+
+
         # inbox_url = f"{post.author.url}/inbox"
         # try:
         #     print("Sending comment to: ", inbox_url)
@@ -1148,7 +1266,7 @@ def add_comment(request, id):
     # except Exception as e:
     #     print(e)
     # # Return to question
-    return(redirect(f'/node/posts/{id}/'))
+    #return(redirect(f'/node/posts/{id}/'))
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -1449,7 +1567,7 @@ def profile(request, author_id):
     ).exclude(description="Public Github Activity").order_by('-published')
 
     # Retrieve GitHub activity
-    retrieve_github(viewing_author)
+    retrieve_github(request, viewing_author)
     github_posts = Post.objects.filter(
         author=viewing_author,
         visibility__in=visible_tags,
@@ -1490,7 +1608,7 @@ def profile(request, author_id):
         'friends_count': friends_count,
     })
 
-def retrieve_github(user):
+def retrieve_github(request, user):
     '''
     Retrieve GitHub public activity of author and create Post objects if there is any
     Makes use of the api.github.com
@@ -1562,6 +1680,7 @@ def retrieve_github(user):
                 follower_url = follower.follower
                 print("sending POST to: " + follower_url)
 
+
                 # Extract base URL from follower's URL
                 parsed_url = urlparse(follower_url)
                 base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
@@ -1576,7 +1695,7 @@ def retrieve_github(user):
                 post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
@@ -1641,6 +1760,7 @@ def api_single_author_fqid(request, author_fqid):
         if serializer.is_valid():
             if original_github != serializer.validated_data.get('github'):
                 Post.objects.filter(author=user, description="Public Github Activity").delete()
+                retrieve_github(user, request)
             print("uuid?")
             print (user.id)
             serializer.save()
@@ -1827,6 +1947,7 @@ def followers_following_friends(request, author_id):
         'authors': users,
         'DisplayTitle': title,
         'is_own': is_own,
+        'current_author_id': str(current_author.id),
     })
 
 def get_author(request):
@@ -1984,9 +2105,12 @@ def add_external_post(request, author_id):
     author_id_from_body = author_data.get('id')
     author = get_object_or_404(Author, url=author_id_from_body)
     #body['author'] = author.id
+    
+    post_url = body.get('id')
+    
     serializer = PostSerializer(data=body)
     if serializer.is_valid():
-        serializer.save(author=author)
+        serializer.save(author=author, url=post_url)
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
     print(serializer.errors)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
