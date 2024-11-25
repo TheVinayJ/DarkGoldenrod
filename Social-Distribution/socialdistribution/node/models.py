@@ -48,7 +48,7 @@ class Author(AbstractBaseUser, PermissionsMixin):
     host = models.CharField(max_length=255, blank=True, null=True, default='http://darkgoldenrod/api/')
     github = models.CharField(max_length=255, blank=True, null=True, default="")
     profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True, default="images/default_profile.jpg")
-    page = models.CharField(max_length=255, blank=True, null=True)
+    page = models.TextField(blank=True, null=True)
     friends = models.ManyToManyField('self', blank=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
