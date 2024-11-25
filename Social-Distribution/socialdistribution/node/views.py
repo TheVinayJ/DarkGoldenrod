@@ -1020,6 +1020,8 @@ def post_comments(request, author_id, post_id):
         if post.author.host != f'https://{request.get_host()}/api/':
             inbox_url = f"{post.author.url}/inbox"
             try:
+                print("Sending comment to: ", inbox_url)
+                print("Host: ", post.author.host)
                 post_request_to_node(post.author.host, inbox_url, 'POST', comment_data)
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
