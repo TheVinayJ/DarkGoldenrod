@@ -293,7 +293,7 @@ class AuthorProfileSerializer(serializers.ModelSerializer):
     github = serializers.CharField(default="", allow_blank=True)
     class Meta:
         model = Author
-        fields = ['id','display_name', 'profile_image', 'description', 'github']
+        fields = ['display_name', 'profile_image', 'description', 'github']
 
     def update(self, instance, validated_data):
         # Get the profile_image from validated_data if it exists

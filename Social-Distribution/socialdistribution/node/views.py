@@ -1509,8 +1509,9 @@ def api_single_author_fqid(request, author_fqid):
             return JsonResponse(author_data, status=200)
 
     if request.method == 'PUT':
+        print("serializer")
         serializer = AuthorProfileSerializer(user, data=request.data)
-
+        print("giithub")
         original_github = user.github
 
         if serializer.is_valid():
