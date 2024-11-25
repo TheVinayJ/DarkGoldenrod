@@ -1413,6 +1413,11 @@ def retrieve_github(user):
     activity = json.loads(data.decode("utf-8")) if res.status == 200 else []
     # Ends here
 
+
+    followers = Follow.objects.filter(following=user.url, approved = True)
+    print(followers)
+
+
     # 10/28/2024
     # Me: Retrieve the different event types, the repo, the date in each event in the json and create them into post if they do not yet exist in the database
     # OpenAI ChatGPT 40 mini generated:
@@ -1443,7 +1448,7 @@ def retrieve_github(user):
         # Check for existing post and create new post if it doesn't exist
         if not Post.objects.filter(author=user, title=event_type, text_content=post_description,
                                    published=published_date).exists():
-            Post.objects.create(
+            post = Post.objects.create(
                 author=user,
                 title=event_type,
                 description="Public Github Activity",
@@ -1452,6 +1457,26 @@ def retrieve_github(user):
                 text_content=post_description,
             )
     # Ends here
+
+            #  then send the new github activity post to all followers
+            for follower in followers:
+                json_content = PostSerializer(post).data
+                follower_url = follower.follower
+                print("sending POST to: " + follower_url)
+
+                # Extract base URL from follower's URL
+                parsed_url = urlparse(follower_url)
+                base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+                # Send the POST request to the follower's inbox
+                inbox_url = follower_url.rstrip('/') + '/inbox'
+
+                print("base_url: ", base_url)
+                print("inbox_url: ", inbox_url)
+                print("json_content: ", json_content)
+                # Now call post_request_to_node with base_url
+                post_request_to_node(base_url, inbox_url, 'POST', json_content)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
