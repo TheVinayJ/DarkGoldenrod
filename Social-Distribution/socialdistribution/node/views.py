@@ -1354,7 +1354,7 @@ def profile(request, author_id):
     ).exclude(description="Public Github Activity").order_by('-published')
 
     # Retrieve GitHub activity
-    retrieve_github(viewing_author)
+    retrieve_github(request, viewing_author)
     github_posts = Post.objects.filter(
         author=viewing_author,
         visibility__in=visible_tags,
@@ -1395,7 +1395,7 @@ def profile(request, author_id):
         'friends_count': friends_count,
     })
 
-def retrieve_github(user):
+def retrieve_github(request, user):
     '''
     Retrieve GitHub public activity of author and create Post objects if there is any
     Makes use of the api.github.com
@@ -1466,6 +1466,7 @@ def retrieve_github(user):
                 json_content = PostSerializer(post).data
                 follower_url = follower.follower
                 print("sending POST to: " + follower_url)
+
 
                 # Extract base URL from follower's URL
                 parsed_url = urlparse(follower_url)
@@ -1546,6 +1547,7 @@ def api_single_author_fqid(request, author_fqid):
         if serializer.is_valid():
             if original_github != serializer.validated_data.get('github'):
                 Post.objects.filter(author=user, description="Public Github Activity").delete()
+                retrieve_github(user, request)
             print("uuid?")
             print (user.id)
             serializer.save()
