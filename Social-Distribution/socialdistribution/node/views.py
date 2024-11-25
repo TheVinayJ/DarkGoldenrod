@@ -44,6 +44,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
+import base64
 
 
 #NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
@@ -2835,3 +2836,52 @@ def followers_view(request, author_id, follower_id=None):
                 return JsonResponse({"error": "Follow relationship not found"}, status=404)
         else:
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post_image(request, author_id, post_id):
+    """
+    GET [local, remote] get the public post converted to binary as an image.
+    Returns 404 if not an image.
+    """
+    post = get_post_by_id_and_author(post_id, author_id)
+        
+    if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
+        return HttpResponse("Not an image post", status=404)
+        
+    try:
+        post_data = PostSerializer(post).data
+        decoded_image = base64.b64decode(post.text_content)
+        post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
+            
+        return JsonResponse(post_data)
+            
+    except Exception as e:
+        return HttpResponse("Invalid image data", status=400)    
+            
+    
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_post_image_by_id(request, post_fqid):
+    """
+    GET [local, remote] get the public post converted to binary as an image using FQID.
+    Returns 404 if not an image.
+    """
+    post_id = post_fqid.split('/')[-1]
+    post = get_post_by_id(post_id)
+        
+        # Check if this is an image post
+    if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
+        return HttpResponse("Not an image post", status=404)
+        
+    try:
+        post_data = PostSerializer(post).data
+        decoded_image = base64.b64decode(post.text_content)
+            
+        post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
+            
+        return JsonResponse(post_data)
+            
+    except Exception as e:
+        return HttpResponse("Invalid image data", status=400)
