@@ -1118,6 +1118,7 @@ def add_comment(request, id):
             try:
                 print("Sending comment to: ", inbox_url)
                 print("Host: ", post.author.host[:-4])
+                print("Comment data: ", comment_data)
                 post_request_to_node(post.author.host[:-4], inbox_url, 'POST', comment_data)
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
