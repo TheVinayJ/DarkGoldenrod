@@ -250,6 +250,7 @@ def authors_list(request):
     authors_to_create = []
     for author in authors:
         if author['id'] not in existing_authors:
+            print(author)
             authors_to_create.append(Author(
                 url=author['id'],
                 host=author['host'],
