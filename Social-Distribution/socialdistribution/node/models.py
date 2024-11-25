@@ -123,6 +123,7 @@ class Post(models.Model):
         choices=VISIBILITY_CHOICES,
         default='PUBLIC',
     )
+    url = models.URLField(max_length=255, blank=True, null=True)
 
 
 class Repost(models.Model):

@@ -692,7 +692,8 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    liker = get_author_by_id(body['id'].split('/')[-3])
+    #liker = get_author_by_id(body['id'].split('/')[-3])
+    liker = get_object_or_404(Author, url=body["author"]["id"])
     # liker = get_object_or_404(id=author_id)
     like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
