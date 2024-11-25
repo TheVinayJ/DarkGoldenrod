@@ -46,8 +46,8 @@ class Author(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=255, unique=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     host = models.CharField(max_length=255, blank=True, null=True, default='http://darkgoldenrod/api/')
-    github = models.CharField(max_length=255, blank=True, null=True)
-    profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True)
+    github = models.CharField(max_length=255, blank=True, null=True, default="")
+    profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True, default="images/default_profile.jpg")
     page = models.CharField(max_length=255, blank=True, null=True)
     friends = models.ManyToManyField('self', blank=True)
     is_active = models.BooleanField(default=True)
@@ -123,6 +123,7 @@ class Post(models.Model):
         choices=VISIBILITY_CHOICES,
         default='PUBLIC',
     )
+    url = models.URLField(max_length=255, blank=True, null=True)
 
 
 class Repost(models.Model):
