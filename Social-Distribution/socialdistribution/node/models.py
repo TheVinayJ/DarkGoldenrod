@@ -95,7 +95,7 @@ class Like(models.Model):
     #object_id = models.AutoField(primary_key=True)
     object_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     created_at = models.DateTimeField(default=django.utils.timezone.now, db_index=True)
-    liker = models.ForeignKey(Author, on_delete=models.CASCADE)
+    liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
 
     class Meta:
         abstract = True
@@ -142,10 +142,10 @@ class Comment(models.Model):
 
 class PostLike(Like):
     owner = models.ForeignKey(Post, on_delete=models.CASCADE)
-    liker = models.ForeignKey(Author, on_delete=models.CASCADE)
+    liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
 
 class CommentLike(Like):
-    owner = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    owner = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True)
     
 class Image(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
