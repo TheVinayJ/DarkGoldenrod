@@ -2723,10 +2723,16 @@ def followers_view(request, author_id, follower_id=None):
                 approved=True
             ).values_list('follower', flat=True)
 
+            # Fetch all local authors matching the follower URLs in one query
+            local_authors = Author.objects.filter(url__in=followers)
+
+            # Create a dictionary for quick lookup
+            local_authors_dict = {author.url: author for author in local_authors}
+
             followers_data = []
             for follower_url in followers:
-                follower = Author.objects.filter(url=follower_url).first()
-                if follower:
+                if follower_url in local_authors_dict:
+                    follower = local_authors_dict[follower_url]
                     follower_data = {
                         "type": "author",
                         "id": follower.url,
@@ -2740,8 +2746,8 @@ def followers_view(request, author_id, follower_id=None):
                     # For external authors not in your local Author model
                     # Extract host and id from follower_url
                     follower_id_extracted = follower_url.rstrip('/').split('/')[-1]
-                    follower_host_extracted = follower_url.replace(f'/authors/{follower_id_extracted}', '').rstrip('/')
-
+                    follower_host_extracted = follower_url.replace(f'authors/{follower_id_extracted}', '')
+                    
                     follower_data = {
                         "type": "author",
                         "id": follower_url,
