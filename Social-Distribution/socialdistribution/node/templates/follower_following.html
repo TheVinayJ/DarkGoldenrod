@@ -56,7 +56,8 @@
             const follower_url = this.getAttribute('data-follower-url');
             const encodedFollowerUrl = encodeURIComponent(follower_url);
             console.log(encodedFollowerUrl);
-            apiURL = `api/authors/${currentAuthorId}/followers/${encodedFollowerUrl}`
+            apiURL = `/api/authors/${currentAuthorId}/followers/${encodedFollowerUrl}`;
+            console.log(apiURL);
 
             fetch(apiUrl, {
             method: 'DELETE',
