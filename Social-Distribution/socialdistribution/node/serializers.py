@@ -122,9 +122,9 @@ class CommentLikesSerializer(serializers.Serializer):
 
     def get_id(self, obj):
         if hasattr(obj, 'post'):  
-            return f"{obj.post.author.host}api/authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
+            return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}/comments/{obj.id}/likes"
         else:  
-            return f"{obj.post.author.host}api/authors/{obj.author.id}/posts/{obj.id}/likes"
+            return f"{obj.post.author.host}authors/{obj.author.id}/posts/{obj.id}/likes"
 
     def get_count(self, obj):
         return  CommentLike.objects.filter(owner=obj).count()
@@ -155,10 +155,10 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['type', 'author', 'comment', 'contentType', 'published', 'id', 'post', 'likes']
 
     def get_id(self, obj):
-        return f"{obj.post.author.host}api/authors/{obj.author.id}/commented/{obj.id}"
+        return f"{obj.post.author.host}authors/{obj.author.id}/commented/{obj.id}"
 
     def get_post(self, obj):
-        return f"{obj.post.author.host}api/authors/{obj.post.author.id}/posts/{obj.post.id}"
+        return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}"
 
 
 class CommentsSerializer(serializers.Serializer):
@@ -210,7 +210,7 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def get_id(self, obj):
-        return f"{obj.author.host}api/authors/{obj.author.id}/posts/{obj.id}"
+        return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_author(self, obj):
         return AuthorSerializer(obj.author).data
