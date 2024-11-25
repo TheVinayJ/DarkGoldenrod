@@ -782,7 +782,10 @@ def local_api_like_comment(request, id):
             if response and response.status_code in [200, 201]:
                 return redirect(f'/node/posts/{id}/')
         else:
-            like = CommentLike.objects.create(liker=current_author, owner=liked_comment)
+            like = CommentLike.objects.create(
+                object_id=like_uuid,
+                liker=current_author, 
+                owner=liked_comment)
             like.save()
 
         return(redirect(f'/node/posts/{id}/'))
