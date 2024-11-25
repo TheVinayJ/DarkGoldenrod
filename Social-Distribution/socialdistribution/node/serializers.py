@@ -212,7 +212,11 @@ class PostSerializer(serializers.ModelSerializer):
         return f"{obj.author.host}api/authors/{obj.author.id}/posts/{obj.id}"
 
     def get_author(self, obj):
-        return AuthorSerializer(obj.author).data
+        if isinstance(obj.author, Author):
+            return AuthorSerializer(obj.author).data
+        else:
+            author = Author.objects.filter(url=obj.author.id).first()
+            return AuthorSerializer(author).data
 
     def get_content(self, obj):
         if obj.contentType.startswith('text'):
