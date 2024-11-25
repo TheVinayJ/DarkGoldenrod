@@ -607,7 +607,7 @@ def get_posts_from_author(request, author_id):
     serializer = PostSerializer(posts, many=True)
     return Response(serializer.data)
 
-@api_view(['DELETE'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def delete_post(request, post_id):
     author = get_author(request)
