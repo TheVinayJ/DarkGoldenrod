@@ -251,15 +251,18 @@ def authors_list(request):
     for author in authors:
         if author['id'] not in existing_authors:
             print(author)
-            authors_to_create.append(Author(
-                url=author['id'],
-                host=author['host'],
-                display_name=author['displayName'],
-                github=author['github'],
-                page=author['page'],
-                profile_image=author['profileImage'],
-                email=f"{author['id']}@foreignnode.com",
-            ))
+            try:
+                authors_to_create.append(Author(
+                    url=author['id'],
+                    host=author['host'],
+                    display_name=author['displayName'],
+                    github=author['github'],
+                    page=author['page'],
+                    profile_image=author['profileImage'],
+                    email=f"{author['id']}@foreignnode.com",
+                ))
+            except Exception as e:
+                print(e)
     Author.objects.bulk_create(authors_to_create)
 
     # Update author data with additional info
