@@ -362,8 +362,8 @@ def edit_post(request, post_id):
         print("markdown_content:", request.POST.get('markdown_content'))
         print("image_content:", request.FILES.get('image_content'))
 
-        print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
-        followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
+        print(f"Searching for followers following: https://{request.get_host()}/api/authors/{post.author.id}")
+        followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
         print("Sending to the following followers: " + str(followers))
 
         # for follower in followers:
