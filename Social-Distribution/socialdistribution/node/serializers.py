@@ -104,7 +104,7 @@ class CommentLikeSerializer(serializers.ModelSerializer):
 #         query_likes = likes[start:end]
 #         return PostLikeSerializer(query_likes, many=True).data
 
-class PostLikeSerializer(serializers.ModelSerializer):
+class PostLikesSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
     author = AuthorSerializer(source='liker')
     object = serializers.SerializerMethodField()
