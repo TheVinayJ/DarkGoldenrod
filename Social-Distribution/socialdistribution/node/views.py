@@ -730,7 +730,7 @@ def get_post_likes(request, author_id, post_id):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "id": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}/likes",
         "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
@@ -765,7 +765,7 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
+        "id": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}/likes",
         "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
@@ -797,7 +797,7 @@ def get_comment_likes(request, author_id, post_id, comment_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
+        "id": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
         "page": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
         "page_number": page_number,
         "size": size,
@@ -847,7 +847,7 @@ def likes_by_author(request, author_id):
     response_data = {
         "type": "likes",
         "page": f"https://{author.host}/authors/{author_id}/liked",
-        "id": f"https://{author.host}/api/authors/{author_id}/liked",
+        "id": f"https://{author.host}/authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
         "count": len(all_likes),
@@ -910,8 +910,8 @@ def get_author_likes_by_id(request, author_fqid):
     
     response_data = {
         "type": "likes",
-        "page": f"https://{author.host}/api/authors/{author_id}/liked",
-        "id": f"https://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}/authors/{author_id}/liked",
+        "id": f"https://{author.host}/authors/{author_id}/liked",
         "page_number": page_number,
         "size": size,
         "count": len(all_likes),
