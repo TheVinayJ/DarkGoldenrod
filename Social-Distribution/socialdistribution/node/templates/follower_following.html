@@ -55,13 +55,13 @@
             const follower_url = this.getAttribute('data-follower-url');
             const encodedFollowerUrl = encodeURIComponent(follower_url);
             console.log(encodedFollowerUrl);
-    
-            fetch(`{% url 'list_follower' author_id=current_author_id follower_id=${encodedFollowerUrl} %}?follower_id=${follower_id}`, {
+
+            fetch(`{% url 'list_follower' author_id=current_author_id follower_id=encodedFollowerUrl %}?follower_id=${follower_id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}',
-                
+
                 },
             })
             .then(response => {
@@ -77,7 +77,7 @@
                 console.error('Error:', error);
                 alert('An error occurred while trying to remove the follower');
             });
-                
+
         });
     });
 </script>
