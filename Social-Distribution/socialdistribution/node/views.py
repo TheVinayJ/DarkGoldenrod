@@ -620,7 +620,7 @@ def local_api_like(request, id):
     }
 
     inbox_url = post_author.url + '/inbox'
-    access_token = AccessToken.for_user(current_author)
+    # access_token = AccessToken.for_user(current_author)
 
     try:
         node = post_author.host[:-4].replace('http://', 'https://')
@@ -685,25 +685,43 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    liker = get_object_or_404(id=author_id)
-    post_like = PostLike.objects.create(liker=liker, owner=post)
-    serializer = PostLikeSerializer(post_like, data=body)
-    if serializer.is_valid():
-        serializer.save()
-        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    liker = get_author_by_id(author_id)
+    # liker = get_object_or_404(id=author_id)
+    like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
+    if not like_exists:
+        print('Creating post like object')
+        post_like = PostLike.objects.create(liker=liker, owner=post)
+        # serializer = PostLikeSerializer(post_like, data=body)
+        # if serializer.is_valid():
+        #     serializer.save()
+        #     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+        return JsonResponse({'message' : 'PostLike request processed and created.'}, status=200)
+    else:
+        return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
+        
 
 def comment_like(request, author_id):
     body = json.loads(request.body)
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
-    post = get_post_by_id(body['object'].split('/')[-1])
-    comment_like = CommentLike.objects.create(author_id=author_id, owner=post)
-    serializer = CommentLikeSerializer(comment_like, data=body)
-    if serializer.is_valid():
-        serializer.save()
-        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
-    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    comment = get_comment_by_id(body['object'].split('/')[-1])
+    liker = get_author_by_id(author_id)
+
+    comment_like_exists = PostLike.objects.filter(liker=liker, owner=comment)
+    
+
+    if not comment_like_exists:
+        print('creating comment like object')
+        comment_like = CommentLike.objects.create(liker=liker, owner=comment)
+        return JsonResponse({'message': 'comment like request processed and created'}, status=200)
+    else:
+        return JsonResponse({'message': 'comment like already exists, unlike instead'}, status=400)
+
+    # serializer = CommentLikeSerializer(comment_like, data=body)
+    # if serializer.is_valid():
+    #     serializer.save()
+    #     return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
+    # return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
