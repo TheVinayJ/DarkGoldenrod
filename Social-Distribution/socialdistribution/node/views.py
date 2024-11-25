@@ -624,8 +624,15 @@ def local_api_like(request, id):
 
     try:
         node = post_author.host[:-4].replace('http://', 'https://')
+        print(f"Node: {node}")
+        print(f"Sent to inbox: {inbox_url}")
+        print(f"Like request: {like_request}")
+
         if current_author.host.replace('http://', 'https://') != (node+"api/"):
             response = post_request_to_node(node, inbox_url, data=like_request)
+            if response and response.status_code in [200, 201]:
+                return JsonResponse({"message": "Like sent successfully"}, status=201)
+            return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
             PostLike.objects.create(liker=current_author, owner=liked_post)
 
@@ -646,7 +653,7 @@ def local_api_like_comment(request, id):
     print(current_author)
 
     like_id = f"{current_author.url}/liked/{CommentLike.objects.count()+1}"
-    object_id = f"{post_author.url}/posts/{liked_comment.id}"
+    object_id = f"{post_author.url}/commented/{liked_comment.id}"
     like_request = {
         "type" : "like",
         "author" : {
@@ -685,7 +692,7 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    liker = get_author_by_id(author_id)
+    liker = get_author_by_id(body['id'].split('/')[-3])
     # liker = get_object_or_404(id=author_id)
     like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
@@ -705,7 +712,7 @@ def comment_like(request, author_id):
     body = json.loads(request.body)
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     comment = get_comment_by_id(body['object'].split('/')[-1])
-    liker = get_author_by_id(author_id)
+    liker = get_author_by_id(body['id'].split('/')[-3])
 
     comment_like_exists = PostLike.objects.filter(liker=liker, owner=comment)
     
@@ -783,8 +790,8 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"https://{author.host}authors/{post.author.id}/posts/{post_id}",
+        "id": f"{author.host}authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"{author.host}authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -795,12 +802,22 @@ def get_post_likes_by_id(request, post_url):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_comment_likes(request, author_id, post_id, comment_url):
-    comment_id = comment_url.split('/')[-1]
-    #comment = get_object_or_404(Comment, id=comment_id)
+def get_comment_likes(request, author_id, post_id, comment_fqid):
+
+    comment_id = comment_fqid.split('/')[-1]
+    comment_id = unquote(comment_id)
+
     comment = get_comment_by_id(comment_id)
-    #author = get_object_or_404(Author, pk=author_id)
-    author = get_author_by_id(author_id)
+
+    try:
+        author = get_author_by_id(author_id)
+    except (ValueError, Author.DoesNotExist) as e:
+        author = None
+        print(f"Comments not found: ")
+
+    # if not author:
+    #     author = Author.objects.filter()
+
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
@@ -815,8 +832,8 @@ def get_comment_likes(request, author_id, post_id, comment_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
-        "page": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
+        "id": f"{author.host()}/authors/{author_id}/comments/{comment_id}/likes",
+        "page": f"{author.host()}/authors/{author_id}/comments/{comment_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -864,8 +881,8 @@ def likes_by_author(request, author_id):
     
     response_data = {
         "type": "likes",
-        "page": f"https://{author.host}authors/{author_id}/liked",
-        "id": f"https://{author.host}authors/{author_id}/liked",
+        "page": f"{author.host}/authors/{author_id}/liked",
+        "id": f"{author.host}/authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
         "count": len(all_likes),
@@ -940,11 +957,14 @@ def get_author_likes_by_id(request, author_fqid):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_like_by_id(request, like_id):
+def get_like_by_id(request, like_fqid):
+    like_id = unquote(like_fqid)
+    like_id = like_id.rstrip('/').split('/')
+
     try:
-        split_like = like_id.split('/')
-        id = split_like[-1]
-        author_id = split_like[-2] 
+        # split_like = like_fqid.split('/')
+        id = like_id[-1]
+        author_id = like_id[-2] 
         
         like = None
         #author = get_object_or_404(Author, id=author_id)
