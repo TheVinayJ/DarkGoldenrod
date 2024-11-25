@@ -1516,7 +1516,8 @@ def api_single_author_fqid(request, author_fqid):
         if serializer.is_valid():
             if original_github != serializer.validated_data.get('github'):
                 Post.objects.filter(author=user, description="Public Github Activity").delete()
-
+            print("uuid?")
+            print (user.id)
             serializer.save()
             author_data = {
                 "type": "author",
