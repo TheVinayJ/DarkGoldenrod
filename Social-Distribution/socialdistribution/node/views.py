@@ -1052,12 +1052,6 @@ def add_comment(request, id):
     new_comment.save()
 
     if request.method == 'POST':
-        # Add a comment to the post
-        data = request.data
-
-        if data.get('type') != 'comment':
-            return JsonResponse({'error': 'Invalid type, expected "comment".'}, status=400)
-
         # Serialize the comment
         comment_data = CommentSerializer(new_comment).data
 
