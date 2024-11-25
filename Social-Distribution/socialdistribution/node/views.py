@@ -2072,7 +2072,7 @@ def local_api_follow(request, author_id):
             "host": current_author.host,
             "displayName": current_author.display_name,
             "github": current_author.github,
-            "profileImage": current_author.profile_image if current_author.profile_image else None,
+            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
             "page": current_author.url,
         },
         "object": {
@@ -2081,7 +2081,7 @@ def local_api_follow(request, author_id):
             "host": author_to_follow.host,
             "displayName": author_to_follow.display_name,
             "github": author_to_follow.github,
-            "profileImage": author_to_follow.profile_image if current_author.profile_image else None,
+            "profileImage": author_to_follow.profile_image.url if current_author.profile_image else None,
             "page": author_to_follow.url,
         }
     }
