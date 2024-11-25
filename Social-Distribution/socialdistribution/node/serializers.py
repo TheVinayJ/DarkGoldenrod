@@ -11,7 +11,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
     host = serializers.SerializerMethodField()
     displayName = serializers.CharField(source='display_name')
-    github = serializers.CharField(allow_null=True,allow_blank=False)
+    github = serializers.CharField(allow_null=True,allow_blank=True)
     profileImage = serializers.SerializerMethodField()
     page = serializers.SerializerMethodField()
 
