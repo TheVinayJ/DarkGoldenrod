@@ -90,6 +90,8 @@ def post_request_to_node(host, url, method='POST', data=None):
     '''
 
     node = RemoteNode.objects.filter(url=host, is_active=True).first()
+    if not node:
+        print("Couldn't find remote node with host ", host)
 
     auth = HTTPBasicAuth(node.username, node.password)
 
