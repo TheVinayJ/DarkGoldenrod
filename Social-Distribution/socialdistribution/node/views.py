@@ -1096,7 +1096,7 @@ def add_comment(request, id):
         "contentType": "text/plain",
         "published": new_comment.published.isoformat(),
         "id": comment_url,
-        "post": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}",
+        "post": post.url,
         "likes": {
             "type": "likes",
             "page": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}",
