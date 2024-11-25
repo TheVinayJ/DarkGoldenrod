@@ -82,7 +82,6 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
     path('api/posts/<str:post_url>/likes/', views.get_post_likes_by_id, name='post_likes_by_id'),
     path('api/authors/<str:author_id>/posts/<str:post_id>/comments/<str:comment_id>/likes/', views.get_comment_likes, name='get_comment_likes'),
-    path('api/posts/<str:post_url>/comments', views.get_comments_from_post, name='get_comments_from_post'),
     path('api/authors/<str:author_id>/posts/<str:post_id>/comments', views.post_comments, name='post_comments'),
     path('api/authors/<str:author_id>/commented/<str:comment_id>', views.get_comment, name='get_comment'),
     path('api/authors/<str:author_id>/commented/', views.author_commented, name='author_commented'),
