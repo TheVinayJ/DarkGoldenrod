@@ -77,7 +77,7 @@ def api_authors_list(request):
             "id": f"{author.url}",
             "host": author.host,
             "displayName": author.display_name,
-            "github": author.github,
+            "github": "https://github.com/" + author.github,
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
         } for author in current_page if '@foreignnode.com' not in author.email])
@@ -87,7 +87,7 @@ def api_authors_list(request):
             "id": f"{author.url}",
             "host": author.host,
             "displayName": author.display_name,
-            "github": author.github,
+            "github": "https://github.com/" + author.github,
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
         } for author in authors if '@foreignnode.com' not in author.email]
@@ -2355,20 +2355,12 @@ def followers_view(request, author_id, follower_id=None):
     # author = get_object_or_404(Author, id=author_id_int)
     
     author = get_author_by_id(author_id)
-    follower_id_param = request.GET.get('follower_id')  # Get the follower_id from query params
-    follower_host = request.GET.get('follower')  # Get the follower's host from query params
 
     if request.method == 'GET':
-        if follower_id_param:
+        if follower_id:
             # Handle the follower_id as a string (could be UUID or integer)
-            decoded_follower_id = unquote(follower_id_param).rstrip('/')
+            follower_url = unquote(follower_id).rstrip('/')
             # Build the follower's URL
-            if follower_host:
-                decoded_follower_host = unquote(follower_host).rstrip('/')
-                follower_url = f"{decoded_follower_host}/authors/{decoded_follower_id}"
-            else:
-                # If no follower host is provided, assume it's a local author
-                follower_url = f"{author.host}authors/{decoded_follower_id}"
 
             # Check if the follower is in the Follow model
             if not Follow.objects.filter(
@@ -2384,8 +2376,7 @@ def followers_view(request, author_id, follower_id=None):
                 # If the follower is not in the local Author model, you can create a placeholder or return minimal info
                 follower_data = {
                     "type": "author",
-                    "id": decoded_follower_id,
-                    "url": follower_url,
+                    "id": follower_url,
                     "host": decoded_follower_host if follower_host else author.host,
                     "displayName": "",  # You may not have the display name
                     "page": "",
@@ -2395,8 +2386,7 @@ def followers_view(request, author_id, follower_id=None):
             else:
                 follower_data = {
                     "type": "author",
-                    "id": str(follower.id),
-                    "url": follower.url,
+                    "id": follower_url,
                     "host": follower.host,
                     "displayName": follower.display_name,
                     "page": follower.page,
@@ -2419,8 +2409,7 @@ def followers_view(request, author_id, follower_id=None):
                 if follower:
                     follower_data = {
                         "type": "author",
-                        "id": str(follower.id),
-                        "url": follower.url,
+                        "id": follower.url,
                         "host": follower.host,
                         "displayName": follower.display_name,
                         "page": follower.page,
@@ -2435,8 +2424,7 @@ def followers_view(request, author_id, follower_id=None):
 
                     follower_data = {
                         "type": "author",
-                        "id": follower_id_extracted,
-                        "url": follower_url,
+                        "id": follower_url,
                         "host": follower_host_extracted,
                         "displayName": "",
                         "page": "",
@@ -2452,11 +2440,9 @@ def followers_view(request, author_id, follower_id=None):
             })
 
     elif request.method == 'PUT':
-        if follower_id_param and follower_host:
+        if follower_id:
             # Approve a follow request
-            decoded_follower_id = unquote(follower_id_param).rstrip('/')
-            decoded_follower_host = unquote(follower_host).rstrip('/')
-            follower_url = f"{decoded_follower_host}/authors/{decoded_follower_id}"
+            follower_url = unquote(follower_id).rstrip('/')
 
             try:
                 follow = Follow.objects.get(
@@ -2472,10 +2458,9 @@ def followers_view(request, author_id, follower_id=None):
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
 
     elif request.method == 'DELETE':
-        if follower_id_param and follower_host:
-            decoded_follower_id = unquote(follower_id_param).rstrip('/')
-            decoded_follower_host = unquote(follower_host).rstrip('/')
-            follower_url = f"{decoded_follower_host}/authors/{decoded_follower_id}"
+        if follower_id:
+            follower_url = unquote(follower_id).rstrip('/')
+            print('DELETE follower_url: ', follower_url)
 
             try:
                 follow_instance = Follow.objects.get(
