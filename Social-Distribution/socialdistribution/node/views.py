@@ -2199,6 +2199,10 @@ def add_external_post(request, author_id):
     #body['author'] = author.id
     
     post_url = body.get('id')
+    existing_posts_with_id = Post.objects.filter(url=post_url)
+    for post in existing_posts_with_id:
+        post.visibility = 'DELETED'
+        post.save()
     
     serializer = PostSerializer(data=body)
     if serializer.is_valid():
