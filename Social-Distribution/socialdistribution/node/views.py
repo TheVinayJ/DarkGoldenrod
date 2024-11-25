@@ -2110,7 +2110,7 @@ def local_api_follow(request, author_id):
             # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
         # create follow object after successful post
 
-        Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
+        Follow.objects.create(following=author_to_follow.url, follower=current_author.url, approved=True)
 
         # if response.status_code in [200, 201]:
         print("Sent Follow request")
