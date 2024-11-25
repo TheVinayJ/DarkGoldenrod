@@ -51,12 +51,11 @@
 <script>
     document.querySelectorAll('.remove-follower').forEach(function(button) {
         button.addEventListener('click', function() {
-            const authorId = "{{ current_author_id }}";
             const follower_id = this.getAttribute('data-follower-id');
             const follower_url = this.getAttribute('data-follower-url');
             const encodedFollowerUrl = encodeURIComponent(follower_url);
     
-            fetch(`{% url 'list_follower' author_id=authorId follower_id=encodedFollowerUrl %}?follower_id=${follower_id}`, {
+            fetch(`{% url 'list_follower' author_id=current_author_id follower_id=encodedFollowerUrl %}?follower_id=${follower_id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
