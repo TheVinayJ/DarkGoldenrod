@@ -266,7 +266,7 @@ def authors_list(request):
     Author.objects.bulk_create(authors_to_create)
 
     # Update author data with additional info
-    for author in authors:
+    for author in authors_to_create:
         author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
         author_from_db = Author.objects.filter(url=author['id']).first()
         author['id_num'] = author_from_db.id if author_from_db else None
