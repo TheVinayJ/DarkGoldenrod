@@ -1020,6 +1020,8 @@ def post_comments(request, author_id, post_id):
         if post.author.host != f'https://{request.get_host()}/api/':
             inbox_url = f"{post.author.url}/inbox"
             try:
+                print("Sending comment to: ", inbox_url)
+                print("Host: ", post.author.host)
                 post_request_to_node(post.author.host, inbox_url, 'POST', comment_data)
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
@@ -1048,29 +1050,84 @@ def add_comment(request, id):
 
     new_comment = Comment(post=post, text=text, author=author)
     new_comment.save()
-    followers = Follow.objects.filter(following=f"{post.author.host}authors/{post.author.id}")
-    print("Sending comment to people following: ", f"{post.author.host}authors/{post.author.id}")
-    print("Sending comment to: ", followers)
-    try:
-        json_content = CommentSerializer(new_comment).data
-        url = post.author.url
-        print("sending POST to: " + url)
 
-        # Extract base URL from follower's URL
-        parsed_url = urlparse(url)
-        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+    if request.method == 'POST':
+        # Serialize the comment
+        comment_data = CommentSerializer(new_comment).data
 
-        # Send the POST request to the follower's inbox
-        inbox_url = url.rstrip('/') + '/inbox'
+        # Forward the comment to the post's author inbox if the post is from a remote author
+        if post.author.host != f'https://{request.get_host()}/api/':
+            inbox_url = f"{post.author.url}/inbox"
+            try:
+                print("Sending comment to: ", inbox_url)
+                print("Host: ", post.author.host[:-4])
+                post_request_to_node(post.author.host[:-4], inbox_url, 'POST', comment_data)
+            except Exception as e:
+                print(f"Failed to send comment to inbox: {str(e)}")
+        
+        # inbox_url = f"{post.author.url}/inbox"
+        # try:
+        #     print("Sending comment to: ", inbox_url)
+        #     print("Host: ", post.author.host)
+        #     post_request_to_node(post.author.host, inbox_url, 'POST', comment_data)
+        # except Exception as e:
+        #     print(f"Failed to send comment to inbox: {str(e)}")
 
-        print("base_url: ", base_url)
-        print("inbox_url: ", inbox_url)
-        print("json_content: ", json_content)
-        # Now call post_request_to_node with base_url
-        post_request_to_node(base_url, inbox_url, 'POST', json_content)
-    except Exception as e:
-        print(e)
-    # Return to question
+        #return Response(comment_data, status=201)
+
+    # json_content = CommentSerializer(new_comment).data
+
+    # # Iterate through each follower
+    # for follower in followers:
+    #     try:
+    #         # Extract the follower's URL and prepare the inbox URL
+    #         url = follower.follower.url  # Assuming `follower.follower.url` is the follower's URL
+    #         print("Sending POST to: " + url)
+
+    #         # Extract base URL from the follower's URL
+    #         parsed_url = urlparse(url)
+    #         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+    #         # Construct the follower's inbox URL
+    #         inbox_url = url.rstrip('/') + '/inbox'
+
+    #         print("base_url: ", base_url)
+    #         print("inbox_url: ", inbox_url)
+    #         print("json_content: ", json_content)
+
+    #         # Send the POST request to the follower's inbox
+    #         post_request_to_node(base_url, inbox_url, 'POST', json_content)
+    #     except Exception as e:
+    #         print(f"Failed to send comment to {url}: {e}")
+            
+            
+            
+            
+    
+    
+    # followers = Follow.objects.filter(following=f"{post.author.host}authors/{post.author.id}")
+    # print("Sending comment to people following: ", f"{post.author.host}authors/{post.author.id}")
+    # print("Sending comment to: ", followers)
+    # try:
+    #     json_content = CommentSerializer(new_comment).data
+    #     url = post.author.url
+    #     print("sending POST to: " + url)
+
+    #     # Extract base URL from follower's URL
+    #     parsed_url = urlparse(url)
+    #     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+    #     # Send the POST request to the follower's inbox
+    #     inbox_url = url.rstrip('/') + '/inbox'
+
+    #     print("base_url: ", base_url)
+    #     print("inbox_url: ", inbox_url)
+    #     print("json_content: ", json_content)
+    #     # Now call post_request_to_node with base_url
+    #     post_request_to_node(base_url, inbox_url, 'POST', json_content)
+    # except Exception as e:
+    #     print(e)
+    # # Return to question
     return(redirect(f'/node/posts/{id}/'))
 
 @api_view(['GET', 'POST'])
@@ -1902,7 +1959,10 @@ def add_external_post(request, author_id):
     Add a post to the database from an inbox call
     """
     body = json.loads(request.body)
-    author = get_author_by_id(author_id)
+    
+    author_data = body.get('author', {})
+    author_id_from_body = author_data.get('id')
+    author = get_object_or_404(Author, url=author_id_from_body)
     #body['author'] = author.id
     serializer = PostSerializer(data=body)
     if serializer.is_valid():
