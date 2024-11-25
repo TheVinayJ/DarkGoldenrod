@@ -436,6 +436,11 @@ def add_post(request, author_id):
                         author=author,
                         )
             post.save()
+            
+    post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
+    post.url = post_url
+    post.save()  
+    
     print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
     print("Sending to the following followers: " + str(followers))
@@ -692,7 +697,8 @@ def post_like(request, author_id):
 
     #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    liker = get_author_by_id(body['id'].split('/')[-3])
+    #liker = get_author_by_id(body['id'].split('/')[-3])
+    liker = get_object_or_404(Author, url=body["author"]["id"])
     # liker = get_object_or_404(id=author_id)
     like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
@@ -1987,9 +1993,12 @@ def add_external_post(request, author_id):
     author_id_from_body = author_data.get('id')
     author = get_object_or_404(Author, url=author_id_from_body)
     #body['author'] = author.id
+    
+    post_url = body.get('id')
+    
     serializer = PostSerializer(data=body)
     if serializer.is_valid():
-        serializer.save(author=author)
+        serializer.save(author=author, url=post_url)
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
     print(serializer.errors)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
