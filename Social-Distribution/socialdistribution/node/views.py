@@ -1539,85 +1539,85 @@ def api_single_author_fqid(request, author_fqid):
             }
             return JsonResponse(error_data, status=400)
 
-@api_view(['GET', 'PUT'])
-@permission_classes([IsAuthenticated])
-def api_single_author(request, author_id):
-    #user = get_object_or_404(Author, id=author_id)
-    
-    author_id = unquote(author_id)
-    print(author_id)
-    # Initialize user to None
-    user = None
-
-    # First, try to get by primary key (integer ID)
-    try:
-        #user = Author.objects.get(pk=int(author_id))
-        user = get_author_by_id(author_id)
-    except (ValueError, Author.DoesNotExist):
-        pass  # Not an integer ID or author with this ID does not exist
-
-    if not user:
-        # Try to get by URL equals author_id (in case it's a full URL)
-        user = Author.objects.filter(url=author_id).first()
-
-    if not user:
-        # Try to get by URL ending with /authors/{author_id}
-        user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
-
-    if not user:
-        # Author not found
-        nonexistent_author = {
-            "message": "This user does not exist",
-        }
-        return JsonResponse(nonexistent_author, status=404)
-
-
-    if request.method == 'GET':
-        if user is None:
-            nonexistent_author = {
-                "message": "This user does not exist",
-            }
-            return JsonResponse(nonexistent_author, status=404)
-        else:
-            author_data = {
-                "type": "author",
-                "id": user.id,
-                "host": user.host,
-                "displayName": user.display_name,
-                "github": "https://github.com/" + user.github if user.github else "",
-                "profileImage": user.profile_image.url if user.profile_image else None,
-                "page": user.page,
-                "description": user.description,
-            }
-            return JsonResponse(author_data, status=200)
-
-    if request.method == 'PUT':
-        serializer = AuthorProfileSerializer(user, data=request.data)
-
-        original_github = user.github
-
-        if serializer.is_valid():
-            if original_github != serializer.validated_data.get('github'):
-                Post.objects.filter(author=user, description="Public Github Activity").delete()
-
-            serializer.save()
-            author_data = {
-                "type": "author",
-                "id": user.id,
-                "host": user.host,
-                "displayName": user.display_name,
-                "github": "https://github.com/" + user.github if user.github else "",
-                "profileImage": user.profile_image.url if user.profile_image else None,
-                "page": user.page,
-                "description": user.description,
-            }
-            return JsonResponse(author_data, status=200)
-        else:
-            error_data = {
-                "message": "Invalid edit made.",
-                'errors': serializer.errors,
-            }
-            return JsonResponse(error_data, status=400)
+# @api_view(['GET', 'PUT'])
+# @permission_classes([IsAuthenticated])
+# def api_single_author(request, author_id):
+#     #user = get_object_or_404(Author, id=author_id)
+#
+#     author_id = unquote(author_id)
+#     print(author_id)
+#     # Initialize user to None
+#     user = None
+#
+#     # First, try to get by primary key (integer ID)
+#     try:
+#         #user = Author.objects.get(pk=int(author_id))
+#         user = get_author_by_id(author_id)
+#     except (ValueError, Author.DoesNotExist):
+#         pass  # Not an integer ID or author with this ID does not exist
+#
+#     if not user:
+#         # Try to get by URL equals author_id (in case it's a full URL)
+#         user = Author.objects.filter(url=author_id).first()
+#
+#     if not user:
+#         # Try to get by URL ending with /authors/{author_id}
+#         user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
+#
+#     if not user:
+#         # Author not found
+#         nonexistent_author = {
+#             "message": "This user does not exist",
+#         }
+#         return JsonResponse(nonexistent_author, status=404)
+#
+#
+#     if request.method == 'GET':
+#         if user is None:
+#             nonexistent_author = {
+#                 "message": "This user does not exist",
+#             }
+#             return JsonResponse(nonexistent_author, status=404)
+#         else:
+#             author_data = {
+#                 "type": "author",
+#                 "id": user.id,
+#                 "host": user.host,
+#                 "displayName": user.display_name,
+#                 "github": "https://github.com/" + user.github if user.github else "",
+#                 "profileImage": user.profile_image.url if user.profile_image else None,
+#                 "page": user.page,
+#                 "description": user.description,
+#             }
+#             return JsonResponse(author_data, status=200)
+#
+#     if request.method == 'PUT':
+#         serializer = AuthorProfileSerializer(user, data=request.data)
+#
+#         original_github = user.github
+#
+#         if serializer.is_valid():
+#             if original_github != serializer.validated_data.get('github'):
+#                 Post.objects.filter(author=user, description="Public Github Activity").delete()
+#
+#             serializer.save()
+#             author_data = {
+#                 "type": "author",
+#                 "id": user.id,
+#                 "host": user.host,
+#                 "displayName": user.display_name,
+#                 "github": "https://github.com/" + user.github if user.github else "",
+#                 "profileImage": user.profile_image.url if user.profile_image else None,
+#                 "page": user.page,
+#                 "description": user.description,
+#             }
+#             return JsonResponse(author_data, status=200)
+#         else:
+#             error_data = {
+#                 "message": "Invalid edit made.",
+#                 'errors': serializer.errors,
+#             }
+#             return JsonResponse(error_data, status=400)
 
 def edit_profile(request,author_id):
     '''
