@@ -1764,7 +1764,7 @@ def retrieve_github(request, user):
                 post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
@@ -2092,7 +2092,8 @@ def local_api_follow(request, author_id):
             }
             # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
         # create follow object after successful post
-            Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
+
+        Follow.objects.create(following=author_to_follow.url, follower=current_author.url)
 
         # if response.status_code in [200, 201]:
         print("Sent Follow request")
