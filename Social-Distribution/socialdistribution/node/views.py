@@ -263,10 +263,11 @@ def authors_list(request):
                 ))
             except Exception as e:
                 print("Author has issue with: ", e)
+                authors.remove(author)
     Author.objects.bulk_create(authors_to_create)
 
     # Update author data with additional info
-    for author in authors_to_create:
+    for author in authors:
         author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
         author_from_db = Author.objects.filter(url=author['id']).first()
         author['id_num'] = author_from_db.id if author_from_db else None
@@ -277,7 +278,7 @@ def authors_list(request):
         ).exists()
 
     context = {
-        'authors': authors_to_create,
+        'authors': authors,
         'query': query,
         'total_pages': 1,  # Adjust as needed
     }
