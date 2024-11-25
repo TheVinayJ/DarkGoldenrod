@@ -876,7 +876,7 @@ def get_post_likes_by_id(request, post_url):
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
     
-    likes = PostLike.objects.filter(owner=post).order_by('-published')
+    likes = PostLike.objects.filter(owner=post).order_by('-created_at')
     
     paginator = Paginator(likes, size)
     
