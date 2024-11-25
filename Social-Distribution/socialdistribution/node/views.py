@@ -2663,7 +2663,9 @@ def followers_view(request, author_id, follower_id=None):
         if follower_id:
             # Approve a follow request
             follower_url = unquote(follower_id).rstrip('/')
-
+            print("attempt to approve")
+            print(follower_id)
+            print(author.url)
             try:
                 follow = Follow.objects.get(
                     follower=follower_url,

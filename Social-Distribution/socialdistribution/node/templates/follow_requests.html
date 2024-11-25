@@ -12,7 +12,7 @@
                 {% for request_user in follow_authors %}
                     <li>
                         <a href="{% url 'profile' author_id=request_user.id %}">{{ request_user.display_name }}</a> wants to follow you.
-                            <button class="approve-follow" data-follower-id="{{ request_user.id }}" data-follower="{{ request_user.host }}">Approve</button>
+                            <button class="approve-follow" data-follower-url="{{ request_user.url }}">Approve</button>
 
                         <form method="POST" action="{% url 'decline_follow' author_id=author.id follower_id=request_user.id  %}">
                             <button type="submit">Decline</button>
@@ -27,14 +27,16 @@
     <script>
         document.querySelectorAll('.approve-follow').forEach(function(button) {
             button.addEventListener('click', function() {
-                const follower_id = this.getAttribute('data-follower-id');
-                const follower = this.getAttribute('data-follower');
-                const author_id = "{{ author.id }}";  // Get the author id from the template
+                const follower_url = this.getAttribute('data-follower-url');
+                const encodedFollowerUrl = encodeURIComponent(follower_url);
                 const cookies = "{{ cookies }}";
                 const access_token = "{{ access_token }}";
-                console.log(follower_id);
+                console.log(follower_url);
+                
+                const baseURL = "{% url 'list_follower' author_id=current_author_id follower_id='null' %}";
+                const apiURL = baseURL.replace("null", encodedFollowerUrl);
         
-                fetch(`{% url 'approve_follow' author_id=author.id %}?follower_id=${follower_id}&follower=${follower}`, {
+                fetch(apiURL, {
                     method: 'PUT',
                     headers: {
                         'X-CSRFToken': '{{ csrf_token }}',
