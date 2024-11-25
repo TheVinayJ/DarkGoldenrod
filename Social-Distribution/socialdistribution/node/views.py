@@ -1460,7 +1460,7 @@ def api_single_author_fqid(request, author_fqid):
     # print(author_id)
     # return api_single_author(request, author_id)
     #user = get_object_or_404(Author, id=author_id)
-    
+    print(author_fqid)
     author_id = unquote(author_id)
 
     # Initialize user to None
@@ -1544,7 +1544,7 @@ def api_single_author(request, author_id):
     #user = get_object_or_404(Author, id=author_id)
     
     author_id = unquote(author_id)
-
+    print(author_id)
     # Initialize user to None
     user = None
 
