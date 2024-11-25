@@ -360,7 +360,7 @@ def edit_post(request, post_id):
 
         if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
-            followers = Follow.objects.filter(following=f"{author.host}/authors/{author.id})")
+            followers = Follow.objects.filter(following=f"{author.host}authors/{author.id})")
             for follower in followers:
                 processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
@@ -619,7 +619,7 @@ def local_api_like(request, id):
         "object" : object_id
     }
 
-    inbox_url = post_author + '/inbox'
+    inbox_url = post_author.url + '/inbox'
     access_token = AccessToken.for_user(current_author)
 
     try:
@@ -663,7 +663,7 @@ def local_api_like_comment(request, id):
         "object" : object_id
     }
 
-    inbox_url = post_author + '/inbox'
+    inbox_url = post_author.url + '/inbox'
     access_token = AccessToken.for_user(current_author)
 
     try:
@@ -690,7 +690,7 @@ def post_like(request, author_id):
     serializer = PostLikeSerializer(post_like, data=body)
     if serializer.is_valid():
         serializer.save()
-        return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -709,9 +709,12 @@ def comment_like(request, author_id):
 @permission_classes([IsAuthenticated])
 def get_post_likes(request, author_id, post_id):
     #post = get_object_or_404(Post, pk=post_id, author_id=author_id)
+    
+    author_id = author_id.split('/')[-1]
+    post_id = post_id.split('/')[-1]
     post = get_post_by_id_and_author(post_id, author_id)
-    #author = get_object_or_404(Author, pk=author_id)
     author = get_author_by_id(author_id)
+    
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
@@ -727,8 +730,8 @@ def get_post_likes(request, author_id, post_id):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -762,8 +765,8 @@ def get_post_likes_by_id(request, post_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host}/api/authors/{post.author.id}/posts/{post_id}/likes",
-        "page": f"https://{author.host}/authors/{post.author.id}/posts/{post_id}",
+        "id": f"https://{author.host}authors/{post.author.id}/posts/{post_id}/likes",
+        "page": f"https://{author.host}authors/{post.author.id}/posts/{post_id}",
         "page_number": page_number,
         "size": size,
         "count": likes.count(),
@@ -794,7 +797,7 @@ def get_comment_likes(request, author_id, post_id, comment_url):
     
     response_data = {
         "type": "likes",
-        "id": f"https://{author.host()}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
+        "id": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
         "page": f"https://{author.host()}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
         "page_number": page_number,
         "size": size,
@@ -843,8 +846,8 @@ def likes_by_author(request, author_id):
     
     response_data = {
         "type": "likes",
-        "page": f"https://{author.host}/authors/{author_id}/liked",
-        "id": f"https://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}authors/{author_id}/liked",
+        "id": f"https://{author.host}authors/{author_id}/liked",
         "page_number": int(page) if page else 1,
         "size": int(size) if size else len(all_likes),
         "count": len(all_likes),
@@ -907,8 +910,8 @@ def get_author_likes_by_id(request, author_fqid):
     
     response_data = {
         "type": "likes",
-        "page": f"https://{author.host}/api/authors/{author_id}/liked",
-        "id": f"https://{author.host}/api/authors/{author_id}/liked",
+        "page": f"https://{author.host}authors/{author_id}/liked",
+        "id": f"https://{author.host}authors/{author_id}/liked",
         "page_number": page_number,
         "size": size,
         "count": len(all_likes),
@@ -2202,7 +2205,7 @@ def edit_post_api(request, author_id, post_id):
         serializer.save()
         if author.host == f'https://{request.get_host()}/api/':
             # Distribute posts to connected nodes
-            followers = Follow.objects.filter(following=f"{author.host}/authors/{author_id})")
+            followers = Follow.objects.filter(following=f"{author.host}authors/{author_id})")
             for follower in followers:
                 processed_nodes = [f'https://{request.get_host()}/api/']
                 if follower.host not in processed_nodes:
