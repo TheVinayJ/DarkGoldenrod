@@ -1093,10 +1093,10 @@ def add_comment(request, id):
             "page": author.url,
         },
         "comment": new_comment.text,
-        "contentType": new_comment.content_type,
+        "contentType": "text/plain",
         "published": new_comment.published.isoformat(),
         "id": comment_url,
-        "post": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}",
+        "post": post.url,
         "likes": {
             "type": "likes",
             "page": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}",
@@ -1118,6 +1118,7 @@ def add_comment(request, id):
             try:
                 print("Sending comment to: ", inbox_url)
                 print("Host: ", post.author.host[:-4])
+                print("Comment data: ", comment_data)
                 post_request_to_node(post.author.host[:-4], inbox_url, 'POST', comment_data)
             except Exception as e:
                 print(f"Failed to send comment to inbox: {str(e)}")
