@@ -76,12 +76,14 @@ class Author(AbstractBaseUser, PermissionsMixin):
         elif not self.url and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
             self.url = f"{self.host}authors/{self.id}"
+            self.page = f"{self.host[:-4]}author/{self.id}"
             # Now save only the 'url' field
             super().save(update_fields=['url'])
         elif not self.url and not self.email and self._state.adding:
             super().save(*args, **kwargs)  # Save to generate 'id'
             self.url = f"{self.host}authors/{self.id}"
             self.email = f"{self.id}@foreignnode.com"
+            self.page = f"{self.host[:-4]}author/{self.id}"
             # Now save only the 'url' field
             super().save(update_fields=['url', 'email'])
         else:
