@@ -164,14 +164,14 @@ class CommentSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()
     comment = serializers.CharField(source='text')
     contentType = serializers.CharField(default='text/markdown')
-    created_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
     likes = CommentLikesSerializer(source='*', required=False)
 
     class Meta:
         model = Comment
-        fields = ['type', 'author', 'comment', 'contentType', 'created_at', 'id', 'post', 'likes']
+        fields = ['type', 'author', 'comment', 'contentType', 'published', 'id', 'post', 'likes']
 
     def get_id(self, obj):
         return f"{obj.post.author.host}authors/{obj.author.id}/commented/{obj.id}"
