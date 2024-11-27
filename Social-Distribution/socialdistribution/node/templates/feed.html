@@ -29,7 +29,7 @@
             <!-- Title on the Left -->
             <div class="title-top">
                 <a href="{% url 'profile' post.author.id %}">
-                {% if post.author.profile_image != "" %}
+                {% if post.author.profile_image and post.author.profile_image.url%}
                     <img src="{{ post.author.profile_image.url }}" alt="{{ post.author.display_name }}'s Profile Picture" class="profile-picture">
                 {% else %}
                     <div class="profile-picture">
