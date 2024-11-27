@@ -285,7 +285,25 @@ class PostSerializer(serializers.ModelSerializer):
         return "post"
 
     def get_comments(self, obj):
-        return CommentsSerializer(obj).data
+        # Get all comments for the post
+        comments = Comment.objects.filter(post=obj).order_by('-published')[:5]
+        total_comments = Comment.objects.filter(post=obj).count()
+
+        # Base URL for the post
+        base_url = f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
+
+        # Construct the comments structure
+        return {
+            "type": "comments",
+            "page": base_url,
+            "id": f"{base_url}/comments",
+            "page_number": 1,
+            "size": 5,
+            "count": total_comments,
+            "src": [
+                CommentSerializer(comment).data for comment in comments
+            ],
+        }
 
     def get_likes(self, obj):
         return PostLikesSerializer(obj).data
