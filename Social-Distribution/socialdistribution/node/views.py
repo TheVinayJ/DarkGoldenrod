@@ -3077,7 +3077,7 @@ def display_feed(request):
                 "likes": PostLike.objects.filter(owner=post).count(),
                 "comments": Comment.objects.filter(post=post).count(),
                 "url": reverse("view_post", kwargs={"post_id": post.id}),
-               "image_content_url": post.image_content.url if post.image_content and post.image_content.url else None
+                "image_content_url": post.image_content.url if post.image_content and post.image_content.url else None
             })
 
     if filter_option == "all":
