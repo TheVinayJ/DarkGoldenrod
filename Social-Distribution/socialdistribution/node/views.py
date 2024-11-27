@@ -2380,26 +2380,44 @@ def add_external_post(request, author_id):
     
     if 'image' in contentType:
         # Handle image content
-        if content:  # Assume content is a base64 string or URL for the image
-            file_suffix = contentType.split('/')[-1]  # Extract file type
+        # if content:  # Assume content is a base64 string or URL for the image
+        #     file_suffix = contentType.split('/')[-1]  # Extract file type
+        #     image_name = f"external_image_{author.id}.{file_suffix}"
+        #     image_path = os.path.join("media", "images", image_name)
+            
+        #     # # Save the image locally (if base64 or similar handling needed, implement here)
+        #     # with open(image_path, "wb") as f:
+        #     #     f.write(content)  # Assuming content is already binary, modify as needed
+            
+        #     # Check if the content is base64-encoded
+        #     try:
+        #         image_data = base64.b64decode(content)
+        #         with open(image_path, "wb") as f:
+        #             f.write(image_data)
+        #     except (base64.binascii.Error, ValueError):
+        #         # If content is not base64, assume it's a binary string
+        #         with open(image_path, "wb") as f:
+        #             f.write(content.encode('utf-8'))  # Ensure encoding for str content
+            
+        #     image = image_path
+        if content.startswith("data:image"):
+            # Extract base64 data
+            base64_data = content.split(";base64,")[-1]
+            file_suffix = contentType.split("/")[-1]  # Extract file type
             image_name = f"external_image_{author.id}.{file_suffix}"
             image_path = os.path.join("media", "images", image_name)
             
-            # # Save the image locally (if base64 or similar handling needed, implement here)
-            # with open(image_path, "wb") as f:
-            #     f.write(content)  # Assuming content is already binary, modify as needed
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(image_path), exist_ok=True)
             
-            # Check if the content is base64-encoded
+            # Decode and save the image
             try:
-                image_data = base64.b64decode(content)
+                image_data = base64.b64decode(base64_data)
                 with open(image_path, "wb") as f:
                     f.write(image_data)
-            except (base64.binascii.Error, ValueError):
-                # If content is not base64, assume it's a binary string
-                with open(image_path, "wb") as f:
-                    f.write(content.encode('utf-8'))  # Ensure encoding for str content
-            
-            image = image_path
+                image = image_path
+            except Exception as e:
+                return JsonResponse({"error": f"Failed to save image: {str(e)}"}, status=400)
     else:
         # Handle text content
         if isinstance(content, list):
