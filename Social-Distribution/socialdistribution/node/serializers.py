@@ -200,7 +200,7 @@ class CommentsSerializer(serializers.Serializer):
         return  Comment.objects.filter(post=obj).count()
 
     def get_src(self, obj):
-        comments = Comment.objects.filter(post=obj).order_by('-created_at')
+        comments = Comment.objects.filter(post=obj).order_by('-published')
         return CommentSerializer(comments, many=True).data
 
 class PostSerializer(serializers.ModelSerializer):
