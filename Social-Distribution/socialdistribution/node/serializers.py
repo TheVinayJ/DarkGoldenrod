@@ -108,12 +108,13 @@ class PostLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
     author = AuthorSerializer(source='liker')
     object = serializers.SerializerMethodField()
-    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    #created_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
 
     class Meta:
         model = PostLike
-        fields = ['type', 'author', 'object', 'published', 'id']
+        #fields = ['type', 'author', 'object', 'created_at', 'id']
+        fields = ['type', 'author', 'object', 'id']
     
     def get_id(self, obj):
         return f"{obj.liker.host}authors/{obj.liker.id}/liked/{obj.object_id}"
@@ -163,14 +164,14 @@ class CommentSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()
     comment = serializers.CharField(source='text')
     contentType = serializers.CharField(default='text/markdown')
-    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    created_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
     likes = CommentLikesSerializer(source='*', required=False)
 
     class Meta:
         model = Comment
-        fields = ['type', 'author', 'comment', 'contentType', 'published', 'id', 'post', 'likes']
+        fields = ['type', 'author', 'comment', 'contentType', 'created_at', 'id', 'post', 'likes']
 
     def get_id(self, obj):
         return f"{obj.post.author.host}authors/{obj.author.id}/commented/{obj.id}"
@@ -199,7 +200,7 @@ class CommentsSerializer(serializers.Serializer):
         return  Comment.objects.filter(post=obj).count()
 
     def get_src(self, obj):
-        comments = Comment.objects.filter(post=obj).order_by('-published')
+        comments = Comment.objects.filter(post=obj).order_by('-created_at')
         return CommentSerializer(comments, many=True).data
 
 class PostSerializer(serializers.ModelSerializer):
