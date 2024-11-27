@@ -2385,9 +2385,19 @@ def add_external_post(request, author_id):
             image_name = f"external_image_{author.id}.{file_suffix}"
             image_path = os.path.join("media", "images", image_name)
             
-            # Save the image locally (if base64 or similar handling needed, implement here)
-            with open(image_path, "wb") as f:
-                f.write(content)  # Assuming content is already binary, modify as needed
+            # # Save the image locally (if base64 or similar handling needed, implement here)
+            # with open(image_path, "wb") as f:
+            #     f.write(content)  # Assuming content is already binary, modify as needed
+            
+            # Check if the content is base64-encoded
+            try:
+                image_data = base64.b64decode(content)
+                with open(image_path, "wb") as f:
+                    f.write(image_data)
+            except (base64.binascii.Error, ValueError):
+                # If content is not base64, assume it's a binary string
+                with open(image_path, "wb") as f:
+                    f.write(content.encode('utf-8'))  # Ensure encoding for str content
             
             image = image_path
     else:
