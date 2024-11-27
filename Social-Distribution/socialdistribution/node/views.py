@@ -517,29 +517,46 @@ def add_post(request, author_id):
                         )
             post.save()
         else:
+            # image = request.FILES["content"]
+            # file_suffix = os.path.splitext(image.name)[1]
+            # contentType = request.POST["contentType"]
+            # contentType += '/' + file_suffix[1:]
+            # post = Post(title=request.POST["title"],
+            #             description=request.POST["description"],
+            #             image_content=image,
+            #             contentType=contentType,
+            #             visibility=request.POST["visibility"],
+            #             published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+            #             author=author,
+            #             )
+            # post.save()
             image = request.FILES["content"]
             file_suffix = os.path.splitext(image.name)[1]
-            contentType = request.POST["contentType"]
-            contentType += '/' + file_suffix[1:]
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        image_content=image,
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
+            contentType = request.POST["contentType"] + '/' + file_suffix[1:]
+            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
+            post = Post(
+                title=request.POST["title"],
+                description=request.POST["description"],
+                image_content=image_content,  # Save as base64
+                contentType=contentType,
+                visibility=request.POST["visibility"],
+                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                author=author,
+            )
             post.save()
     else:   # Post creation for API spec
         if 'image' in contentType:
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        image_content=request.POST["image"],
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
+            image = request.FILES["image"]
+            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode as base64
+            post = Post(
+                title=request.POST["title"],
+                description=request.POST["description"],
+                image_content=image_content,  # Save as base64
+                contentType=contentType,
+                visibility=request.POST["visibility"],
+                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                author=author,
+            )
             post.save()
         else:
             post = Post(title=request.POST["title"],
