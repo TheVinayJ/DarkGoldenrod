@@ -491,45 +491,145 @@ def edit_post(request, post_id):
 
     return render(request, 'edit_post.html', {'post': post, 'author_id': author.id})
 
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def add_post(request, author_id):
+#     author = get_author(request)
+#     contentType = request.POST["contentType"]
+#     print(request.POST)
+#     if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
+#         # Check whether content is from AJAX or an external API call
+#         # For AJAX formatting:
+#         if contentType != "image":
+#             contentType = 'text/' + contentType
+#             content = request.POST.getlist("content")
+#             if contentType == 'text/plain':
+#                 content = content[0]
+#             else:
+#                 content = content[1]
+#             post = Post(title=request.POST["title"],
+#                         description=request.POST["description"],
+#                         text_content=content,
+#                         contentType=contentType,
+#                         visibility=request.POST["visibility"],
+#                         published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                         author=author,
+#                         )
+#             post.save()
+#         else:
+#             # image = request.FILES["content"]
+#             # file_suffix = os.path.splitext(image.name)[1]
+#             # contentType = request.POST["contentType"]
+#             # contentType += '/' + file_suffix[1:]
+#             # post = Post(title=request.POST["title"],
+#             #             description=request.POST["description"],
+#             #             image_content=image,
+#             #             contentType=contentType,
+#             #             visibility=request.POST["visibility"],
+#             #             published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#             #             author=author,
+#             #             )
+#             # post.save()
+#             image = request.FILES["content"]
+#             file_suffix = os.path.splitext(image.name)[1]
+#             contentType = request.POST["contentType"] + '/' + file_suffix[1:]
+#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
+#             post = Post(
+#                 title=request.POST["title"],
+#                 description=request.POST["description"],
+#                 image_content=image_content,  # Store base64 string
+#                 contentType=contentType,
+#                 visibility=request.POST["visibility"],
+#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                 author=author,
+#             )
+#             post.save()
+#     else:   # Post creation for API spec
+#         if 'image' in contentType:
+#             # Handle standard image types (image/png, image/jpeg)
+#             image = request.FILES["image"]
+#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
+#             post = Post(
+#                 title=request.POST["title"],
+#                 description=request.POST["description"],
+#                 image_content=image_content,  # Store base64 string
+#                 contentType=contentType,
+#                 visibility=request.POST["visibility"],
+#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                 author=author,
+#             )
+#             post.save()
+#         else:
+#             post = Post(title=request.POST["title"],
+#                         description=request.POST["description"],
+#                         text_content=request.POST["content"],
+#                         contentType=contentType,
+#                         visibility=request.POST["visibility"],
+#                         published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                         author=author,
+#                         )
+#             post.save()
+            
+#     post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
+#     post.url = post_url
+#     post.save()  
+    
+#     print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
+#     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
+#     print("Sending to the following followers: " + str(followers))
+    
+#     # for follower in followers:
+#     #     json_content = PostSerializer(post).data
+#     #     print("sending POST to: " + follower.follower)
+#     #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
+        
+#     for follower in followers:
+#         json_content = PostSerializer(post).data
+#         if "image_content" in json_content and json_content["image_content"]:
+#             json_content["content"] = post.image_content  # Include base64 image string
+#         else:
+#             json_content["content"] = post.text_content
+        
+#         follower_url = follower.follower
+#         print("sending POST to: " + follower_url)
+
+#         # Extract base URL from follower's URL
+#         parsed_url = urlparse(follower_url)
+#         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+#         # Send the POST request to the follower's inbox
+#         inbox_url = follower_url.rstrip('/') + '/inbox'
+
+#         print("base_url: ", base_url)
+#         print("inbox_url: ", inbox_url)
+#         print("json_content: ", json_content)
+#         # Now call post_request_to_node with base_url
+#         post_request_to_node(base_url, inbox_url, 'POST', json_content)
+#     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_post(request, author_id):
     author = get_author(request)
     contentType = request.POST["contentType"]
     print(request.POST)
+
     if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
-        # Check whether content is from AJAX or an external API call
-        # For AJAX formatting:
         if contentType != "image":
             contentType = 'text/' + contentType
             content = request.POST.getlist("content")
-            if contentType == 'text/plain':
-                content = content[0]
-            else:
-                content = content[1]
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        text_content=content,
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
+            content = content[0] if contentType == 'text/plain' else content[1]
+            post = Post(
+                title=request.POST["title"],
+                description=request.POST["description"],
+                text_content=content,
+                contentType=contentType,
+                visibility=request.POST["visibility"],
+                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                author=author,
+            )
             post.save()
         else:
-            # image = request.FILES["content"]
-            # file_suffix = os.path.splitext(image.name)[1]
-            # contentType = request.POST["contentType"]
-            # contentType += '/' + file_suffix[1:]
-            # post = Post(title=request.POST["title"],
-            #             description=request.POST["description"],
-            #             image_content=image,
-            #             contentType=contentType,
-            #             visibility=request.POST["visibility"],
-            #             published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-            #             author=author,
-            #             )
-            # post.save()
             image = request.FILES["content"]
             file_suffix = os.path.splitext(image.name)[1]
             contentType = request.POST["contentType"] + '/' + file_suffix[1:]
@@ -544,9 +644,8 @@ def add_post(request, author_id):
                 author=author,
             )
             post.save()
-    else:   # Post creation for API spec
+    else:
         if 'image' in contentType:
-            # Handle standard image types (image/png, image/jpeg)
             image = request.FILES["image"]
             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
             post = Post(
@@ -560,51 +659,49 @@ def add_post(request, author_id):
             )
             post.save()
         else:
-            post = Post(title=request.POST["title"],
-                        description=request.POST["description"],
-                        text_content=request.POST["content"],
-                        contentType=contentType,
-                        visibility=request.POST["visibility"],
-                        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                        author=author,
-                        )
+            post = Post(
+                title=request.POST["title"],
+                description=request.POST["description"],
+                text_content=request.POST["content"],
+                contentType=contentType,
+                visibility=request.POST["visibility"],
+                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+                author=author,
+            )
             post.save()
-            
+
     post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
     post.url = post_url
-    post.save()  
-    
+    post.save()
+
     print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
     print("Sending to the following followers: " + str(followers))
-    
-    # for follower in followers:
-    #     json_content = PostSerializer(post).data
-    #     print("sending POST to: " + follower.follower)
-    #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
-        
+
     for follower in followers:
         json_content = PostSerializer(post).data
-        if "image_content" in json_content and json_content["image_content"]:
-            json_content["content"] = post.image_content  # Include base64 image string
+
+        # Explicitly update the content field with the base64-encoded image string
+        if post.contentType.startswith('image'):
+            json_content["content"] = post.image_content  # Base64-encoded string
         else:
-            json_content["content"] = post.text_content
-        
+            json_content["content"] = post.text_content  # Plain or markdown text
+
         follower_url = follower.follower
         print("sending POST to: " + follower_url)
 
         # Extract base URL from follower's URL
         parsed_url = urlparse(follower_url)
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-
-        # Send the POST request to the follower's inbox
         inbox_url = follower_url.rstrip('/') + '/inbox'
 
         print("base_url: ", base_url)
         print("inbox_url: ", inbox_url)
         print("json_content: ", json_content)
-        # Now call post_request_to_node with base_url
+
+        # Send the POST request to the follower's inbox
         post_request_to_node(base_url, inbox_url, 'POST', json_content)
+
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
 @api_view(['GET', 'POST'])
