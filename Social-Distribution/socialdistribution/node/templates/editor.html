@@ -1,18 +1,27 @@
+<!-- With help from Chat-GPT 4o, OpenAI, 2024-10-20 -->
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>New Post</title>
-</head>
-<body>
+
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/editor.css' %}">
+{% endblock %}
+
+{% block content %}
+<form enctype="multipart/form-data" id="save-form" method="POST">
     <h1>Create a new post:</h1>
 
-    <form enctype="multipart/form-data" id="save-form" method="POST">
-    <input type="text" name="title" id="post-title" placeholder="Post Title"><br>
+    <!-- Title Field -->
+    <div class="form-group">
+        <label for="post-title">Post Title:</label>
+        <input type="text" name="title" id="post-title" placeholder="Enter your post title" required>
+    </div>
 
     <!-- Short description -->
-    <textarea name="description" id="post-description" rows="3" cols="50" placeholder="Short Description"></textarea><br>
+    <div class="form-group">
+        <label for="post-description">Short Description:</label>
+        <textarea name="description" id="post-description" rows="3" placeholder="Enter a short description" required></textarea>
+    </div>
 
     <!-- Content type selection -->
     <div class="form-group">
@@ -40,27 +49,49 @@
             <textarea id="plaintext-editor" name="content" rows="10" placeholder="Enter plaintext content..."></textarea>
         </div>
     </div>
+
     <div id="markdown-input" class="content-input" style="display:none;">
-        <textarea id="markdown-editor" name="content" rows="10" cols="50" placeholder="Enter markdown..."></textarea><br>
-        <button id="convert-btn">Convert to HTML</button><br>
+        <div class="form-group">
+            <label for="markdown-editor">Content:</label>
+            <textarea id="markdown-editor" name="content" rows="10" placeholder="Enter markdown content..."></textarea>
+        </div>
+        <button id="convert-btn" type="button">Preview Markdown</button>
+        <h3>Preview</h3>
+        <div id="markdown-output"></div>
     </div>
+
     <div id="image-input" class="content-input" style="display:none;">
-        <input type="file" name="content" id="image-upload" accept="image/*"><br>
+        <div class="form-group">
+            <label for="image-upload">Upload Image:</label>
+            <input type="file" name="content" id="image-upload" accept="image/*">
+        </div>
     </div>
 
     <!-- Visibility options -->
-    <br>
-    <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" checked>
-    <label for="PUBLIC">Public</label><br>
-    <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS">
-    <label for="FRIENDS">Friends Only</label><br>
-    <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED">
-    <label for="UNLISTED">Unlisted</label>
-    <br>
+    <div class="form-group">
+        <label>Visibility:</label>
+        <div class="radio-group">
+            <label>
+                <input type="radio" id="PUBLIC" name="visibility" value="PUBLIC" checked>
+                Public
+            </label>
+            <label>
+                <input type="radio" id="FRIENDS" name="visibility" value="FRIENDS">
+                Friends Only
+            </label>
+            <label>
+                <input type="radio" id="UNLISTED" name="visibility" value="UNLISTED">
+                Unlisted
+            </label>
+        </div>
+    </div>
 
-    <button id="save-btn" type="submit">Save Page</button>
+
+    <button id="save-btn" type="submit">Create Post</button>
     {% csrf_token %}
 </form>
+
+{%block scripts%}
 
 <script src="{% static 'authentication.min.js' %}"></script>
 <script>
@@ -82,15 +113,23 @@
 
     // JavaScript to handle content type selection
     // Microsoft Copilot, Oct. 2024. Change form based off radio selection
-    document.querySelectorAll('input[name="contentType"]').forEach((elem) => {
-        elem.addEventListener("change", function(event) {
-            let value = event.target.value;
-            document.querySelectorAll(".content-input").forEach((inputElem) => {
-                inputElem.style.display = "none";
-            });
-            document.getElementById(`${value}-input`).style.display = "block";
+    // Function to update content input display
+    function updateContentInputDisplay() {
+        const selectedContentType = document.querySelector('input[name="contentType"]:checked').value;
+        document.querySelectorAll(".content-input").forEach((inputElem) => {
+            inputElem.style.display = "none";
         });
+        document.getElementById(`${selectedContentType}-input`).style.display = "block";
+    }
+
+    // Initial call to set up the correct display
+    updateContentInputDisplay();
+
+    // Event listener for content type changes
+    document.querySelectorAll('input[name="contentType"]').forEach((elem) => {
+        elem.addEventListener("change", updateContentInputDisplay);
     });
+
 
     let authorID = getAuthorId();
     let apiUrl = `/api/authors/${authorID}/posts`;
@@ -116,10 +155,7 @@
 
 </script>
 
+<script src="{% static 'markdown-editor.min.js' %}"></script> <!-- Load bundled JS -->
+{% endblock %}
 
-    <h3>Output</h3>
-    <div id="markdown-output"></div> <!-- Rendered HTML output -->
-
-    <script src="{% static 'markdown-editor.min.js' %}"></script> <!-- Load bundled JS -->
-</body>
-</html>
+{% endblock %}
