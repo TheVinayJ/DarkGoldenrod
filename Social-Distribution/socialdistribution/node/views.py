@@ -709,8 +709,8 @@ def edit_post(request, post_id):
 
 #     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
 # def add_post(request, author_id):
 #     author = get_author(request)  # Replace with your logic to fetch the author
 #     contentType = request.POST.get("contentType", "text/plain")
@@ -763,7 +763,8 @@ def edit_post(request, post_id):
 
 #     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
 
-
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def add_post(request, author_id):
     author = get_author(request)
     contentType = request.POST["contentType"]
@@ -801,6 +802,17 @@ def add_post(request, author_id):
     post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
     post.url = post_url
     post.save()
+    
+    followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
+    for follower in followers:
+        
+        json_content = PostSerializer(post).data
+        follower_url = follower.follower
+        inbox_url = follower_url.rstrip("/") + "/inbox"
+        base_url = f"{urlparse(follower_url).scheme}://{urlparse(follower_url).netloc}/"
+        if base_url == f"https://{request.get_host()}/":
+            continue
+        post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
     return JsonResponse({
         "message": "Post created successfully",
