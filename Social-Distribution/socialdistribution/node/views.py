@@ -2528,21 +2528,128 @@ def add_external_comment(request, author_id):
 #     print(serializer.errors)
 #     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# def add_external_post(request, author_id):
+#     """
+#     Add a post to the database from an inbox call without using serializers
+#     """
+#     # Parse the request body
+#     body = json.loads(request.body)
+    
+#     # Get the author details
+#     author_data = body.get('author', {})
+#     author_id_from_body = author_data.get('id')
+#     author = get_object_or_404(Author, url=author_id_from_body)
+    
+#     # Get post data
+#     post_url = body.get('id')
+    
+#     # Mark any existing posts with the same URL as deleted
+#     existing_posts_with_id = Post.objects.filter(url=post_url)
+#     for post in existing_posts_with_id:
+#         post.visibility = 'DELETED'
+#         post.save()
+
+#     # Determine the content type and prepare the post fields
+#     contentType = body.get('contentType', 'text/plain')
+#     title = body.get('title', 'Untitled Post')
+#     description = body.get('description', '')
+#     content = body.get('content', None)
+#     visibility = body.get('visibility', 'PUBLIC')
+#     published = body.get('published', make_aware(datetime.datetime.now()))
+#     image = None
+    
+#     if 'image' in contentType:
+#         # Handle image content
+#         # if content:  # Assume content is a base64 string or URL for the image
+#         #     file_suffix = contentType.split('/')[-1]  # Extract file type
+#         #     image_name = f"external_image_{author.id}.{file_suffix}"
+#         #     image_path = os.path.join("media", "images", image_name)
+            
+#         #     # # Save the image locally (if base64 or similar handling needed, implement here)
+#         #     # with open(image_path, "wb") as f:
+#         #     #     f.write(content)  # Assuming content is already binary, modify as needed
+            
+#         #     # Check if the content is base64-encoded
+#         #     try:
+#         #         image_data = base64.b64decode(content)
+#         #         with open(image_path, "wb") as f:
+#         #             f.write(image_data)
+#         #     except (base64.binascii.Error, ValueError):
+#         #         # If content is not base64, assume it's a binary string
+#         #         with open(image_path, "wb") as f:
+#         #             f.write(content.encode('utf-8'))  # Ensure encoding for str content
+            
+#         #     image = image_path
+#         if content.startswith("data:image"):
+#             # Extract base64 data
+#             base64_data = content.split(";base64,")[-1]
+#             file_suffix = contentType.split("/")[-1]  # Extract file type
+#             image_name = f"external_image_{author.id}.{file_suffix}"
+#             image_path = os.path.join("media", "images", image_name)
+            
+#             # Ensure directory exists
+#             os.makedirs(os.path.dirname(image_path), exist_ok=True)
+            
+#             # Decode and save the image
+#             try:
+#                 image_data = base64.b64decode(base64_data)
+#                 with open(image_path, "wb") as f:
+#                     f.write(image_data)
+#                 image = image_path
+#             except Exception as e:
+#                 return JsonResponse({"error": f"Failed to save image: {str(e)}"}, status=400)
+#     else:
+#         # Handle text content
+#         if isinstance(content, list):
+#             content = content[0] if contentType == 'text/plain' else content[1]
+
+#     # Create and save the post
+#     post = Post(
+#         title=title,
+#         description=description,
+#         text_content=content if 'image' not in contentType else None,
+#         image_content=image if 'image' in contentType else None,
+#         contentType=contentType,
+#         visibility=visibility,
+#         published=published,
+#         author=author,
+#         url=post_url,
+#     )
+#     post.save()
+
+#     return JsonResponse({
+#         "id": post.url,
+#         "title": post.title,
+#         "description": post.description,
+#         "contentType": post.contentType,
+#         "content": post.text_content if 'image' not in contentType else None,
+#         "image": post.image_content if 'image' in contentType else None,
+#         "published": post.published.isoformat(),
+#         "visibility": post.visibility,
+#         "author": {
+#             "id": author.url,
+#             "displayName": author.display_name,
+#             "host": author.host,
+#             "github": author.github,
+#             "profileImage": author.profile_image.url if author.profile_image else None,
+#         }
+#     }, status=201)
+    
 def add_external_post(request, author_id):
     """
-    Add a post to the database from an inbox call without using serializers
+    Add a post to the database from an inbox call without using serializers.
     """
     # Parse the request body
     body = json.loads(request.body)
-    
+
     # Get the author details
     author_data = body.get('author', {})
     author_id_from_body = author_data.get('id')
     author = get_object_or_404(Author, url=author_id_from_body)
-    
+
     # Get post data
     post_url = body.get('id')
-    
+
     # Mark any existing posts with the same URL as deleted
     existing_posts_with_id = Post.objects.filter(url=post_url)
     for post in existing_posts_with_id:
@@ -2556,48 +2663,21 @@ def add_external_post(request, author_id):
     content = body.get('content', None)
     visibility = body.get('visibility', 'PUBLIC')
     published = body.get('published', make_aware(datetime.datetime.now()))
-    image = None
-    
+    image_file = None
+
     if 'image' in contentType:
-        # Handle image content
-        # if content:  # Assume content is a base64 string or URL for the image
-        #     file_suffix = contentType.split('/')[-1]  # Extract file type
-        #     image_name = f"external_image_{author.id}.{file_suffix}"
-        #     image_path = os.path.join("media", "images", image_name)
-            
-        #     # # Save the image locally (if base64 or similar handling needed, implement here)
-        #     # with open(image_path, "wb") as f:
-        #     #     f.write(content)  # Assuming content is already binary, modify as needed
-            
-        #     # Check if the content is base64-encoded
-        #     try:
-        #         image_data = base64.b64decode(content)
-        #         with open(image_path, "wb") as f:
-        #             f.write(image_data)
-        #     except (base64.binascii.Error, ValueError):
-        #         # If content is not base64, assume it's a binary string
-        #         with open(image_path, "wb") as f:
-        #             f.write(content.encode('utf-8'))  # Ensure encoding for str content
-            
-        #     image = image_path
+        # Handle base64-encoded image
         if content.startswith("data:image"):
-            # Extract base64 data
-            base64_data = content.split(";base64,")[-1]
-            file_suffix = contentType.split("/")[-1]  # Extract file type
-            image_name = f"external_image_{author.id}.{file_suffix}"
-            image_path = os.path.join("media", "images", image_name)
-            
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(image_path), exist_ok=True)
-            
-            # Decode and save the image
             try:
-                image_data = base64.b64decode(base64_data)
-                with open(image_path, "wb") as f:
-                    f.write(image_data)
-                image = image_path
+                # Extract base64 data
+                base64_data = content.split(";base64,")[-1]
+                file_suffix = contentType.split("/")[-1]  # Extract file type
+                image_name = f"external_image_{uuid.uuid4()}.{file_suffix}"
+
+                # Save the image using Django's File storage
+                image_file = ContentFile(base64.b64decode(base64_data), name=image_name)
             except Exception as e:
-                return JsonResponse({"error": f"Failed to save image: {str(e)}"}, status=400)
+                return JsonResponse({"error": f"Failed to process image: {str(e)}"}, status=400)
     else:
         # Handle text content
         if isinstance(content, list):
@@ -2608,7 +2688,7 @@ def add_external_post(request, author_id):
         title=title,
         description=description,
         text_content=content if 'image' not in contentType else None,
-        image_content=image if 'image' in contentType else None,
+        image_content=image_file if 'image' in contentType else None,
         contentType=contentType,
         visibility=visibility,
         published=published,
@@ -2617,13 +2697,14 @@ def add_external_post(request, author_id):
     )
     post.save()
 
+    # Return the created post details
     return JsonResponse({
         "id": post.url,
         "title": post.title,
         "description": post.description,
         "contentType": post.contentType,
         "content": post.text_content if 'image' not in contentType else None,
-        "image": post.image_content if 'image' in contentType else None,
+        "image": post.image_content.url if post.image_content else None,
         "published": post.published.isoformat(),
         "visibility": post.visibility,
         "author": {
@@ -2634,7 +2715,6 @@ def add_external_post(request, author_id):
             "profileImage": author.profile_image.url if author.profile_image else None,
         }
     }, status=201)
-    
 
 
 @api_view(['POST'])
