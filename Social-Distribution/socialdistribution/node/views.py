@@ -1715,6 +1715,7 @@ def get_comment_by_fqid(request, comment_fqid):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def view_post(request, post_id):
+    
     """
     For viewing a post
     Returns 403 for visibility conflicts
@@ -2874,7 +2875,50 @@ def upload_image(request):
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
     if request.method == 'GET':
-        return view_post(request, post_id)
+        """
+        For viewing a post
+        Returns 403 for visibility conflicts
+        Otherwise, render the post
+        """
+
+        #post = get_object_or_404(Post, id=post_id)
+        post = get_post_by_id(post_id)
+        author = get_author(request)
+        liked = False
+
+        if post.author != author: # if user that is not the creator is attempting to view
+            if post.visibility == "FRIENDS":
+                try:
+                    follow = get_object_or_404(Follow, follower=author, following = post.author)
+                except:
+                    return HttpResponse(status=403)
+                if follow.is_friend():
+                    return HttpResponse(status=403)
+
+        if post.visibility == "PRIVATE":
+            if post.author != author:
+                return HttpResponse(status=403)
+
+        if PostLike.objects.filter(owner=post, liker=author).exists():
+            liked = True
+
+        # user_likes strategy obtained from Microsoft Copilot, Oct. 2024
+        # Find likes from current user matching the queried comment
+        user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
+
+        return render(request, "post.html", {
+            "post": post,
+            "id": post_id,
+            'likes': PostLike.objects.filter(owner=post),
+            'author': author,
+            'liked' : liked,
+            'author_id': author.id,
+            'comments': Comment.objects.filter(post=post)
+                    .annotate(likes=Count('commentlike'),
+                                liked=Exists(user_likes)
+                                ),
+        })
+        #return view_post(request, post_id)
     elif request.method == 'PUT':
         return edit_post_api(request, author_id, post_id)
     elif request.method == 'DELETE':
