@@ -533,11 +533,11 @@ def add_post(request, author_id):
             image = request.FILES["content"]
             file_suffix = os.path.splitext(image.name)[1]
             contentType = request.POST["contentType"] + '/' + file_suffix[1:]
-            image_content = base64.b64encode(image.read()).decode("utf-8")  # Convert image to base64
+            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
             post = Post(
                 title=request.POST["title"],
                 description=request.POST["description"],
-                image_content=image_content,  # Store as base64
+                image_content=image_content,  # Store base64 string
                 contentType=contentType,
                 visibility=request.POST["visibility"],
                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
@@ -548,11 +548,11 @@ def add_post(request, author_id):
         if 'image' in contentType:
             # Handle standard image types (image/png, image/jpeg)
             image = request.FILES["image"]
-            image_content = base64.b64encode(image.read()).decode("utf-8")  # Convert image to base64
+            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
             post = Post(
                 title=request.POST["title"],
                 description=request.POST["description"],
-                image_content=image_content,  # Store as base64
+                image_content=image_content,  # Store base64 string
                 contentType=contentType,
                 visibility=request.POST["visibility"],
                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
@@ -585,6 +585,11 @@ def add_post(request, author_id):
         
     for follower in followers:
         json_content = PostSerializer(post).data
+        if "image_content" in json_content and json_content["image_content"]:
+            json_content["content"] = post.image_content  # Include base64 image string
+        else:
+            json_content["content"] = post.text_content
+        
         follower_url = follower.follower
         print("sending POST to: " + follower_url)
 
