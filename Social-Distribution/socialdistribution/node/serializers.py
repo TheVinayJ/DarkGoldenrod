@@ -304,7 +304,7 @@ class PostSerializer(serializers.ModelSerializer):
         elif obj.contentType.startswith('image') and obj.image_content:
             try:
                 with obj.image_content.open('rb') as image_file:
-                    return base64.b64encode(image_file.read()).decode('utf-8')
+                    return obj.image_content
             except FileNotFoundError:
                 return "No image content found."
         return "Nothing to display D:"
