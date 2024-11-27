@@ -3040,7 +3040,7 @@ def display_feed(request):
             "url": reverse("view_post", kwargs={"post_id": post.id}),
             "shared_by": repost.shared_by,
             "shared_date": repost,
-            "image_content_url": post.image_content.url if post.image_content and post.image_content.url else None
+            "image_content": post.image_content if post.contentType.startswith("image") else None,
         })
     
     # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
@@ -3077,7 +3077,7 @@ def display_feed(request):
                 "likes": PostLike.objects.filter(owner=post).count(),
                 "comments": Comment.objects.filter(post=post).count(),
                 "url": reverse("view_post", kwargs={"post_id": post.id}),
-                "image_content_url": post.image_content.url if post.image_content and post.image_content.url else None
+                "image_content": post.image_content if post.contentType.startswith("image") else None,
             })
 
     if filter_option == "all":
