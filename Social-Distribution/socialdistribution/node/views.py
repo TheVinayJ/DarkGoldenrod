@@ -3040,7 +3040,7 @@ def display_feed(request):
             "url": reverse("view_post", kwargs={"post_id": post.id}),
             "shared_by": repost.shared_by,
             "shared_date": repost,
-            "image_content": post.image_content if post.contentType.startswith("image") else None,
+            "image_content": post.image_content.url if post.image_content else None,
         })
     
     # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
