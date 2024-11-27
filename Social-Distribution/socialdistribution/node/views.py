@@ -2930,6 +2930,8 @@ def api_get_post_from_author(request, author_id, post_id):
         post_data['liked'] = liked  # Add liked status
         post_data['comments'] = CommentSerializer(comments, many=True).data
         post_data['likes'] = PostLikesSerializer(post).data
+        
+        print(post_data)
 
         # Return the post as JSON
         return JsonResponse(post_data, safe=False, status=200)
