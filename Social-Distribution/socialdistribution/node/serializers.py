@@ -232,6 +232,7 @@ class PostSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()
     comments = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
+    #image_content = serializers.ImageField()
 
     class Meta:
         model = Post
@@ -272,19 +273,41 @@ class PostSerializer(serializers.ModelSerializer):
             return obj.url
         return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
+    # def get_content(self, obj):
+    #     if obj.contentType.startswith('text'):
+    #         return obj.text_content
+    #     elif obj.contentType.startswith('image') and obj.image_content:
+    #         # try:
+    #         #     with obj.image_content.open('rb') as image_file:
+    #         #         return base64.b64encode(image_file.read()).decode('utf-8')
+    #         # except FileNotFoundError:
+    #         #     # Return a placeholder image base64
+    #         #     with open('path/to/placeholder/image.png', 'rb') as placeholder:
+    #         #         return base64.b64encode(placeholder.read()).decode('utf-8')
+    #         return "Image not yet supported on darkgoldenrod"
+    #     return None
+    # def get_content(self, obj):
+    #     if obj.contentType.startswith("image"):
+    #         if obj.image_content:
+    #             with obj.image_content.open("rb") as image_file:
+    #                 return base64.b64encode(image_file.read()).decode("utf-8")
+    #     return obj.text_content
+    
     def get_content(self, obj):
+        """
+        Return the content based on the contentType.
+        - For text content: return the `text_content`.
+        - For image content: return base64 encoded image.
+        """
         if obj.contentType.startswith('text'):
             return obj.text_content
         elif obj.contentType.startswith('image') and obj.image_content:
-            # try:
-            #     with obj.image_content.open('rb') as image_file:
-            #         return base64.b64encode(image_file.read()).decode('utf-8')
-            # except FileNotFoundError:
-            #     # Return a placeholder image base64
-            #     with open('path/to/placeholder/image.png', 'rb') as placeholder:
-            #         return base64.b64encode(placeholder.read()).decode('utf-8')
-            return "Image not yet supported on darkgoldenrod"
-        return None
+            try:
+                with obj.image_content.open('rb') as image_file:
+                    return f"data:{obj.contentType};base64,{base64.b64encode(image_file.read()).decode('utf-8')}"
+            except FileNotFoundError:
+                return "No image content found."
+        return "Nothing to display D:"
 
     def get_type(self, obj):
         return "post"
