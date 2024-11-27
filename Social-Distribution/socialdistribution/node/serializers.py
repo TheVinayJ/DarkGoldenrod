@@ -276,38 +276,21 @@ class PostSerializer(serializers.ModelSerializer):
         if obj.contentType.startswith('text'):
             return obj.text_content
         elif obj.contentType.startswith('image') and obj.image_content:
-            try:
-                with obj.image_content.open('rb') as image_file:
-                    return base64.b64encode(image_file.read()).decode('utf-8')
-            except FileNotFoundError:
-                # Return a placeholder image base64
-                with open('path/to/placeholder/image.png', 'rb') as placeholder:
-                    return base64.b64encode(placeholder.read()).decode('utf-8')
+            # try:
+            #     with obj.image_content.open('rb') as image_file:
+            #         return base64.b64encode(image_file.read()).decode('utf-8')
+            # except FileNotFoundError:
+            #     # Return a placeholder image base64
+            #     with open('path/to/placeholder/image.png', 'rb') as placeholder:
+            #         return base64.b64encode(placeholder.read()).decode('utf-8')
+            return "Image not yet supported on darkgoldenrod"
         return None
 
     def get_type(self, obj):
         return "post"
 
     def get_comments(self, obj):
-        # Get all comments for the post
-        comments = Comment.objects.filter(post=obj).order_by('-published')[:5]
-        total_comments = Comment.objects.filter(post=obj).count()
-
-        # Base URL for the post
-        base_url = f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
-
-        # Construct the comments structure
-        return {
-            "type": "comments",
-            "page": base_url,
-            "id": f"{base_url}/comments",
-            "page_number": 1,
-            "size": 5,
-            "count": total_comments,
-            "src": [
-                CommentSerializer(comment).data for comment in comments
-            ],
-        }
+        return CommentsSerializer(obj).data
 
     def get_likes(self, obj):
         return PostLikesSerializer(obj).data
