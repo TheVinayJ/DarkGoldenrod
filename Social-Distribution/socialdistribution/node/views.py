@@ -18,6 +18,7 @@ from .utils import get_author_by_id, get_post_by_id, get_comment_by_id, get_repo
 from django.views.generic import ListView
 from rest_framework.views import APIView
 from django.utils.timezone import make_aware
+from django.core.files.base import ContentFile
 
 # from node.serializers import serializer
 
@@ -607,106 +608,160 @@ def edit_post(request, post_id):
 #         post_request_to_node(base_url, inbox_url, 'POST', json_content)
 #     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def add_post(request, author_id):
+#     author = get_author(request)
+#     contentType = request.POST["contentType"]
+#     print(request.POST)
+
+#     if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
+#         if contentType != "image":
+#             contentType = 'text/' + contentType
+#             content = request.POST.getlist("content")
+#             content = content[0] if contentType == 'text/plain' else content[1]
+#             post = Post(
+#                 title=request.POST["title"],
+#                 description=request.POST["description"],
+#                 text_content=content,
+#                 contentType=contentType,
+#                 visibility=request.POST["visibility"],
+#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                 author=author,
+#             )
+#             post.save()
+#         else:
+#             image = request.FILES["content"]
+#             file_suffix = os.path.splitext(image.name)[1]
+#             contentType = request.POST["contentType"] + '/' + file_suffix[1:]
+#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
+#             post = Post(
+#                 title=request.POST["title"],
+#                 description=request.POST["description"],
+#                 image_content=image_content,  # Store base64 string
+#                 contentType=contentType,
+#                 visibility=request.POST["visibility"],
+#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                 author=author,
+#             )
+#             post.save()
+#     else:
+#         if 'image' in contentType:
+#             image = request.FILES["image"]
+#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
+#             post = Post(
+#                 title=request.POST["title"],
+#                 description=request.POST["description"],
+#                 image_content=image_content,  # Store base64 string
+#                 contentType=contentType,
+#                 visibility=request.POST["visibility"],
+#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                 author=author,
+#             )
+#             post.save()
+#         else:
+#             post = Post(
+#                 title=request.POST["title"],
+#                 description=request.POST["description"],
+#                 text_content=request.POST["content"],
+#                 contentType=contentType,
+#                 visibility=request.POST["visibility"],
+#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
+#                 author=author,
+#             )
+#             post.save()
+
+#     post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
+#     post.url = post_url
+#     post.save()
+
+#     print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
+#     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
+#     print("Sending to the following followers: " + str(followers))
+
+#     for follower in followers:
+#         json_content = PostSerializer(post).data
+
+#         # Explicitly update the content field with the base64-encoded image string
+#         if post.contentType.startswith('image'):
+#             if not isinstance(post.image_content, str) or not post.image_content.startswith("data:image"):
+#                 image_base64 = base64.b64encode(post.image_content.encode('utf-8')).decode('utf-8')
+#                 json_content["content"] = image_base64
+#             else:
+#                 json_content["content"] = post.image_content  # Already base64-encoded string
+#         else:
+#             json_content["content"] = post.text_content  # Plain or markdown text
+
+#         follower_url = follower.follower
+#         print("sending POST to: " + follower_url)
+
+#         # Extract base URL from follower's URL
+#         parsed_url = urlparse(follower_url)
+#         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+#         inbox_url = follower_url.rstrip('/') + '/inbox'
+
+#         print("base_url: ", base_url)
+#         print("inbox_url: ", inbox_url)
+#         print("json_content: ", json_content)
+
+#         # Send the POST request to the follower's inbox
+#         post_request_to_node(base_url, inbox_url, 'POST', json_content)
+
+#     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_post(request, author_id):
-    author = get_author(request)
-    contentType = request.POST["contentType"]
-    print(request.POST)
+    author = get_author(request)  # Replace with your logic to fetch the author
+    contentType = request.POST.get("contentType", "text/plain")
 
-    if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
-        if contentType != "image":
-            contentType = 'text/' + contentType
-            content = request.POST.getlist("content")
-            content = content[0] if contentType == 'text/plain' else content[1]
-            post = Post(
-                title=request.POST["title"],
-                description=request.POST["description"],
-                text_content=content,
-                contentType=contentType,
-                visibility=request.POST["visibility"],
-                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                author=author,
-            )
-            post.save()
-        else:
-            image = request.FILES["content"]
+    post_data = {
+        "title": request.POST["title"],
+        "description": request.POST["description"],
+        "contentType": contentType,
+        "visibility": request.POST["visibility"],
+        "published": make_aware(datetime.datetime.now()),
+        "author": author,
+    }
+
+    if contentType.startswith("image"):
+        # Handle image content
+        image = request.FILES.get("content")
+        if image:
             file_suffix = os.path.splitext(image.name)[1]
-            contentType = request.POST["contentType"] + '/' + file_suffix[1:]
-            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
-            post = Post(
-                title=request.POST["title"],
-                description=request.POST["description"],
-                image_content=image_content,  # Store base64 string
-                contentType=contentType,
-                visibility=request.POST["visibility"],
-                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                author=author,
-            )
-            post.save()
-    else:
-        if 'image' in contentType:
-            image = request.FILES["image"]
-            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
-            post = Post(
-                title=request.POST["title"],
-                description=request.POST["description"],
-                image_content=image_content,  # Store base64 string
-                contentType=contentType,
-                visibility=request.POST["visibility"],
-                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                author=author,
-            )
-            post.save()
-        else:
-            post = Post(
-                title=request.POST["title"],
-                description=request.POST["description"],
-                text_content=request.POST["content"],
-                contentType=contentType,
-                visibility=request.POST["visibility"],
-                published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-                author=author,
-            )
-            post.save()
+            contentType += f"/{file_suffix[1:]}"  # Add file extension to contentType
+            post_data["contentType"] = contentType
 
-    post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
-    post.url = post_url
+            # Save image as a file and encode to Base64
+            post_data["image_content"] = ContentFile(image.read(), name=image.name)
+
+        else:
+            # Handle Base64-encoded image
+            base64_image = request.POST.get("content")
+            format, imgstr = base64_image.split(";base64,")
+            ext = format.split("/")[-1]
+            decoded_file = ContentFile(base64.b64decode(imgstr), name=f"{datetime.datetime.now().timestamp()}.{ext}")
+            post_data["image_content"] = decoded_file
+
+    else:
+        # Handle text or markdown content
+        post_data["text_content"] = request.POST.get("content", "")
+
+    # Create and save the post
+    post = Post.objects.create(**post_data)
+    post.url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
     post.save()
 
-    print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
+    # Notify followers
     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
-    print("Sending to the following followers: " + str(followers))
-
     for follower in followers:
         json_content = PostSerializer(post).data
-
-        # Explicitly update the content field with the base64-encoded image string
-        if post.contentType.startswith('image'):
-            if not isinstance(post.image_content, str) or not post.image_content.startswith("data:image"):
-                image_base64 = base64.b64encode(post.image_content.encode('utf-8')).decode('utf-8')
-                json_content["content"] = image_base64
-            else:
-                json_content["content"] = post.image_content  # Already base64-encoded string
-        else:
-            json_content["content"] = post.text_content  # Plain or markdown text
-
         follower_url = follower.follower
-        print("sending POST to: " + follower_url)
-
-        # Extract base URL from follower's URL
-        parsed_url = urlparse(follower_url)
-        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-        inbox_url = follower_url.rstrip('/') + '/inbox'
-
-        print("base_url: ", base_url)
-        print("inbox_url: ", inbox_url)
-        print("json_content: ", json_content)
-
-        # Send the POST request to the follower's inbox
+        inbox_url = follower_url.rstrip("/") + "/inbox"
+        base_url = f"{urlparse(follower_url).scheme}://{urlparse(follower_url).netloc}/"
         post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
-    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
