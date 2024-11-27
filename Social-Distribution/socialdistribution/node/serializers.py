@@ -303,8 +303,10 @@ class PostSerializer(serializers.ModelSerializer):
             return obj.text_content
         elif obj.contentType.startswith('image') and obj.image_content:
             try:
-                return obj.image_content.url  # Get the public URL for the image
-            except ValueError:
+                with obj.image_content.open('rb') as image_file:
+                    return f"data:{obj.contentType};base64,{base64.b64encode(image_file.read()).decode('utf-8')}"
+                    return base64.b64encode(image_file.read()).decode('utf-8')
+            except FileNotFoundError:
                 return "No image content found."
         return "Nothing to display D:"
 
