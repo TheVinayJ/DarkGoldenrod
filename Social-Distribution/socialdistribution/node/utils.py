@@ -93,7 +93,10 @@ def post_request_to_node(host, url, method='POST', data=None):
     if not node:
         print("Couldn't find remote node with host ", host)
 
-    auth = HTTPBasicAuth(node.username, node.password)
+    try:
+        auth = HTTPBasicAuth(node.username, node.password)
+    except AttributeError:
+        print("Couldn't find username and password for remote node with host ", host)
 
     if method.upper() == 'GET':
         response = requests.get(url, auth=auth)
