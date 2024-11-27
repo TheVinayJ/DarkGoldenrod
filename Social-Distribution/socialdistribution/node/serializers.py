@@ -179,6 +179,27 @@ class CommentSerializer(serializers.ModelSerializer):
     def get_post(self, obj):
         return f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}"
 
+    def get_likes(self, obj):
+        """Fetch likes for the comment."""
+        likes = CommentLike.objects.filter(owner=obj)  # Assuming CommentLike is your model for comment likes
+        return {
+            "type": "likes",
+            "id": f"{obj.post.author.host}authors/{obj.author.id}/commented/{obj.id}/likes",
+            "page": f"{obj.post.author.host}authors/{obj.author.id}/commented/{obj.id}/likes",
+            "page_number": 1,
+            "size": 50,  # Default size of likes per page
+            "count": likes.count(),
+            "src": [
+                {
+                    "type": "like",
+                    "author": AuthorSerializer(like.liker).data,  # Serialize author of the like
+                    "published": like.created_at.isoformat(),  # Ensure ISO 8601 format
+                    "id": f"{obj.post.author.host}authors/{like.liker.id}/liked/{obj.id}",
+                    "object": f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}"
+                }
+                for like in likes
+            ]
+        }
 
 class CommentsSerializer(serializers.Serializer):
     # Microsoft Copilot, 2024. Aggregate of Comment serializer
