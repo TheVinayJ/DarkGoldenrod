@@ -1,5 +1,5 @@
 # yourapp/serializers.py
-
+import base64
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from .models import Author, RemoteNode, Post, Like, PostLike, CommentLike, Comment
@@ -253,8 +253,10 @@ class PostSerializer(serializers.ModelSerializer):
     def get_content(self, obj):
         if obj.contentType.startswith('text'):
             return obj.text_content
-        elif obj.contentType.startswith('image'):
-            return obj.image_content if obj.image_content else None
+        elif obj.contentType.startswith('image') and obj.image_content:
+            # Read the file and encode it to base64
+            with obj.image_content.open('rb') as image_file:
+                return base64.b64encode(image_file.read()).decode('utf-8')
         return None
 
     def get_type(self, obj):
