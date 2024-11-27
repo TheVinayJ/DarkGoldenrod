@@ -2907,18 +2907,34 @@ def api_get_post_from_author(request, author_id, post_id):
         # Find likes from current user matching the queried comment
         user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
 
-        return render(request, "post.html", {
-            "post": post,
-            "id": post_id,
-            'likes': PostLike.objects.filter(owner=post),
-            'author': author,
-            'liked' : liked,
-            'author_id': author.id,
-            'comments': Comment.objects.filter(post=post)
-                    .annotate(likes=Count('commentlike'),
-                                liked=Exists(user_likes)
-                                ),
-        })
+        # return render(request, "post.html", {
+        #     "post": post,
+        #     "id": post_id,
+        #     'likes': PostLike.objects.filter(owner=post),
+        #     'author': author,
+        #     'liked' : liked,
+        #     'author_id': author.id,
+        #     'comments': Comment.objects.filter(post=post)
+        #             .annotate(likes=Count('commentlike'),
+        #                         liked=Exists(user_likes)
+        #                         ),
+        # })
+        
+        comments = Comment.objects.filter(post=post).annotate(
+            likes=Count('commentlike'),
+            liked=Exists(user_likes)
+        )
+
+        # Serialize the post, likes, and comments
+        post_data = PostSerializer(post).data
+        post_data['liked'] = liked  # Add liked status
+        post_data['comments'] = CommentSerializer(comments, many=True).data
+        post_data['likes'] = PostLikesSerializer(post).data
+
+        # Return the post as JSON
+        return JsonResponse(post_data, safe=False, status=200)
+        
+        
         #return view_post(request, post_id)
     elif request.method == 'PUT':
         return edit_post_api(request, author_id, post_id)
