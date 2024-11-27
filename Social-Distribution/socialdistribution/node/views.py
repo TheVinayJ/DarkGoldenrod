@@ -683,7 +683,11 @@ def add_post(request, author_id):
 
         # Explicitly update the content field with the base64-encoded image string
         if post.contentType.startswith('image'):
-            json_content["content"] = post.image_content  # Base64-encoded string
+            if not isinstance(post.image_content, str) or not post.image_content.startswith("data:image"):
+                image_base64 = base64.b64encode(post.image_content.encode('utf-8')).decode('utf-8')
+                json_content["content"] = image_base64
+            else:
+                json_content["content"] = post.image_content  # Already base64-encoded string
         else:
             json_content["content"] = post.text_content  # Plain or markdown text
 
