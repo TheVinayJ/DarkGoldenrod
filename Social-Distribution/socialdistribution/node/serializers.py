@@ -254,7 +254,7 @@ class PostSerializer(serializers.ModelSerializer):
         if obj.contentType.startswith('text'):
             return obj.text_content
         elif obj.contentType.startswith('image'):
-            return obj.image_content.url if obj.image_content else None
+            return obj.image_content if obj.image_content else None
         return None
 
     def get_type(self, obj):

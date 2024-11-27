@@ -533,11 +533,11 @@ def add_post(request, author_id):
             image = request.FILES["content"]
             file_suffix = os.path.splitext(image.name)[1]
             contentType = request.POST["contentType"] + '/' + file_suffix[1:]
-            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
+            image_content = base64.b64encode(image.read()).decode("utf-8")  # Convert image to base64
             post = Post(
                 title=request.POST["title"],
                 description=request.POST["description"],
-                image_content=image_content,  # Save as base64
+                image_content=image_content,  # Store as base64
                 contentType=contentType,
                 visibility=request.POST["visibility"],
                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
@@ -546,12 +546,13 @@ def add_post(request, author_id):
             post.save()
     else:   # Post creation for API spec
         if 'image' in contentType:
+            # Handle standard image types (image/png, image/jpeg)
             image = request.FILES["image"]
-            image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode as base64
+            image_content = base64.b64encode(image.read()).decode("utf-8")  # Convert image to base64
             post = Post(
                 title=request.POST["title"],
                 description=request.POST["description"],
-                image_content=image_content,  # Save as base64
+                image_content=image_content,  # Store as base64
                 contentType=contentType,
                 visibility=request.POST["visibility"],
                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
