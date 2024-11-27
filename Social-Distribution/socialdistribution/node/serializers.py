@@ -232,7 +232,7 @@ class PostSerializer(serializers.ModelSerializer):
     author = AuthorSerializer()
     comments = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
-    image_content = serializers.ImageField()
+    #image_content = serializers.ImageField()
 
     class Meta:
         model = Post
