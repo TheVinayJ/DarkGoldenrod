@@ -2774,6 +2774,70 @@ def add_external_comment(request, author_id):
 #     }, status=201)
 
 
+# def add_external_post(request, author_id):
+#     """
+#     Add a post to the database from an inbox call.
+#     """
+#     body = json.loads(request.body)
+
+#     # Get the author details
+#     author_data = body.get('author', {})
+#     author_id_from_body = author_data.get('id')
+#     author = get_object_or_404(Author, url=author_id_from_body)
+
+#     # Get post data
+#     post_url = body.get('id')
+#     contentType = body.get('contentType', 'text/plain')
+#     title = body.get('title', 'Untitled Post')
+#     description = body.get('description', '')
+#     content = body.get('content', None)
+#     visibility = body.get('visibility', 'PUBLIC')
+#     published = body.get('published', make_aware(datetime.datetime.now()))
+
+#     # Handle image content
+#     if contentType.startswith("image"):
+#         if not content:
+#             return JsonResponse({"error": "Image content is missing"}, status=400)
+#         if content.startswith("data:image"):
+#             return JsonResponse({"error": "Image content must not include a base64 prefix"}, status=400)
+#     else:
+#         # Handle text content
+#         if isinstance(content, list):
+#             content = content[0] if contentType == 'text/plain' else content[1]
+
+#     # Create and save the post
+#     post = Post(
+#         title=title,
+#         description=description,
+#         text_content=content if not contentType.startswith("image") else None,
+#         image_content=None if not contentType.startswith("image") else content,
+#         contentType=contentType,
+#         visibility=visibility,
+#         published=published,
+#         author=author,
+#         url=post_url,
+#     )
+#     post.save()
+
+#     return JsonResponse({
+#         "id": post.url,
+#         "title": post.title,
+#         "description": post.description,
+#         "contentType": post.contentType,
+#         "content": post.text_content if not contentType.startswith("image") else None,
+#         "image": post.image_content if contentType.startswith("image") else None,
+#         "published": post.published.isoformat(),
+#         "visibility": post.visibility,
+#         "author": {
+#             "id": author.url,
+#             "displayName": author.display_name,
+#             "host": author.host,
+#             "github": author.github,
+#             "profileImage": author.profile_image.url if author.profile_image else None,
+#         }
+#     }, status=201)
+
+@api_view(['POST'])
 def add_external_post(request, author_id):
     """
     Add a post to the database from an inbox call.
@@ -2798,10 +2862,30 @@ def add_external_post(request, author_id):
     if contentType.startswith("image"):
         if not content:
             return JsonResponse({"error": "Image content is missing"}, status=400)
+
+        # Check if content is base64 encoded
         if content.startswith("data:image"):
-            return JsonResponse({"error": "Image content must not include a base64 prefix"}, status=400)
+            try:
+                # Extract base64 data from content
+                base64_data = content.split(";base64,")[-1]
+                image_data = base64.b64decode(base64_data)
+                
+                # Save the image to a temporary file
+                file_name = f"post_image_{author.id}.png"
+                image_path = f"images/postImages/{file_name}"
+                with open(image_path, "wb") as img_file:
+                    img_file.write(image_data)
+                
+                # Assign image path to image_content
+                image_content = image_path
+            except Exception as e:
+                return JsonResponse({"error": f"Failed to process image content: {str(e)}"}, status=400)
+        else:
+            # If not base64, assume content is a URL
+            image_content = content
     else:
         # Handle text content
+        image_content = None
         if isinstance(content, list):
             content = content[0] if contentType == 'text/plain' else content[1]
 
@@ -2810,7 +2894,7 @@ def add_external_post(request, author_id):
         title=title,
         description=description,
         text_content=content if not contentType.startswith("image") else None,
-        image_content=None if not contentType.startswith("image") else content,
+        image_content=image_content if contentType.startswith("image") else None,
         contentType=contentType,
         visibility=visibility,
         published=published,
@@ -2825,7 +2909,7 @@ def add_external_post(request, author_id):
         "description": post.description,
         "contentType": post.contentType,
         "content": post.text_content if not contentType.startswith("image") else None,
-        "image": post.image_content if contentType.startswith("image") else None,
+        "image": post.image_content.url if contentType.startswith("image") and post.image_content else None,
         "published": post.published.isoformat(),
         "visibility": post.visibility,
         "author": {
