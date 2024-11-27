@@ -2883,7 +2883,8 @@ def api_get_post_from_author(request, author_id, post_id):
 
         #post = get_object_or_404(Post, id=post_id)
         post = get_post_by_id(post_id)
-        author = get_author(request)
+        #author = get_author(request)
+        author = get_author_by_id(author_id)
         liked = False
 
         if post.author != author: # if user that is not the creator is attempting to view
