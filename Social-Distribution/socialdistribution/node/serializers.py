@@ -301,13 +301,17 @@ class PostSerializer(serializers.ModelSerializer):
         """
         if obj.contentType.startswith('text'):
             return obj.text_content
-        elif obj.contentType.startswith('image') and obj.image_content:
-            try:
-                with obj.image_content.open('rb') as image_file:
-                    return base64.b64encode(image_file.read()).decode('utf-8')
-            except FileNotFoundError:
-                return "No image content found."
-        return "Nothing to display D:"
+        elif obj.contentType.startswith('image'):
+            # Handle image stored as base64
+            if isinstance(obj.image_content, str) and obj.image_content.startswith("data:image"):
+                return obj.image_content
+            # Handle image stored as a file
+            elif obj.image_content:
+                try:
+                    return obj.image_content.url  # Return URL of the image
+                except ValueError:
+                    return "No image content found."
+        return "No image content found"
 
     def get_type(self, obj):
         return "post"
