@@ -2928,7 +2928,7 @@ def api_get_post_from_author(request, author_id, post_id):
         # Serialize the post, likes, and comments
         post_data = PostSerializer(post).data
         post_data['liked'] = liked  # Add liked status
-        post_data['comments'] = CommentSerializer(comments, many=True).data
+        #post_data['comments'] = CommentSerializer(comments, many=True).data
         post_data['likes'] = PostLikesSerializer(post).data
         
         print(post_data)
