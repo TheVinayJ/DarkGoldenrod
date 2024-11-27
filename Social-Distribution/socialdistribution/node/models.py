@@ -114,7 +114,7 @@ class Post(models.Model):
     #id = models.AutoField(primary_key=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=500)
     description = models.TextField()  # Posts need a short description
     contentType = models.CharField(max_length=50, default="text/plain")
     text_content = models.TextField(blank=True, null=True)  # Text post content (optional)
