@@ -276,9 +276,13 @@ class PostSerializer(serializers.ModelSerializer):
         if obj.contentType.startswith('text'):
             return obj.text_content
         elif obj.contentType.startswith('image') and obj.image_content:
-            # Read the file and encode it to base64
-            with obj.image_content.open('rb') as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
+            try:
+                with obj.image_content.open('rb') as image_file:
+                    return base64.b64encode(image_file.read()).decode('utf-8')
+            except FileNotFoundError:
+                # Return a placeholder image base64
+                with open('path/to/placeholder/image.png', 'rb') as placeholder:
+                    return base64.b64encode(placeholder.read()).decode('utf-8')
         return None
 
     def get_type(self, obj):
