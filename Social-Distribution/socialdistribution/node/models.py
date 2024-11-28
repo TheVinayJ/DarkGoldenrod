@@ -47,7 +47,7 @@ class Author(AbstractBaseUser, PermissionsMixin):
     description = models.CharField(max_length=255, blank=True, null=True)
     host = models.CharField(max_length=255, blank=True, null=True, default='http://darkgoldenrod/api/')
     github = models.CharField(max_length=255, blank=True, null=True, default="")
-    profile_image = models.ImageField(max_length=1000, upload_to='images/profilePictures', blank=True, null=True, default=None)
+    profile_image = models.ImageField(max_length=500, upload_to='images/profilePictures', blank=True, null=True, default=None)
     page = models.TextField(blank=True, null=True)
     friends = models.ManyToManyField('self', blank=True)
     is_active = models.BooleanField(default=True)
@@ -114,7 +114,7 @@ class Post(models.Model):
     #id = models.AutoField(primary_key=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
-    title = models.CharField(max_length=500)
+    title = models.CharField(max_length=100)
     description = models.TextField()  # Posts need a short description
     contentType = models.CharField(max_length=50, default="text/plain")
     text_content = models.TextField(blank=True, null=True)  # Text post content (optional)
