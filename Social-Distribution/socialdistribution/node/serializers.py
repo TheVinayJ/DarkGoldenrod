@@ -31,7 +31,12 @@ class AuthorSerializer(serializers.ModelSerializer):
     def get_profileImage(self, obj):
         if obj.profile_image:
             return obj.profile_image.url
-        return None
+        return ""
+    def get_github(self, obj):
+        if obj.github:
+            return obj.github
+        return ""
+
 
 # class PostLikeSerializer(serializers.ModelSerializer):
 #     type = serializers.CharField(default='like')
