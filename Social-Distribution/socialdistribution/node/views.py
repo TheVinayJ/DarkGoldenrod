@@ -2837,7 +2837,6 @@ def add_external_comment(request, author_id):
 #         }
 #     }, status=201)
 
-@api_view(['POST'])
 def add_external_post(request, author_id):
     """
     Add a post to the database from an inbox call.
