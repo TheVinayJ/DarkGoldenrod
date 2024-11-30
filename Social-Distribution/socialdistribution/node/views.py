@@ -2446,8 +2446,8 @@ def local_api_follow(request, author_id):
             "id": current_author.url,
             "host": current_author.host,
             "displayName": current_author.display_name,
-            "github": current_author.github,
-            "profileImage": actor_profile_image,
+            "github": current_author.github if current_author.github else "",
+            "profileImage": actor_profile_image if actor_profile_image else "",
             "page": current_author.url,
         },
         "object": {
@@ -2455,8 +2455,8 @@ def local_api_follow(request, author_id):
             "id": author_to_follow.url,
             "host": author_to_follow.host,
             "displayName": author_to_follow.display_name,
-            "github": author_to_follow.github,
-            "profileImage": followee_profile_image,
+            "github": author_to_follow.github if author_to_follow.github else "",
+            "profileImage": followee_profile_image if followee_profile_image else "",
             "page": author_to_follow.url,
         }
     }
@@ -2837,7 +2837,6 @@ def add_external_comment(request, author_id):
 #         }
 #     }, status=201)
 
-@api_view(['POST'])
 def add_external_post(request, author_id):
     """
     Add a post to the database from an inbox call.

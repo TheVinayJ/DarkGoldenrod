@@ -27,6 +27,9 @@ makemigrations:
 migrate:
 	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py migrate"
 
+flush:
+	heroku run "python3.11 Social-Distribution/socialdistribution/manage.py flush"
+
 test_all:
 	@echo "Running tests..."
 	@python3.11 Social-Distribution/socialdistribution/manage.py test node.tests
