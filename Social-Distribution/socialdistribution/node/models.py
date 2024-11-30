@@ -39,7 +39,6 @@ class AuthorManager(BaseUserManager):
 
 
 class Author(AbstractBaseUser, PermissionsMixin):
-    #id = models.AutoField(primary_key=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     url = models.TextField(unique=True, null=True, default=None)
     display_name = models.CharField(max_length=255, null=False)
@@ -47,7 +46,7 @@ class Author(AbstractBaseUser, PermissionsMixin):
     description = models.CharField(max_length=255, blank=True, null=True)
     host = models.CharField(max_length=255, blank=True, null=True, default='http://darkgoldenrod/api/')
     github = models.CharField(max_length=255, blank=True, null=True, default="")
-    profile_image = models.ImageField(max_length=500, upload_to='images/profilePictures', blank=True, null=True, default="")
+    profile_image = models.ImageField(upload_to='images/profilePictures', blank=True, null=True, default="")
     page = models.TextField(blank=True, null=True)
     friends = models.ManyToManyField('self', blank=True)
     is_active = models.BooleanField(default=True)
@@ -94,7 +93,6 @@ class Author(AbstractBaseUser, PermissionsMixin):
     
 
 class Like(models.Model):
-    #object_id = models.AutoField(primary_key=True)
     object_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     created_at = models.DateTimeField(default=django.utils.timezone.now, db_index=True)
     liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
@@ -111,7 +109,6 @@ class Post(models.Model):
         ('DELETED', 'Deleted'),
     ]
 
-    #id = models.AutoField(primary_key=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100)
@@ -129,14 +126,12 @@ class Post(models.Model):
 
 
 class Repost(models.Model):
-    #id = models.AutoField(primary_key=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     original_post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True)
     shared_by = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True)
     shared_date = models.DateTimeField(auto_now_add=True)
 
 class Comment(models.Model):
-    #id = models.AutoField(primary_key=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
@@ -145,7 +140,6 @@ class Comment(models.Model):
 
 class PostLike(Like):
     owner = models.ForeignKey(Post, on_delete=models.CASCADE)
-    # liker = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
 
 class CommentLike(Like):
     owner = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True)

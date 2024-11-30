@@ -709,116 +709,59 @@ def edit_post(request, post_id):
 
 #     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def add_post(request, author_id):
-#     author = get_author(request)  # Replace with your logic to fetch the author
-#     contentType = request.POST.get("contentType", "text/plain")
-
-#     post_data = {
-#         "title": request.POST["title"],
-#         "description": request.POST["description"],
-#         "contentType": contentType,
-#         "visibility": request.POST["visibility"],
-#         "published": make_aware(datetime.datetime.now()),
-#         "author": author,
-#     }
-
-#     if contentType.startswith("image"):
-#         # Handle image content
-#         image = request.FILES.get("content")
-#         if image:
-#             file_suffix = os.path.splitext(image.name)[1]
-#             contentType += f"/{file_suffix[1:]}"  # Add file extension to contentType
-#             post_data["contentType"] = contentType
-
-#             # Save image as a file and encode to Base64
-#             post_data["image_content"] = ContentFile(image.read(), name=image.name)
-
-#         else:
-#             # Handle Base64-encoded image
-#             base64_image = request.POST.get("content")
-#             format, imgstr = base64_image.split(";base64,")
-#             ext = format.split("/")[-1]
-#             decoded_file = ContentFile(base64.b64decode(imgstr), name=f"{datetime.datetime.now().timestamp()}.{ext}")
-#             post_data["image_content"] = decoded_file
-
-#     else:
-#         # Handle text or markdown content
-#         post_data["text_content"] = request.POST.get("content", "")
-
-#     # Create and save the post
-#     post = Post.objects.create(**post_data)
-#     post.url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
-#     post.save()
-
-#     # Notify followers
-#     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
-#     for follower in followers:
-#         json_content = PostSerializer(post).data
-#         follower_url = follower.follower
-#         inbox_url = follower_url.rstrip("/") + "/inbox"
-#         base_url = f"{urlparse(follower_url).scheme}://{urlparse(follower_url).netloc}/"
-#         post_request_to_node(base_url, inbox_url, 'POST', json_content)
-
-#     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_post(request, author_id):
-    author = get_author(request)
-    contentType = request.POST["contentType"]
+    author = get_author(request)  # Replace with your logic to fetch the author
+    contentType = request.POST.get("contentType", "text/plain")
 
-    # Initialize variables
-    content = request.POST.get("content")
-    image = request.FILES.get("image")  # Get the image file if present
+    post_data = {
+        "title": request.POST["title"],
+        "description": request.POST["description"],
+        "contentType": contentType,
+        "visibility": request.POST["visibility"],
+        "published": make_aware(datetime.datetime.now()),
+        "author": author,
+    }
 
     if contentType.startswith("image"):
         # Handle image content
+        image = request.FILES.get("content")
         if image:
-            # Encode the image to base64 without prefix
-            content = base64.b64encode(image.read()).decode("utf-8")
-        elif not content.startswith("data:image"):
-            return JsonResponse({"error": "Image content must be provided as base64 without prefix"}, status=400)
+            file_suffix = os.path.splitext(image.name)[1]
+            contentType += f"/{file_suffix[1:]}"  # Add file extension to contentType
+            post_data["contentType"] = contentType
+
+            # Save image as a file and encode to Base64
+            post_data["image_content"] = ContentFile(image.read(), name=image.name)
+
+        else:
+            # Handle Base64-encoded image
+            base64_image = request.POST.get("content")
+            format, imgstr = base64_image.split(";base64,")
+            ext = format.split("/")[-1]
+            decoded_file = ContentFile(base64.b64decode(imgstr), name=f"{datetime.datetime.now().timestamp()}.{ext}")
+            post_data["image_content"] = decoded_file
+
     else:
-        # Handle text content
-        if isinstance(content, list):
-            content = content[0] if contentType == 'text/plain' else content[1]
+        # Handle text or markdown content
+        post_data["text_content"] = request.POST.get("content", "")
 
     # Create and save the post
-    post = Post(
-        title=request.POST["title"],
-        description=request.POST["description"],
-        text_content=content if not contentType.startswith("image") else None,
-        image_content=None if not contentType.startswith("image") else content,
-        contentType=contentType,
-        visibility=request.POST["visibility"],
-        published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-        author=author,
-    )
+    post = Post.objects.create(**post_data)
+    post.url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
     post.save()
 
-    # Add post URL
-    post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
-    post.url = post_url
-    post.save()
-    
+    # Notify followers
     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
     for follower in followers:
-        
         json_content = PostSerializer(post).data
         follower_url = follower.follower
         inbox_url = follower_url.rstrip("/") + "/inbox"
         base_url = f"{urlparse(follower_url).scheme}://{urlparse(follower_url).netloc}/"
-        if base_url == f"https://{request.get_host()}/":
-            continue
         post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
-    return JsonResponse({
-        "message": "Post created successfully",
-        "url": post_url,
-        "content": content
-    }, status=201)
+    return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -2446,8 +2389,8 @@ def local_api_follow(request, author_id):
             "id": current_author.url,
             "host": current_author.host,
             "displayName": current_author.display_name,
-            "github": current_author.github if current_author.github else "",
-            "profileImage": actor_profile_image if actor_profile_image else "",
+            "github": current_author.github,
+            "profileImage": actor_profile_image,
             "page": current_author.url,
         },
         "object": {
@@ -2455,8 +2398,8 @@ def local_api_follow(request, author_id):
             "id": author_to_follow.url,
             "host": author_to_follow.host,
             "displayName": author_to_follow.display_name,
-            "github": author_to_follow.github if author_to_follow.github else "",
-            "profileImage": followee_profile_image if followee_profile_image else "",
+            "github": author_to_follow.github,
+            "profileImage": followee_profile_image,
             "page": author_to_follow.url,
         }
     }
@@ -2585,306 +2528,78 @@ def add_external_comment(request, author_id):
 #     print(serializer.errors)
 #     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# def add_external_post(request, author_id):
-#     """
-#     Add a post to the database from an inbox call without using serializers
-#     """
-#     # Parse the request body
-#     body = json.loads(request.body)
-    
-#     # Get the author details
-#     author_data = body.get('author', {})
-#     author_id_from_body = author_data.get('id')
-#     author = get_object_or_404(Author, url=author_id_from_body)
-    
-#     # Get post data
-#     post_url = body.get('id')
-    
-#     # Mark any existing posts with the same URL as deleted
-#     existing_posts_with_id = Post.objects.filter(url=post_url)
-#     for post in existing_posts_with_id:
-#         post.visibility = 'DELETED'
-#         post.save()
-
-#     # Determine the content type and prepare the post fields
-#     contentType = body.get('contentType', 'text/plain')
-#     title = body.get('title', 'Untitled Post')
-#     description = body.get('description', '')
-#     content = body.get('content', None)
-#     visibility = body.get('visibility', 'PUBLIC')
-#     published = body.get('published', make_aware(datetime.datetime.now()))
-#     image = None
-    
-#     if 'image' in contentType:
-#         # Handle image content
-#         # if content:  # Assume content is a base64 string or URL for the image
-#         #     file_suffix = contentType.split('/')[-1]  # Extract file type
-#         #     image_name = f"external_image_{author.id}.{file_suffix}"
-#         #     image_path = os.path.join("media", "images", image_name)
-            
-#         #     # # Save the image locally (if base64 or similar handling needed, implement here)
-#         #     # with open(image_path, "wb") as f:
-#         #     #     f.write(content)  # Assuming content is already binary, modify as needed
-            
-#         #     # Check if the content is base64-encoded
-#         #     try:
-#         #         image_data = base64.b64decode(content)
-#         #         with open(image_path, "wb") as f:
-#         #             f.write(image_data)
-#         #     except (base64.binascii.Error, ValueError):
-#         #         # If content is not base64, assume it's a binary string
-#         #         with open(image_path, "wb") as f:
-#         #             f.write(content.encode('utf-8'))  # Ensure encoding for str content
-            
-#         #     image = image_path
-#         if content.startswith("data:image"):
-#             # Extract base64 data
-#             base64_data = content.split(";base64,")[-1]
-#             file_suffix = contentType.split("/")[-1]  # Extract file type
-#             image_name = f"external_image_{author.id}.{file_suffix}"
-#             image_path = os.path.join("media", "images", image_name)
-            
-#             # Ensure directory exists
-#             os.makedirs(os.path.dirname(image_path), exist_ok=True)
-            
-#             # Decode and save the image
-#             try:
-#                 image_data = base64.b64decode(base64_data)
-#                 with open(image_path, "wb") as f:
-#                     f.write(image_data)
-#                 image = image_path
-#             except Exception as e:
-#                 return JsonResponse({"error": f"Failed to save image: {str(e)}"}, status=400)
-#     else:
-#         # Handle text content
-#         if isinstance(content, list):
-#             content = content[0] if contentType == 'text/plain' else content[1]
-
-#     # Create and save the post
-#     post = Post(
-#         title=title,
-#         description=description,
-#         text_content=content if 'image' not in contentType else None,
-#         image_content=image if 'image' in contentType else None,
-#         contentType=contentType,
-#         visibility=visibility,
-#         published=published,
-#         author=author,
-#         url=post_url,
-#     )
-#     post.save()
-
-#     return JsonResponse({
-#         "id": post.url,
-#         "title": post.title,
-#         "description": post.description,
-#         "contentType": post.contentType,
-#         "content": post.text_content if 'image' not in contentType else None,
-#         "image": post.image_content if 'image' in contentType else None,
-#         "published": post.published.isoformat(),
-#         "visibility": post.visibility,
-#         "author": {
-#             "id": author.url,
-#             "displayName": author.display_name,
-#             "host": author.host,
-#             "github": author.github,
-#             "profileImage": author.profile_image.url if author.profile_image else None,
-#         }
-#     }, status=201)
-    
-# def add_external_post(request, author_id):
-#     """
-#     Add a post to the database from an inbox call without using serializers.
-#     """
-#     # Parse the request body
-#     body = json.loads(request.body)
-
-#     # Get the author details
-#     author_data = body.get('author', {})
-#     author_id_from_body = author_data.get('id')
-#     author = get_object_or_404(Author, url=author_id_from_body)
-
-#     # Get post data
-#     post_url = body.get('id')
-
-#     # Mark any existing posts with the same URL as deleted
-#     existing_posts_with_id = Post.objects.filter(url=post_url)
-#     for post in existing_posts_with_id:
-#         post.visibility = 'DELETED'
-#         post.save()
-
-#     # Determine the content type and prepare the post fields
-#     contentType = body.get('contentType', 'text/plain')
-#     title = body.get('title', 'Untitled Post')
-#     description = body.get('description', '')
-#     content = body.get('content', None)
-#     visibility = body.get('visibility', 'PUBLIC')
-#     published = body.get('published', make_aware(datetime.datetime.now()))
-#     image_file = None
-
-#     if 'image' in contentType:
-#         # Handle base64-encoded image
-#         if content.startswith("data:image"):
-#             try:
-#                 # Extract base64 data
-#                 base64_data = content.split(";base64,")[-1]
-#                 file_suffix = contentType.split("/")[-1]  # Extract file type
-#                 image_name = f"external_image_{uuid.uuid4()}.{file_suffix}"
-
-#                 # Save the image using Django's File storage
-#                 image_file = ContentFile(base64.b64decode(base64_data), name=image_name)
-#             except Exception as e:
-#                 return JsonResponse({"error": f"Failed to process image: {str(e)}"}, status=400)
-#     else:
-#         # Handle text content
-#         if isinstance(content, list):
-#             content = content[0] if contentType == 'text/plain' else content[1]
-
-#     # Create and save the post
-#     post = Post(
-#         title=title,
-#         description=description,
-#         text_content=content if 'image' not in contentType else None,
-#         image_content=image_file if 'image' in contentType else None,
-#         contentType=contentType,
-#         visibility=visibility,
-#         published=published,
-#         author=author,
-#         url=post_url,
-#     )
-#     post.save()
-
-#     # Return the created post details
-#     return JsonResponse({
-#         "id": post.url,
-#         "title": post.title,
-#         "description": post.description,
-#         "contentType": post.contentType,
-#         "content": post.text_content if 'image' not in contentType else None,
-#         "image": post.image_content.url if post.image_content else None,
-#         "published": post.published.isoformat(),
-#         "visibility": post.visibility,
-#         "author": {
-#             "id": author.url,
-#             "displayName": author.display_name,
-#             "host": author.host,
-#             "github": author.github,
-#             "profileImage": author.profile_image.url if author.profile_image else None,
-#         }
-#     }, status=201)
-
-
-# def add_external_post(request, author_id):
-#     """
-#     Add a post to the database from an inbox call.
-#     """
-#     body = json.loads(request.body)
-
-#     # Get the author details
-#     author_data = body.get('author', {})
-#     author_id_from_body = author_data.get('id')
-#     author = get_object_or_404(Author, url=author_id_from_body)
-
-#     # Get post data
-#     post_url = body.get('id')
-#     contentType = body.get('contentType', 'text/plain')
-#     title = body.get('title', 'Untitled Post')
-#     description = body.get('description', '')
-#     content = body.get('content', None)
-#     visibility = body.get('visibility', 'PUBLIC')
-#     published = body.get('published', make_aware(datetime.datetime.now()))
-
-#     # Handle image content
-#     if contentType.startswith("image"):
-#         if not content:
-#             return JsonResponse({"error": "Image content is missing"}, status=400)
-#         if content.startswith("data:image"):
-#             return JsonResponse({"error": "Image content must not include a base64 prefix"}, status=400)
-#     else:
-#         # Handle text content
-#         if isinstance(content, list):
-#             content = content[0] if contentType == 'text/plain' else content[1]
-
-#     # Create and save the post
-#     post = Post(
-#         title=title,
-#         description=description,
-#         text_content=content if not contentType.startswith("image") else None,
-#         image_content=None if not contentType.startswith("image") else content,
-#         contentType=contentType,
-#         visibility=visibility,
-#         published=published,
-#         author=author,
-#         url=post_url,
-#     )
-#     post.save()
-
-#     return JsonResponse({
-#         "id": post.url,
-#         "title": post.title,
-#         "description": post.description,
-#         "contentType": post.contentType,
-#         "content": post.text_content if not contentType.startswith("image") else None,
-#         "image": post.image_content if contentType.startswith("image") else None,
-#         "published": post.published.isoformat(),
-#         "visibility": post.visibility,
-#         "author": {
-#             "id": author.url,
-#             "displayName": author.display_name,
-#             "host": author.host,
-#             "github": author.github,
-#             "profileImage": author.profile_image.url if author.profile_image else None,
-#         }
-#     }, status=201)
-
 def add_external_post(request, author_id):
     """
-    Add a post to the database from an inbox call.
+    Add a post to the database from an inbox call without using serializers
     """
+    # Parse the request body
     body = json.loads(request.body)
-
+    
     # Get the author details
     author_data = body.get('author', {})
     author_id_from_body = author_data.get('id')
     author = get_object_or_404(Author, url=author_id_from_body)
-
+    
     # Get post data
     post_url = body.get('id')
+    
+    # Mark any existing posts with the same URL as deleted
+    existing_posts_with_id = Post.objects.filter(url=post_url)
+    for post in existing_posts_with_id:
+        post.visibility = 'DELETED'
+        post.save()
+
+    # Determine the content type and prepare the post fields
     contentType = body.get('contentType', 'text/plain')
     title = body.get('title', 'Untitled Post')
     description = body.get('description', '')
     content = body.get('content', None)
     visibility = body.get('visibility', 'PUBLIC')
     published = body.get('published', make_aware(datetime.datetime.now()))
-
-    # Handle image content
-    if contentType.startswith("image"):
-        if not content:
-            return JsonResponse({"error": "Image content is missing"}, status=400)
-
-        # Check if content is base64 encoded
+    image = None
+    
+    if 'image' in contentType:
+        # Handle image content
+        # if content:  # Assume content is a base64 string or URL for the image
+        #     file_suffix = contentType.split('/')[-1]  # Extract file type
+        #     image_name = f"external_image_{author.id}.{file_suffix}"
+        #     image_path = os.path.join("media", "images", image_name)
+            
+        #     # # Save the image locally (if base64 or similar handling needed, implement here)
+        #     # with open(image_path, "wb") as f:
+        #     #     f.write(content)  # Assuming content is already binary, modify as needed
+            
+        #     # Check if the content is base64-encoded
+        #     try:
+        #         image_data = base64.b64decode(content)
+        #         with open(image_path, "wb") as f:
+        #             f.write(image_data)
+        #     except (base64.binascii.Error, ValueError):
+        #         # If content is not base64, assume it's a binary string
+        #         with open(image_path, "wb") as f:
+        #             f.write(content.encode('utf-8'))  # Ensure encoding for str content
+            
+        #     image = image_path
         if content.startswith("data:image"):
+            # Extract base64 data
+            base64_data = content.split(";base64,")[-1]
+            file_suffix = contentType.split("/")[-1]  # Extract file type
+            image_name = f"external_image_{author.id}.{file_suffix}"
+            image_path = os.path.join("media", "images", image_name)
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(image_path), exist_ok=True)
+            
+            # Decode and save the image
             try:
-                # Extract base64 data from content
-                base64_data = content.split(";base64,")[-1]
                 image_data = base64.b64decode(base64_data)
-                
-                # Save the image to a temporary file
-                file_name = f"post_image_{author.id}.png"
-                image_path = f"images/postImages/{file_name}"
-                with open(image_path, "wb") as img_file:
-                    img_file.write(image_data)
-                
-                # Assign image path to image_content
-                image_content = image_path
+                with open(image_path, "wb") as f:
+                    f.write(image_data)
+                image = image_path
             except Exception as e:
-                return JsonResponse({"error": f"Failed to process image content: {str(e)}"}, status=400)
-        else:
-            # If not base64, assume content is a URL
-            image_content = content
+                return JsonResponse({"error": f"Failed to save image: {str(e)}"}, status=400)
     else:
         # Handle text content
-        image_content = None
         if isinstance(content, list):
             content = content[0] if contentType == 'text/plain' else content[1]
 
@@ -2892,8 +2607,8 @@ def add_external_post(request, author_id):
     post = Post(
         title=title,
         description=description,
-        text_content=content if not contentType.startswith("image") else None,
-        image_content=image_content if contentType.startswith("image") else None,
+        text_content=content if 'image' not in contentType else None,
+        image_content=image if 'image' in contentType else None,
         contentType=contentType,
         visibility=visibility,
         published=published,
@@ -2907,8 +2622,8 @@ def add_external_post(request, author_id):
         "title": post.title,
         "description": post.description,
         "contentType": post.contentType,
-        "content": post.text_content if not contentType.startswith("image") else None,
-        "image": post.image_content.url if contentType.startswith("image") and post.image_content else None,
+        "content": post.text_content if 'image' not in contentType else None,
+        "image": post.image_content if 'image' in contentType else None,
         "published": post.published.isoformat(),
         "visibility": post.visibility,
         "author": {
@@ -2919,6 +2634,7 @@ def add_external_post(request, author_id):
             "profileImage": author.profile_image.url if author.profile_image else None,
         }
     }, status=201)
+    
 
 
 @api_view(['POST'])
@@ -3269,6 +2985,8 @@ def api_get_post_from_author(request, author_id, post_id):
         post_data['liked'] = liked  # Add liked status
         #post_data['comments'] = CommentSerializer(comments, many=True).data
         post_data['likes'] = PostLikesSerializer(post).data
+        
+        print(post_data)
 
         # Return the post as JSON
         return JsonResponse(post_data, safe=False, status=200)
