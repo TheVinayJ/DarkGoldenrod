@@ -1,93 +1,68 @@
-<!-- With help from Chat-GPT 4o, OpenAI, 2024-10-20 -->
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authors List</title>
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/feed.css' %}">
+    <link rel="stylesheet" href="{% static 'css/authors.css' %}">
+{% endblock %}
 
-    <style>
-        .author-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 400px;
-            border: 1px solid darkgoldenrod;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            padding: 20px;
-            box-shadow: 0px 0px 20px -14px darkgoldenrod;
-        }
-        ul li {
-            display: flex;
-            justify-content: center;
-        }
-        .button-container {
-            display: flex;
-        }
-        button {
-            width: 80px;
-            margin: 10px;
-        }
-        button:disabled{
-            background-color: #4f4f4f;
-        }
-    </style>
-</head>
-
-<body>
-    {% extends 'base.html' %}
-    {% block content %}
-    <h1>List of Authors</h1>
+{% block content %}
+<div class="container">
+    <h1 class="feed-title">Authors List</h1>
 
     <!-- Search form -->
-    <form method="get" action="">
+    <form method="get" action="" class="search-form">
         <input type="text" name="q" placeholder="Search authors..." value="{{ query }}">
         <button type="submit">Search</button>
     </form>
 
-    <ul>
-        {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li {% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-        {% endif %}
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li {% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 
+    <ul class="author-list">
         {% for author in authors %}
-        <li>
-            <div class="author-card">
-                <!-- Link to the author's profile page -->
-                <a href="{% url 'profile' author.id_num %}">{{ author.displayName}}</a>
-
-                Host: {{ author.host }}<br>
-                GitHub: <a href="https://github.com/{{ author.github }}">{{ author.github }}</a><br>
-
-                <div class="button-container">
+        <li class="author-item">
+            <div class="author-details">
+                <div class="author-name">
+                    <!-- Link to the author's profile page -->
+                    <a href="{% url 'profile' author.id_num %}" data-host="{{ author.host }}">{{ author.displayName }}</a>
+                </div>
+                <div class="author-host">
+                    {% if author.github %}
+                    GitHub: <a href="https://github.com/{{ author.github }}" target="_blank">{{ author.github }}</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="button-container">
+                <!-- Follow/Unfollow forms -->
+                {% if author.is_following %}
+                    <!-- Unfollow form -->
+                    <form method="POST" action="{% url 'unfollow_author' author.id_num %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn small-btn">Unfollow</button>
+                    </form>
+                {% else %}
                     <!-- Follow form -->
                     <form method="POST" action="{% url 'follow_author' author.id_num %}">
                         {% csrf_token %}
-                            <button type="submit">
-                                Follow
-                            </button>
+                        <button type="submit" class="btn small-btn">Follow</button>
                     </form>
-                    <form method="POST" action="{% url 'unfollow_author' author.id_num %}">
-                        {% csrf_token %}
-                            <button type="submit">
-                                Unfollow
-                            </button>
-                    </form>
-                </div>
+                {% endif %}
             </div>
         </li>
         {% empty %}
         <li>No authors found.</li>
-        <br>
         {% endfor %}
     </ul>
-    {% endblock %}
-</body>
+</div>
+{% endblock %}
 
-</html>
+{% block scripts %}
+    <!-- Include any additional scripts if necessary -->
+{% endblock %}
