@@ -237,16 +237,6 @@ class PostSerializer(serializers.ModelSerializer):
             'comments',
             'likes',
         ]
-
-    # def get_id(self, obj):
-    #     return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
-
-    # def get_author(self, obj):
-    #     if isinstance(obj.author, Author):
-    #         return AuthorSerializer(obj.author).data
-    #     else:
-    #         author = Author.objects.filter(url=obj.author.id).first()
-    #         return AuthorSerializer(author).data
         
     def get_id(self, obj):
         # Use the post's URL if it's from a remote node; otherwise, generate it dynamically
