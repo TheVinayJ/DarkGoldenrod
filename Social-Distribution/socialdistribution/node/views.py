@@ -725,6 +725,8 @@ def author_posts(request, author_id):
             else:
                 image = request.FILES["content"]
                 file_suffix = os.path.splitext(image.name)[1]
+                if file_suffix == '.jpg':
+                    file_suffix = '.jpeg'
                 contentType = request.POST["contentType"]
                 contentType += '/' + file_suffix[1:] + ';base64'
                 post = Post(title=request.POST["title"],
