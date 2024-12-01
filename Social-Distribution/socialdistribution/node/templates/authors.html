@@ -3,63 +3,96 @@
 
 {% block styles %}
     {{ block.super }}
-    <link rel="stylesheet" href="{% static 'css/feed.css' %}">
     <link rel="stylesheet" href="{% static 'css/authors.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container">
-    <h1 class="feed-title">Authors List</h1>
+    <h1 class="page-title">Authors</h1>
 
-    <!-- Search form -->
-    <form method="get" action="" class="search-form">
-        <input type="text" name="q" placeholder="Search authors..." value="{{ query }}">
-        <button type="submit">Search</button>
-    </form>
+    <!-- Tabs for Filtering -->
+    <div class="tabs">
+        <a href="?filter=all" class="tab {% if active_tab == 'all' %}active{% endif %}">All</a>
+        <a href="?filter=new" class="tab {% if active_tab == 'new' %}active{% endif %}">New</a>
+        <a href="?filter=following" class="tab {% if active_tab == 'following' %}active{% endif %}">Following</a>
+        <a href="?filter=friends" class="tab {% if active_tab == 'friends' %}active{% endif %}">Friends</a>
+    </div>
 
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-            <li {% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+    <!-- Search Bar -->
+    <div class="search-bar">
+        <form method="get" action="">
+            <input type="text" name="q" placeholder="Search authors..." value="{{ query }}">
+            <button type="submit">
+                <span class="material-symbols-outlined">search</span>
+            </button>
+        </form>
+    </div>
 
-    <ul class="author-list">
+    <!-- Authors Grid -->
+    <div class="authors-grid">
         {% for author in authors %}
-        <li class="author-item">
-            <div class="author-details">
-                <div class="author-name">
-                    <!-- Link to the author's profile page -->
-                    <a href="{% url 'profile' author.id_num %}" data-host="{{ author.host }}">{{ author.displayName }}</a>
-                </div>
-                <div class="author-host">
+        <div class="author-tile">
+            <a href="{% url 'profile' author.id_num %}" class="tile-link">
+                <!-- Profile Picture -->
+                {% if author.profile_image_base64 %}
+                    <img src="data:image/png;base64,{{ author.profile_image_base64 }}" alt="{{ author.displayName }}'s Profile Picture" class="profile-picture">
+                {% else %}
+                    <div class="profile-picture default-picture">
+                        <!-- Default SVG or Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 90 90">
+                            <!-- SVG content -->
+                        </svg>
+                    </div>
+                {% endif %}
+
+                <!-- Username -->
+                <div class="author-info">
+                    <h2 class="author-name">{{ author.displayName }}</h2>
+
+                    <!-- GitHub Account -->
                     {% if author.github %}
-                    GitHub: <a href="https://github.com/{{ author.github }}" target="_blank">{{ author.github }}</a>
+                    <div class="author-github">
+                        <!-- GitHub Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+                            <!-- GitHub SVG content -->
+                        </svg>
+                        <a href="https://github.com/{{ author.github }}" target="_blank">{{ author.github }}</a>
+                    </div>
                     {% endif %}
                 </div>
-            </div>
-            <div class="button-container">
-                <!-- Follow/Unfollow forms -->
+            </a>
+
+            <!-- Follow/Unfollow Button -->
+            <div class="follow-button">
                 {% if author.is_following %}
-                    <!-- Unfollow form -->
                     <form method="POST" action="{% url 'unfollow_author' author.id_num %}">
                         {% csrf_token %}
                         <button type="submit" class="btn small-btn">Unfollow</button>
                     </form>
                 {% else %}
-                    <!-- Follow form -->
                     <form method="POST" action="{% url 'follow_author' author.id_num %}">
                         {% csrf_token %}
                         <button type="submit" class="btn small-btn">Follow</button>
                     </form>
                 {% endif %}
             </div>
-        </li>
-        {% empty %}
-        <li>No authors found.</li>
+
+            <!-- Hover Effect: Display Recent Posts -->
+            <div class="hover-content">
+                <h3>Recent Posts</h3>
+                <ul>
+                    {% for post in author.recent_posts %}
+                    <li>{{ post.title|truncatechars:30 }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
         {% endfor %}
-    </ul>
+    </div>
+
+    {% if not authors %}
+    <p>No authors found.</p>
+    {% endif %}
 </div>
 {% endblock %}
 
