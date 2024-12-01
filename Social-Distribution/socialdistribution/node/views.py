@@ -726,7 +726,7 @@ def author_posts(request, author_id):
                 image = request.FILES["content"]
                 file_suffix = os.path.splitext(image.name)[1]
                 contentType = request.POST["contentType"]
-                contentType += '/' + file_suffix[1:]
+                contentType += '/' + file_suffix[1:] + ';base64'
                 post = Post(title=request.POST["title"],
                             description=request.POST["description"],
                             image_content=image,
