@@ -1065,6 +1065,7 @@ def local_api_like(request, id):
                     created_at=django.utils.timezone.now(),
                 )
                 like.save()
+                print(f"redirecting to /node/posts/{id}/")
                 return redirect(f'/node/posts/{id}/')
             return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
