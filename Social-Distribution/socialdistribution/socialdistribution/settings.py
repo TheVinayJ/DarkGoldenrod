@@ -34,8 +34,6 @@ AUTH_USER_MODEL = 'node.Author'
 
 SECURE_SSL_REDIRECT = True
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
-
 
 # Application definition
 
