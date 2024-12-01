@@ -1,6 +1,7 @@
 from crypt import methods
 import uuid
 import datetime
+from datetime import timedelta
 from django.shortcuts import render
 from django.http import JsonResponse
 import django
@@ -110,6 +111,7 @@ def api_authors_list(request):
 def authors_list(request):
     print("Host: ", request.get_host())
     
+    filter_type = request.GET.get('filter', 'all')
     query = request.GET.get('q', None)
     page = request.GET.get('page', None)
     size = request.GET.get('size', None)
@@ -117,6 +119,28 @@ def authors_list(request):
 
     # Get local authors directly
     local_authors = Author.objects.all()
+
+    # Apply filtering based on the active tab
+    if filter_type == 'new':
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        local_authors = local_authors.filter(created_at__gte=thirty_days_ago)
+    elif filter_type == 'following':
+        following_urls = Follow.objects.filter(
+            follower=f"https://{request.get_host()}/api/authors/{user.id}",
+            approved=True
+        ).values_list('following', flat=True)
+        local_authors = local_authors.filter(url__in=following_urls)
+    elif filter_type == 'friends':
+        user_url = f"https://{request.get_host()}/api/authors/{user.id}"
+        friends_urls = Follow.objects.filter(
+            following=user_url,
+            follower__in=Follow.objects.filter(
+                following=user_url,
+                approved=True
+            ).values_list('follower', flat=True)
+        ).values_list('follower', flat=True)
+        local_authors = local_authors.filter(url__in=friends_urls)
+
     if query:
         local_authors = local_authors.filter(display_name__icontains=query)
 
@@ -126,15 +150,15 @@ def authors_list(request):
     else:
         local_authors = local_authors[:50]  # Limit to 50 authors
 
-    authors = [{
-        "type": "author",
-        "id": f"{author.url}",
-        "host": author.host,
-        "displayName": author.display_name,
-        "github": author.github,
-        "profileImage": author.profile_image.url if author.profile_image else '',
-        "page": author.page
-    } for author in local_authors]
+    # authors = [{
+    #     "type": "author",
+    #     "id": f"{author.url}",
+    #     "host": author.host,
+    #     "displayName": author.display_name,
+    #     "github": author.github,
+    #     "profileImage": author.profile_image.url if author.profile_image else '',
+    #     "page": author.page
+    # } for author in local_authors]
     
     NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
 
@@ -148,22 +172,116 @@ def authors_list(request):
                 endpoint = 'api/authors/'
             tasks.append(send_request_to_node(node_name, endpoint))
         responses = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        post_tasks = []
         node_authors = []
+
         for response in responses:
             if isinstance(response, Exception):
-                # Handle exceptions
                 print(f"Error fetching from node: {response}")
                 continue
+            
             if response and 'authors' in response:
+                for author in response['authors']:
+                    # Fetch posts for this author
+                    author_id = author['id'].split('/')[-1]  # Extract author ID
+                    node_name = [n for n in NODES if n in author['id']][0] if NODES else None
+                    
+                    if node_name:
+                        # Construct the endpoint for fetching author's posts
+                        posts_endpoint = f'api/authors/{author_id}/posts/'
+                        post_tasks.append((
+                            send_request_to_node(node_name, posts_endpoint),
+                            author
+                        ))
+                
                 node_authors.extend(response['authors'])
-        print("Node authors: ", node_authors)
+        
+        # Fetch posts for each author
+        post_responses = await asyncio.gather(*[task[0] for task in post_tasks])
+        
+        # Match posts with their respective authors
+        for (posts_response, author), task in zip(post_responses, post_tasks):
+            if isinstance(posts_response, Exception):
+                print(f"Error fetching posts: {posts_response}")
+                author['recent_posts'] = []
+            else:
+                recent_posts = posts_response.get('posts', [])[:3]
+                author['recent_posts'] = [
+                    {"title": post.get('title', ''), "published": post.get('published', '')} 
+                    for post in recent_posts
+                ]
+        
         return node_authors
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     external_authors = loop.run_until_complete(fetch_authors())
 
-    authors.extend(external_authors)
+    all_authors = list(local_authors) + external_authors
+
+    # Prepare authors list with additional information
+    authors = []
+    for author in all_authors:
+        is_local = isinstance(author, Author)
+        
+        # Fetch recent posts
+        if is_local:
+            recent_posts = Post.objects.filter(author=author).order_by('-published')[:3]
+            recent_posts = [
+                {"title": post.title, "published": post.published} 
+                for post in recent_posts
+            ]
+        else:
+            # For external authors, use the recently fetched posts
+            recent_posts = author.get('recent_posts', [])
+
+        # Convert profile image to base64 for local authors
+        profile_image_base64 = None
+        if is_local and author.profile_image:
+            try:
+                with open(author.profile_image.path, 'rb') as img_file:
+                    profile_image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+            except Exception as e:
+                print(f"Error converting profile image: {e}")
+
+        # Prepare author data
+        if is_local:
+            author_data = {
+                "type": "author",
+                "id": f"{author.url}",
+                "host": author.host,
+                "displayName": author.display_name,
+                "github": author.github,
+                "profileImage": author.profile_image.url if author.profile_image else '',
+                "page": author.page,
+                "id_num": author.id,
+                "profile_image_base64": profile_image_base64,
+                "recent_posts": recent_posts
+            }
+        else:
+            author_data = {
+                "type": "author",
+                "id": author['id'],
+                "host": author.get('host', ''),
+                "displayName": author.get('displayName', ''),
+                "github": author.get('github', ''),
+                "profileImage": author.get('profileImage', ''),
+                "page": author.get('page', ''),
+                "recent_posts": recent_posts
+            }
+
+        # Check if current user is following this author
+        author_data['is_following'] = Follow.objects.filter(
+            follower=f"https://{request.get_host()}/api/authors/{user.id}",
+            following=author_data['id'],
+            approved=True
+        ).exists()
+
+        # Determine if the author is linkable
+        author_data['linkable'] = author_data['id'].startswith(f"https://{request.get_host()}/api/authors/")
+
+        authors.append(author_data)
 
     # Update or create authors in bulk
     author_urls = [author['id'] for author in authors]
@@ -187,20 +305,10 @@ def authors_list(request):
                 authors.remove(author)
     Author.objects.bulk_create(authors_to_create)
 
-    # Update author data with additional info
-    for author in authors:
-        author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
-        author_from_db = Author.objects.filter(url=author['id']).first()
-        author['id_num'] = author_from_db.id if author_from_db else None
-        author['is_following'] = Follow.objects.filter(
-            follower=f"https://{request.get_host()}/api/authors/{user.id}",
-            following=author['id'],
-            approved=True
-        ).exists()
-
     context = {
         'authors': authors,
         'query': query,
+        'active_tab': filter_type,
         'total_pages': 1,  # Adjust as needed
     }
 

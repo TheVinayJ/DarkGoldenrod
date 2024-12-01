@@ -1,93 +1,94 @@
-<!-- With help from Chat-GPT 4o, OpenAI, 2024-10-20 -->
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authors List</title>
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/authors.css' %}">
+{% endblock %}
 
-    <style>
-        .author-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 400px;
-            border: 1px solid darkgoldenrod;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            padding: 20px;
-            box-shadow: 0px 0px 20px -14px darkgoldenrod;
-        }
-        ul li {
-            display: flex;
-            justify-content: center;
-        }
-        .button-container {
-            display: flex;
-        }
-        button {
-            width: 80px;
-            margin: 10px;
-        }
-        button:disabled{
-            background-color: #4f4f4f;
-        }
-    </style>
-</head>
+{% block content %}
+    <h1 class="page-title">Authors</h1>
 
-<body>
-    {% extends 'base.html' %}
-    {% block content %}
-    <h1>List of Authors</h1>
+    <!-- Tabs for Filtering -->
+    <div class="tabs">
+        <a href="?filter=all" class="tab {% if active_tab == 'all' %}active{% endif %}">All</a>
+        <!-- <a href="?filter=new" class="tab {% if active_tab == 'new' %}active{% endif %}">New</a> -->
+        <a href="?filter=following" class="tab {% if active_tab == 'following' %}active{% endif %}">Following</a>
+        <a href="?filter=friends" class="tab {% if active_tab == 'friends' %}active{% endif %}">Friends</a>
+    </div>
 
-    <!-- Search form -->
-    <form method="get" action="">
-        <input type="text" name="q" placeholder="Search authors..." value="{{ query }}">
-        <button type="submit">Search</button>
-    </form>
+    <!-- Search Bar -->
+    <div class="search-bar">
+        <form method="get" action="">
+            <input type="text" name="q" placeholder="Search authors..." value="{{ query }}">
+            <button type="submit">
+                <span class="material-symbols-outlined">search</span>
+            </button>
+        </form>
+    </div>
 
-    <ul>
-        {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li {% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-
+    <!-- Authors Grid -->
+    <div class="authors-grid">
         {% for author in authors %}
-        <li>
-            <div class="author-card">
-                <!-- Link to the author's profile page -->
-                <a href="{% url 'profile' author.id_num %}">{{ author.displayName}}</a>
+        <div class="author-tile">
 
-                Host: {{ author.host }}<br>
-                GitHub: <a href="https://github.com/{{ author.github }}">{{ author.github }}</a><br>
-
-                <div class="button-container">
-                    <!-- Follow form -->
-                    <form method="POST" action="{% url 'follow_author' author.id_num %}">
-                        {% csrf_token %}
-                            <button type="submit">
-                                Follow
-                            </button>
-                    </form>
+            <!-- Follow/Unfollow Button -->
+            <div class="follow-button">
+                {% if author.is_following %}
                     <form method="POST" action="{% url 'unfollow_author' author.id_num %}">
                         {% csrf_token %}
-                            <button type="submit">
-                                Unfollow
-                            </button>
+                        <button type="submit" class="btn small-btn">Unfollow</button>
                     </form>
-                </div>
+                {% else %}
+                    <form method="POST" action="{% url 'follow_author' author.id_num %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn small-btn">Follow</button>
+                    </form>
+                {% endif %}
             </div>
-        </li>
-        {% empty %}
-        <li>No authors found.</li>
-        <br>
-        {% endfor %}
-    </ul>
-    {% endblock %}
-</body>
 
-</html>
+            <a href="{% url 'profile' author.id_num %}" class="tile-link">
+                <!-- Profile Picture -->
+                {% if author.profile_image_base64 %}
+                    <img src="data:image/png;base64,{{ author.profile_image_base64 }}" alt="{{ author.displayName }}'s Profile Picture" class="profile-picture">
+                {% else %}
+                    <div class="profile-picture default-picture">
+                        <!-- Default SVG or Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 90 90">
+                            <g fill="none" fill-rule="evenodd">
+                                <path fill="#D6D6D6" d="M45 88c-11.049 0-21.18-2.003-29.021-8.634C6.212 71.105 0 58.764 0 45 0 20.187 20.187 0 45 0s45 20.187 45 45c0 13.765-6.212 26.105-15.979 34.366C66.181 85.998 56.049 88 45 88z"/>
+                                <path fill="#A5A4A4" d="M45 60.71c-11.479 0-20.818-9.339-20.818-20.817S33.521 19.075 45 19.075 65.817 28.414 65.817 39.893 56.479 60.71 45 60.71z"/>
+                                <path fill="#A5A4A4" d="M45 90c-10.613 0-20.922-3.773-29.028-10.625a1.5 1.5 0 01-.579-2.237C20.034 64.919 31.933 56.71 45 56.71s24.966 8.209 29.607 20.428a1.5 1.5 0 01-.579 2.237C65.922 86.227 55.613 90 45 90z"/>
+                            </g>
+                        </svg>
+                    </div>
+                {% endif %}
+
+                <!-- Username -->
+                <div class="author-info">
+                    <h2 class="author-name">{{ author.displayName }}</h2>
+                </div>
+            </a>
+
+            <!-- Hover Effect: Display Recent Posts -->
+            <div class="hover-content">
+                <h3>Recent Posts</h3>
+                <ul>
+                    {% for post in author.recent_posts %}
+                    <li>{{ post.title|truncatechars:30 }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not authors %}
+    <p>No authors found.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Include any additional scripts if necessary -->
+{% endblock %}
