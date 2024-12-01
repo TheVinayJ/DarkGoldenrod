@@ -47,7 +47,7 @@
                 {% endif %}
             </div>
 
-            <a href="{% url 'profile' author.id_num %}" class="tile-link">
+            <div>
                 <!-- Profile Picture -->
                 {% if author.profile_image_base64 %}
                     <img src="data:image/png;base64,{{ author.profile_image_base64 }}" alt="{{ author.displayName }}'s Profile Picture" class="profile-picture">
@@ -65,10 +65,10 @@
                 {% endif %}
 
                 <!-- Username -->
-                <div class="author-info">
+                <a href="{% url 'profile' author.id_num %}" class="author-info">
                     <h2 class="author-name">{{ author.displayName }}</h2>
-                </div>
-            </a>
+                </a>
+            </div>
 
             <!-- Hover Effect: Display Recent Posts -->
             <div class="hover-content">
