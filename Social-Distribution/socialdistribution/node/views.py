@@ -652,7 +652,7 @@ def add_post(request, author_id):
             if contentType == "image/jpg":
                 contentType = "image/jpeg"
                 
-            contentType += f";base64"
+            contentType += ";base64"
             
             post_data["contentType"] = contentType
 
@@ -665,6 +665,11 @@ def add_post(request, author_id):
             format, imgstr = base64_image.split(";base64,")
             ext = format.split("/")[-1]
             decoded_file = ContentFile(base64.b64decode(imgstr), name=f"{datetime.datetime.now().timestamp()}.{ext}")
+            
+            if ext == "jpg":
+                ext = "jpeg"
+                
+            post_data["contentType"] = f"image/{ext};base64"
             post_data["image_content"] = decoded_file
 
     else:
