@@ -265,6 +265,14 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_likes(self, obj):
         return PostLikesSerializer(obj).data
+    
+    def get_contentType(self, obj):
+        if obj.contentType.startswith("image"):
+            if obj.contentType == "image/jpg":
+                obj.contentType == "image/jpeg"
+            if not obj.contentType.endswith(";base64"):
+                obj.contentType = obj.contentType + ";base64"
+        return obj.contentType
 
 class SignupSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
