@@ -3,7 +3,7 @@
 /* General Styles */
 .container {
     max-width: 600px;
-    margin-top: 60px auto;
+    margin: 60px auto;
     padding: 20px;
 }
 
@@ -40,7 +40,7 @@
 /* Search Bar */
 .search-bar {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
     margin-bottom: 20px;
 }
 
