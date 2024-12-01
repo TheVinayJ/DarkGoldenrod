@@ -94,7 +94,7 @@ def api_authors_list(request):
             "id": f"{author.url}",
             "host": author.host,
             "displayName": author.display_name,
-            "github": "https://github.com/" + author.github,
+            "github": "https://github.com/" + author.github if author.github else '',
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
         } for author in authors if '@foreignnode.com' not in author.email]
