@@ -1056,18 +1056,37 @@ def local_api_like(request, id):
         # Handle remote and local likes
         if current_author.host[:-4] != node:
             # Send the like request to a remote node's inbox
-            response = post_request_to_node(node, inbox_url, data=like_request)
-            if response and response.status_code in [200, 201]:
-                like = PostLike.objects.create(
-                    object_id=like_uuid,
-                    liker=current_author,
-                    owner=liked_post,
-                    created_at=django.utils.timezone.now(),
-                )
-                like.save()
-                print(f"redirecting to /node/posts/{id}/")
-                return redirect(f'/node/posts/{id}/')
-            return JsonResponse({"error": "Failed to send like"}, status=400)
+            # response = post_request_to_node(node, inbox_url, data=like_request)
+            # if response and response.status_code in [200, 201]:
+            #     like = PostLike.objects.create(
+            #         object_id=like_uuid,
+            #         liker=current_author,
+            #         owner=liked_post,
+            #         created_at=django.utils.timezone.now(),
+            #     )
+            #     like.save()
+            #     print(f"redirecting to /node/posts/{id}/")
+            #     return redirect(f'/node/posts/{id}/')
+            try:
+                # Determine the node for the post's author
+                node = post_author.host.rstrip('/').replace('http://', 'https://')
+
+                # Attempt to send the like request
+                post_request_to_node(node, inbox_url, data=like_request)
+            except Exception as e:
+                # Log the error and continue execution
+                print(f"Error sending like to {inbox_url}: {str(e)}")
+            
+            like = PostLike.objects.create(
+                object_id=like_uuid,
+                liker=current_author,
+                owner=liked_post,
+                created_at=django.utils.timezone.now(),
+            )
+            like.save()
+            return redirect(f'/node/posts/{id}/')
+            
+            #return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
             # Save the like locally using the `Like` model
             like = PostLike.objects.create(
@@ -2721,52 +2740,52 @@ def add_external_post(request, author_id):
 def inbox(request, author_id):
     print("Inbox function ran")
     
-    # try:
-    #     # Check if the author exists
-    #     author = Author.objects.filter(id=author_id).first()
-    #     if not author:
-    #         # Log the missing author
-    #         print(f"Inbox request for non-existent author with ID {author_id}. Ignoring.")
-    #         return JsonResponse({"message": "Author does not exist. Request ignored."}, status=200)
+    try:
+        # Check if the author exists
+        author = Author.objects.filter(id=author_id).first()
+        if not author:
+            # Log the missing author
+            print(f"Inbox request for non-existent author with ID {author_id}. Ignoring.")
+            return JsonResponse({"message": "Author does not exist. Request ignored."}, status=200)
 
-    # Process the request (assuming it's a post or notification)
-    if request.method == 'POST':
-        try:
-            print("Inbox POST request received")
-            # Parse the request body
-            body = json.loads(request.body)
-            print("Request body:", body)
-            print("Body type:", body['type'])
-            if body['type'] == 'follow':
-                # Extract relevant information and call follow_author
-                follower = body['actor']
-                following = body['object']
-                print("Follow request type detected")
-                return follow_author(follower, following)
-            if body['type'] == 'like':
-                post_or_comment = body['object']
-                if '/posts/' in post_or_comment:
-                    return post_like(request, author_id)
-                else:   # Comment like
-                    return comment_like(request, author_id)
-            # Add additional handling for other types (e.g., post, like, comment) as needed
-            if body['type'] == 'post':
-                return add_external_post(request, author_id)
-            if body['type'] == 'comment' or body['type'] == 'comments':
-                return add_external_comment(request, author_id)
-        except (json.JSONDecodeError, KeyError) as e:
-            print(f"Failed to parse request body: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=400)
+        # Process the request (assuming it's a post or notification)
+        if request.method == 'POST':
+            try:
+                print("Inbox POST request received")
+                # Parse the request body
+                body = json.loads(request.body)
+                print("Request body:", body)
+                print("Body type:", body['type'])
+                if body['type'] == 'follow':
+                    # Extract relevant information and call follow_author
+                    follower = body['actor']
+                    following = body['object']
+                    print("Follow request type detected")
+                    return follow_author(follower, following)
+                if body['type'] == 'like':
+                    post_or_comment = body['object']
+                    if '/posts/' in post_or_comment:
+                        return post_like(request, author_id)
+                    else:   # Comment like
+                        return comment_like(request, author_id)
+                # Add additional handling for other types (e.g., post, like, comment) as needed
+                if body['type'] == 'post':
+                    return add_external_post(request, author_id)
+                if body['type'] == 'comment' or body['type'] == 'comments':
+                    return add_external_comment(request, author_id)
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Failed to parse request body: {str(e)}")
+                return JsonResponse({'error': str(e)}, status=400)
 
-    # Here, process the received data (e.g., add a post or notification to the inbox)
-    return JsonResponse({'message': 'Method not allowed'}, status=405)
+        # Here, process the received data (e.g., add a post or notification to the inbox)
+        return JsonResponse({'message': 'Method not allowed'}, status=405)
 
         #return JsonResponse({"message": "Request processed successfully."}, status=200)
 
-    # except Exception as e:
-    #     # Log any unexpected errors
-    #     print(f"Error processing inbox request for author {author_id}: {str(e)}")
-    #     return JsonResponse({"message": "Error processing request, but request acknowledged."}, status=200)
+    except Exception as e:
+        # Log any unexpected errors
+        print(f"Error processing inbox request for author {author_id}: {str(e)}")
+        return JsonResponse({"message": "Error processing request, but request acknowledged."}, status=200)
     
     
     
