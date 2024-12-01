@@ -676,6 +676,7 @@ def add_post(request, author_id):
         # Handle text or markdown content
         post_data["text_content"] = request.POST.get("content", "")
 
+    print("post data", post_data)
     # Create and save the post
     post = Post.objects.create(**post_data)
     post.url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
