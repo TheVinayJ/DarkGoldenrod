@@ -7,13 +7,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
     <h1 class="page-title">Authors</h1>
 
     <!-- Tabs for Filtering -->
     <div class="tabs">
         <a href="?filter=all" class="tab {% if active_tab == 'all' %}active{% endif %}">All</a>
-        <a href="?filter=new" class="tab {% if active_tab == 'new' %}active{% endif %}">New</a>
+        <!-- <a href="?filter=new" class="tab {% if active_tab == 'new' %}active{% endif %}">New</a> -->
         <a href="?filter=following" class="tab {% if active_tab == 'following' %}active{% endif %}">Following</a>
         <a href="?filter=friends" class="tab {% if active_tab == 'friends' %}active{% endif %}">Friends</a>
     </div>
@@ -32,6 +31,22 @@
     <div class="authors-grid">
         {% for author in authors %}
         <div class="author-tile">
+
+            <!-- Follow/Unfollow Button -->
+            <div class="follow-button">
+                {% if author.is_following %}
+                    <form method="POST" action="{% url 'unfollow_author' author.id_num %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn small-btn">Unfollow</button>
+                    </form>
+                {% else %}
+                    <form method="POST" action="{% url 'follow_author' author.id_num %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn small-btn">Follow</button>
+                    </form>
+                {% endif %}
+            </div>
+
             <a href="{% url 'profile' author.id_num %}" class="tile-link">
                 <!-- Profile Picture -->
                 {% if author.profile_image_base64 %}
@@ -40,7 +55,11 @@
                     <div class="profile-picture default-picture">
                         <!-- Default SVG or Icon -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 90 90">
-                            <!-- SVG content -->
+                            <g fill="none" fill-rule="evenodd">
+                                <path fill="#D6D6D6" d="M45 88c-11.049 0-21.18-2.003-29.021-8.634C6.212 71.105 0 58.764 0 45 0 20.187 20.187 0 45 0s45 20.187 45 45c0 13.765-6.212 26.105-15.979 34.366C66.181 85.998 56.049 88 45 88z"/>
+                                <path fill="#A5A4A4" d="M45 60.71c-11.479 0-20.818-9.339-20.818-20.817S33.521 19.075 45 19.075 65.817 28.414 65.817 39.893 56.479 60.71 45 60.71z"/>
+                                <path fill="#A5A4A4" d="M45 90c-10.613 0-20.922-3.773-29.028-10.625a1.5 1.5 0 01-.579-2.237C20.034 64.919 31.933 56.71 45 56.71s24.966 8.209 29.607 20.428a1.5 1.5 0 01-.579 2.237C65.922 86.227 55.613 90 45 90z"/>
+                            </g>
                         </svg>
                     </div>
                 {% endif %}
@@ -61,21 +80,6 @@
                     {% endif %}
                 </div>
             </a>
-
-            <!-- Follow/Unfollow Button -->
-            <div class="follow-button">
-                {% if author.is_following %}
-                    <form method="POST" action="{% url 'unfollow_author' author.id_num %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn small-btn">Unfollow</button>
-                    </form>
-                {% else %}
-                    <form method="POST" action="{% url 'follow_author' author.id_num %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn small-btn">Follow</button>
-                    </form>
-                {% endif %}
-            </div>
 
             <!-- Hover Effect: Display Recent Posts -->
             <div class="hover-content">

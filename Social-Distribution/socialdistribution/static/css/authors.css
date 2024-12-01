@@ -46,7 +46,8 @@
 
 .search-bar form {
     display: flex;
-    align-items: center;
+    align-items: baseline;
+    flex-direction: row;
 }
 
 .search-bar input[type="text"] {
@@ -58,12 +59,12 @@
 }
 
 .search-bar button {
-    padding: 8px 16px;
     border-radius: 50%;
     border: none;
     background-color: darkgoldenrod;
     color: #fff;
     cursor: pointer;
+    padding: 7px;
 }
 
 .search-bar button:hover {
@@ -72,6 +73,7 @@
 
 .material-symbols-outlined {
     font-size: 24px;
+    margin: 0;
 }
 
 /* Authors Grid */
@@ -86,9 +88,10 @@
     background-color: #fff;
     border: 1px solid #dbdbdb;
     border-radius: 10px;
-    overflow: hidden;
+    overflow: hidden; /* Ensure content stays within the tile */
     position: relative;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    min-height: 150px; /* Adjust as needed */
 }
 
 .author-tile:hover {
@@ -173,22 +176,15 @@
 
 /* Hover Content */
 .hover-content {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(255,255,255,0.9);
-    padding: 10px;
-    opacity: 0;
-    transform: translateY(100%);
-    transition: all 0.3s ease;
-    max-height: 200px;
-    overflow-y: auto;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    padding: 0 15px; /* Match the padding of the tile-link for alignment */
 }
 
 .author-tile:hover .hover-content {
-    opacity: 1;
-    transform: translateY(0);
+    max-height: 150px; /* Adjust as needed */
+    padding: 10px 15px; /* Add padding when expanded */
 }
 
 .hover-content h3 {
@@ -210,6 +206,7 @@
     white-space: nowrap;
     overflow: hidden;
 }
+
 
 /* Responsive Design */
 @media (max-width: 768px) {
