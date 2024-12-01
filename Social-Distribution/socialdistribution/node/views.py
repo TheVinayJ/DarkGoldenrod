@@ -373,7 +373,7 @@ def edit_post(request, post_id):
             image = request.FILES.get('image-content')
             if image:
                 file_suffix = os.path.splitext(image.name)[1][1:]
-                post.contentType = f'image/{file_suffix.lower()}'
+                post.contentType = f"image/{file_suffix.lower()};base64"
                 post.image_content = image
                 post.text_content = None
             elif not post.image_content:
