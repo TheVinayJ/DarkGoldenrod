@@ -738,6 +738,9 @@ def author_posts(request, author_id):
                 post.save()
         else:   # Post creation for API spec
             if 'image' in contentType:
+                if contentType == 'image/jpg':
+                    contentType = 'image/jpeg'
+                contentType += ';base64'
                 post = Post(title=request.POST["title"],
                             description=request.POST["description"],
                             image_content=request.POST["image"],
