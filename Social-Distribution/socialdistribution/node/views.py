@@ -648,6 +648,12 @@ def add_post(request, author_id):
         if image:
             file_suffix = os.path.splitext(image.name)[1]
             contentType += f"/{file_suffix[1:]}"  # Add file extension to contentType
+            
+            if contentType == "image/jpg":
+                contentType = "image/jpeg"
+                
+            contentType += f";base64"
+            
             post_data["contentType"] = contentType
 
             # Save image as a file and encode to Base64
