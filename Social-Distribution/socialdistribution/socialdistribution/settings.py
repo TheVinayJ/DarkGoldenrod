@@ -34,6 +34,7 @@ AUTH_USER_MODEL = 'node.Author'
 
 SECURE_SSL_REDIRECT = True
 
+
 # Application definition
 
 INSTALLED_APPS = [
