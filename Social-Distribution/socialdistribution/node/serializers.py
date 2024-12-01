@@ -36,24 +36,6 @@ class AuthorSerializer(serializers.ModelSerializer):
         if obj.github:
             return obj.github
         return ""
-
-
-# class PostLikeSerializer(serializers.ModelSerializer):
-#     type = serializers.CharField(default='like')
-#     author = AuthorSerializer()
-#     object = serializers.SerializerMethodField()
-#     published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
-#     id = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = PostLike  
-#         fields = ['type', 'author', 'object', 'published', 'id']
-    
-#     def get_id(self, obj):
-#         return f"{obj.host}authors/{obj.author.id}/liked/{obj.id}"
-    
-#     def get_object(self, obj):
-#         return f"{obj.host}authors/{obj.owner.author.id}/posts/{obj.owner.id}"
     
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
@@ -255,16 +237,6 @@ class PostSerializer(serializers.ModelSerializer):
             'comments',
             'likes',
         ]
-
-    # def get_id(self, obj):
-    #     return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
-
-    # def get_author(self, obj):
-    #     if isinstance(obj.author, Author):
-    #         return AuthorSerializer(obj.author).data
-    #     else:
-    #         author = Author.objects.filter(url=obj.author.id).first()
-    #         return AuthorSerializer(author).data
         
     def get_id(self, obj):
         # Use the post's URL if it's from a remote node; otherwise, generate it dynamically
@@ -277,46 +249,13 @@ class PostSerializer(serializers.ModelSerializer):
         if obj.url:
             return obj.url
         return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
-
-    # def get_content(self, obj):
-    #     if obj.contentType.startswith('text'):
-    #         return obj.text_content
-    #     elif obj.contentType.startswith('image') and obj.image_content:
-    #         # try:
-    #         #     with obj.image_content.open('rb') as image_file:
-    #         #         return base64.b64encode(image_file.read()).decode('utf-8')
-    #         # except FileNotFoundError:
-    #         #     # Return a placeholder image base64
-    #         #     with open('path/to/placeholder/image.png', 'rb') as placeholder:
-    #         #         return base64.b64encode(placeholder.read()).decode('utf-8')
-    #         return "Image not yet supported on darkgoldenrod"
-    #     return None
-    # def get_content(self, obj):
-    #     if obj.contentType.startswith("image"):
-    #         if obj.image_content:
-    #             with obj.image_content.open("rb") as image_file:
-    #                 return base64.b64encode(image_file.read()).decode("utf-8")
-    #     return obj.text_content
     
     def get_content(self, obj):
-        """
-        Return the content based on the contentType.
-        - For text content: return the `text_content`.
-        - For image content: return base64 encoded image.
-        """
-        if obj.contentType.startswith('text'):
-            return obj.text_content
-        elif obj.contentType.startswith('image'):
-            # Handle image stored as base64
-            if isinstance(obj.image_content, str) and obj.image_content.startswith("data:image"):
-                return obj.image_content
-            # Handle image stored as a file
-            elif obj.image_content:
-                try:
-                    return obj.image_content.url  # Return URL of the image
-                except ValueError:
-                    return "No image content found."
-        return "No image content found"
+        if obj.contentType.startswith("image"):
+            if obj.image_content:
+                with obj.image_content.open("rb") as image_file:
+                    return base64.b64encode(image_file.read()).decode("utf-8")
+        return obj.text_content
 
     def get_type(self, obj):
         return "post"
@@ -326,6 +265,14 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_likes(self, obj):
         return PostLikesSerializer(obj).data
+    
+    def get_contentType(self, obj):
+        if obj.contentType.startswith("image"):
+            if obj.contentType == "image/jpg":
+                obj.contentType == "image/jpeg"
+            if not obj.contentType.endswith(";base64"):
+                obj.contentType = obj.contentType + ";base64"
+        return obj.contentType
 
 class SignupSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
