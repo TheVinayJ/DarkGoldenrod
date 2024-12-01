@@ -80,6 +80,7 @@
 .authors-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-auto-rows: 80px;
     grid-gap: 20px;
 }
 
@@ -91,7 +92,7 @@
     overflow: hidden; /* Ensure content stays within the tile */
     position: relative;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    min-height: 150px; /* Adjust as needed */
+    min-height: 80px; /* Adjust as needed */
 }
 
 .author-tile:hover {
