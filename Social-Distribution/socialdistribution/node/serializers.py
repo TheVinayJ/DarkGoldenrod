@@ -36,7 +36,7 @@ class AuthorSerializer(serializers.ModelSerializer):
         if obj.github:
             return obj.github
         return ""
-    
+
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
     author = AuthorSerializer()
@@ -216,6 +216,7 @@ class PostSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
     id = serializers.SerializerMethodField()
     #author = serializers.SerializerMethodField()
+    page = serializers.SerializerMethodField()
     author = AuthorSerializer()
     comments = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
@@ -233,6 +234,7 @@ class PostSerializer(serializers.ModelSerializer):
             'visibility',
             'author',
             'url',
+            'page',
             'published',
             'comments',
             'likes',
@@ -246,6 +248,11 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_url(self, obj):
         # If the URL exists in the model, use it; otherwise, generate it dynamically
+        if obj.url:
+            return obj.url
+        return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
+
+    def get_page(self, obj):
         if obj.url:
             return obj.url
         return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
