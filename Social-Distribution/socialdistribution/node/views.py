@@ -108,11 +108,218 @@ def api_authors_list(request):
 
     return JsonResponse(response_data, status=200)
 
+# @api_view(['GET'])
+# def authors_list(request):
+#     print("Host: ", request.get_host())
+    
+#     filter_type = request.GET.get('filter', 'all')
+#     query = request.GET.get('q', None)
+#     page = request.GET.get('page', None)
+#     size = request.GET.get('size', None)
+#     user = get_author(request)
+
+#     # Get local authors directly
+#     local_authors = Author.objects.all()
+
+#     # Apply filtering based on the active tab
+#     if filter_type == 'new':
+#         thirty_days_ago = timezone.now() - timedelta(days=30)
+#         local_authors = local_authors.filter(created_at__gte=thirty_days_ago)
+#     elif filter_type == 'following':
+#         following_urls = Follow.objects.filter(
+#             follower=f"https://{request.get_host()}/api/authors/{user.id}",
+#             approved=True
+#         ).values_list('following', flat=True)
+#         local_authors = local_authors.filter(url__in=following_urls)
+#     elif filter_type == 'friends':
+#         user_url = f"https://{request.get_host()}/api/authors/{user.id}"
+#         friends_urls = Follow.objects.filter(
+#             following=user_url,
+#             follower__in=Follow.objects.filter(
+#                 following=user_url,
+#                 approved=True
+#             ).values_list('follower', flat=True)
+#         ).values_list('follower', flat=True)
+#         local_authors = local_authors.filter(url__in=friends_urls)
+
+#     if query:
+#         local_authors = local_authors.filter(display_name__icontains=query)
+
+#     if page and size:
+#         paginator = Paginator(local_authors, size)
+#         local_authors = paginator.get_page(page)
+#     else:
+#         local_authors = local_authors[:50]  # Limit to 50 authors
+
+#     # authors = [{
+#     #     "type": "author",
+#     #     "id": f"{author.url}",
+#     #     "host": author.host,
+#     #     "displayName": author.display_name,
+#     #     "github": author.github,
+#     #     "profileImage": author.profile_image.url if author.profile_image else '',
+#     #     "page": author.page
+#     # } for author in local_authors]
+    
+#     NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
+
+#     # Fetch authors from external nodes asynchronously
+#     async def fetch_authors():
+#         tasks = []
+#         for node_name in NODES:
+#             if page and size:
+#                 endpoint = f'api/authors?page={page}&size={size}'
+#             else:
+#                 endpoint = 'api/authors/'
+#             tasks.append(send_request_to_node(node_name, endpoint))
+#         responses = await asyncio.gather(*tasks, return_exceptions=True)
+        
+#         post_tasks = []
+#         node_authors = []
+
+#         for response in responses:
+#             if isinstance(response, Exception):
+#                 print(f"Error fetching from node: {response}")
+#                 continue
+            
+#             if response and 'authors' in response:
+#                 for author in response['authors']:
+#                     # Fetch posts for this author
+#                     author_id = author['id'].split('/')[-1]  # Extract author ID
+#                     node_name = [n for n in NODES if n in author['id']][0] if NODES else None
+                    
+#                     if node_name:
+#                         # Construct the endpoint for fetching author's posts
+#                         posts_endpoint = f'api/authors/{author_id}/posts/'
+#                         post_tasks.append((
+#                             send_request_to_node(node_name, posts_endpoint),
+#                             author
+#                         ))
+                
+#                 node_authors.extend(response['authors'])
+        
+#         # Fetch posts for each author
+#         post_responses = await asyncio.gather(*[task[0] for task in post_tasks])
+        
+#         # Match posts with their respective authors
+#         for (posts_response, author), task in zip(post_responses, post_tasks):
+#             if isinstance(posts_response, Exception):
+#                 print(f"Error fetching posts: {posts_response}")
+#                 author['recent_posts'] = []
+#             else:
+#                 recent_posts = posts_response.get('posts', [])[:3]
+#                 author['recent_posts'] = [
+#                     {"title": post.get('title', ''), "published": post.get('published', '')} 
+#                     for post in recent_posts
+#                 ]
+        
+#         return node_authors
+
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+#     external_authors = loop.run_until_complete(fetch_authors())
+
+#     all_authors = list(local_authors) + external_authors
+
+#     # Prepare authors list with additional information
+#     authors = []
+#     for author in all_authors:
+#         is_local = isinstance(author, Author)
+        
+#         # Fetch recent posts
+#         if is_local:
+#             recent_posts = Post.objects.filter(author=author).order_by('-published')[:3]
+#             recent_posts = [
+#                 {"title": post.title, "published": post.published} 
+#                 for post in recent_posts
+#             ]
+#         else:
+#             # For external authors, use the recently fetched posts
+#             recent_posts = author.get('recent_posts', [])
+
+#         # Convert profile image to base64 for local authors
+#         profile_image_base64 = None
+#         if is_local and author.profile_image:
+#             try:
+#                 with open(author.profile_image.path, 'rb') as img_file:
+#                     profile_image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+#             except Exception as e:
+#                 print(f"Error converting profile image: {e}")
+
+#         # Prepare author data
+#         if is_local:
+#             author_data = {
+#                 "type": "author",
+#                 "id": f"{author.url}",
+#                 "host": author.host,
+#                 "displayName": author.display_name,
+#                 "github": author.github,
+#                 "profileImage": author.profile_image.url if author.profile_image else '',
+#                 "page": author.page,
+#                 "id_num": author.id,
+#                 "profile_image_base64": profile_image_base64,
+#                 "recent_posts": recent_posts
+#             }
+#         else:
+#             author_data = {
+#                 "type": "author",
+#                 "id": author['id'],
+#                 "host": author.get('host', ''),
+#                 "displayName": author.get('displayName', ''),
+#                 "github": author.get('github', ''),
+#                 "profileImage": author.get('profileImage', ''),
+#                 "page": author.get('page', ''),
+#                 "recent_posts": recent_posts
+#             }
+
+#         # Check if current user is following this author
+#         author_data['is_following'] = Follow.objects.filter(
+#             follower=f"https://{request.get_host()}/api/authors/{user.id}",
+#             following=author_data['id'],
+#             approved=True
+#         ).exists()
+
+#         # Determine if the author is linkable
+#         author_data['linkable'] = author_data['id'].startswith(f"https://{request.get_host()}/api/authors/")
+
+#         authors.append(author_data)
+
+#     # Update or create authors in bulk
+#     author_urls = [author['id'] for author in authors]
+#     existing_authors = set(Author.objects.filter(url__in=author_urls).values_list('url', flat=True))
+#     authors_to_create = []
+#     for author in authors:
+#         if author['id'] not in existing_authors:
+#             print(author)
+#             try:
+#                 authors_to_create.append(Author(
+#                     url=author['id'],
+#                     host=author['host'],
+#                     display_name=author['displayName'],
+#                     github=author['github'],
+#                     page=author['page'],
+#                     profile_image=author['profileImage'],
+#                     email=f"{author['id']}@foreignnode.com",
+#                 ))
+#             except Exception as e:
+#                 print("Author has issue with: ", e)
+#                 authors.remove(author)
+#     Author.objects.bulk_create(authors_to_create)
+
+#     context = {
+#         'authors': authors,
+#         'query': query,
+#         'active_tab': filter_type,
+#         'total_pages': 1,  # Adjust as needed
+#     }
+
+#     return render(request, 'authors.html', context)
+
+
 @api_view(['GET'])
 def authors_list(request):
     print("Host: ", request.get_host())
     
-    filter_type = request.GET.get('filter', 'all')
     query = request.GET.get('q', None)
     page = request.GET.get('page', None)
     size = request.GET.get('size', None)
@@ -120,28 +327,6 @@ def authors_list(request):
 
     # Get local authors directly
     local_authors = Author.objects.all()
-
-    # Apply filtering based on the active tab
-    if filter_type == 'new':
-        thirty_days_ago = timezone.now() - timedelta(days=30)
-        local_authors = local_authors.filter(created_at__gte=thirty_days_ago)
-    elif filter_type == 'following':
-        following_urls = Follow.objects.filter(
-            follower=f"https://{request.get_host()}/api/authors/{user.id}",
-            approved=True
-        ).values_list('following', flat=True)
-        local_authors = local_authors.filter(url__in=following_urls)
-    elif filter_type == 'friends':
-        user_url = f"https://{request.get_host()}/api/authors/{user.id}"
-        friends_urls = Follow.objects.filter(
-            following=user_url,
-            follower__in=Follow.objects.filter(
-                following=user_url,
-                approved=True
-            ).values_list('follower', flat=True)
-        ).values_list('follower', flat=True)
-        local_authors = local_authors.filter(url__in=friends_urls)
-
     if query:
         local_authors = local_authors.filter(display_name__icontains=query)
 
@@ -151,15 +336,15 @@ def authors_list(request):
     else:
         local_authors = local_authors[:50]  # Limit to 50 authors
 
-    # authors = [{
-    #     "type": "author",
-    #     "id": f"{author.url}",
-    #     "host": author.host,
-    #     "displayName": author.display_name,
-    #     "github": author.github,
-    #     "profileImage": author.profile_image.url if author.profile_image else '',
-    #     "page": author.page
-    # } for author in local_authors]
+    authors = [{
+        "type": "author",
+        "id": f"{author.url}",
+        "host": author.host,
+        "displayName": author.display_name,
+        "github": author.github,
+        "profileImage": author.profile_image.url if author.profile_image else '',
+        "page": author.page
+    } for author in local_authors]
     
     NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
 
@@ -173,116 +358,22 @@ def authors_list(request):
                 endpoint = 'api/authors/'
             tasks.append(send_request_to_node(node_name, endpoint))
         responses = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        post_tasks = []
         node_authors = []
-
         for response in responses:
             if isinstance(response, Exception):
+                # Handle exceptions
                 print(f"Error fetching from node: {response}")
                 continue
-            
             if response and 'authors' in response:
-                for author in response['authors']:
-                    # Fetch posts for this author
-                    author_id = author['id'].split('/')[-1]  # Extract author ID
-                    node_name = [n for n in NODES if n in author['id']][0] if NODES else None
-                    
-                    if node_name:
-                        # Construct the endpoint for fetching author's posts
-                        posts_endpoint = f'api/authors/{author_id}/posts/'
-                        post_tasks.append((
-                            send_request_to_node(node_name, posts_endpoint),
-                            author
-                        ))
-                
                 node_authors.extend(response['authors'])
-        
-        # Fetch posts for each author
-        post_responses = await asyncio.gather(*[task[0] for task in post_tasks])
-        
-        # Match posts with their respective authors
-        for (posts_response, author), task in zip(post_responses, post_tasks):
-            if isinstance(posts_response, Exception):
-                print(f"Error fetching posts: {posts_response}")
-                author['recent_posts'] = []
-            else:
-                recent_posts = posts_response.get('posts', [])[:3]
-                author['recent_posts'] = [
-                    {"title": post.get('title', ''), "published": post.get('published', '')} 
-                    for post in recent_posts
-                ]
-        
+        print("Node authors: ", node_authors)
         return node_authors
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     external_authors = loop.run_until_complete(fetch_authors())
 
-    all_authors = list(local_authors) + external_authors
-
-    # Prepare authors list with additional information
-    authors = []
-    for author in all_authors:
-        is_local = isinstance(author, Author)
-        
-        # Fetch recent posts
-        if is_local:
-            recent_posts = Post.objects.filter(author=author).order_by('-published')[:3]
-            recent_posts = [
-                {"title": post.title, "published": post.published} 
-                for post in recent_posts
-            ]
-        else:
-            # For external authors, use the recently fetched posts
-            recent_posts = author.get('recent_posts', [])
-
-        # Convert profile image to base64 for local authors
-        profile_image_base64 = None
-        if is_local and author.profile_image:
-            try:
-                with open(author.profile_image.path, 'rb') as img_file:
-                    profile_image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
-            except Exception as e:
-                print(f"Error converting profile image: {e}")
-
-        # Prepare author data
-        if is_local:
-            author_data = {
-                "type": "author",
-                "id": f"{author.url}",
-                "host": author.host,
-                "displayName": author.display_name,
-                "github": author.github,
-                "profileImage": author.profile_image.url if author.profile_image else '',
-                "page": author.page,
-                "id_num": author.id,
-                "profile_image_base64": profile_image_base64,
-                "recent_posts": recent_posts
-            }
-        else:
-            author_data = {
-                "type": "author",
-                "id": author['id'],
-                "host": author.get('host', ''),
-                "displayName": author.get('displayName', ''),
-                "github": author.get('github', ''),
-                "profileImage": author.get('profileImage', ''),
-                "page": author.get('page', ''),
-                "recent_posts": recent_posts
-            }
-
-        # Check if current user is following this author
-        author_data['is_following'] = Follow.objects.filter(
-            follower=f"https://{request.get_host()}/api/authors/{user.id}",
-            following=author_data['id'],
-            approved=True
-        ).exists()
-
-        # Determine if the author is linkable
-        author_data['linkable'] = author_data['id'].startswith(f"https://{request.get_host()}/api/authors/")
-
-        authors.append(author_data)
+    authors.extend(external_authors)
 
     # Update or create authors in bulk
     author_urls = [author['id'] for author in authors]
@@ -306,15 +397,24 @@ def authors_list(request):
                 authors.remove(author)
     Author.objects.bulk_create(authors_to_create)
 
+    # Update author data with additional info
+    for author in authors:
+        author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
+        author_from_db = Author.objects.filter(url=author['id']).first()
+        author['id_num'] = author_from_db.id if author_from_db else None
+        author['is_following'] = Follow.objects.filter(
+            follower=f"https://{request.get_host()}/api/authors/{user.id}",
+            following=author['id'],
+            approved=True
+        ).exists()
+
     context = {
         'authors': authors,
         'query': query,
-        'active_tab': filter_type,
         'total_pages': 1,  # Adjust as needed
     }
 
     return render(request, 'authors.html', context)
-
 
 
 def editor(request):
@@ -1054,45 +1154,20 @@ def local_api_like(request, id):
         print(f"Like request: {like_request}")
         print(f"Current author host: {current_author.host}")
 
-        # # Handle remote and local likes
-        # if current_author.host[:-4] != node:
-        #     # Send the like request to a remote node's inbox
-        #     response = post_request_to_node(node, inbox_url, data=like_request)
-        #     if response and response.status_code in [200, 201]:
-        #         like = PostLike.objects.create(
-        #             object_id=like_uuid,
-        #             liker=current_author,
-        #             owner=liked_post,
-        #             created_at=django.utils.timezone.now(),
-        #         )
-        #         like.save()
-        #         print(f"redirecting to /node/posts/{id}/")
-        #         return redirect(f'/node/posts/{id}/')
-        # else:
-        #     # Save the like locally using the `Like` model
-        #     like = PostLike.objects.create(
-        #         object_id=like_uuid,
-        #         liker=current_author,
-        #         owner=liked_post,
-        #         created_at=django.utils.timezone.now(),
-        #     )
-        #     like.save()
-
-        # # Redirect to the post after liking
-        # return redirect(f'/node/posts/{id}/')
         # Handle remote and local likes
         if current_author.host[:-4] != node:
-            # Call the asynchronous function using async_to_sync
-            async_to_sync(post_request_to_node_async)(node, inbox_url, method='POST', data=like_request)
-
-            # Save the like locally
-            like = PostLike.objects.create(
-                object_id=like_uuid,
-                liker=current_author,
-                owner=liked_post,
-                created_at=django.utils.timezone.now(),
-            )
-            like.save()
+            # Send the like request to a remote node's inbox
+            response = post_request_to_node(node, inbox_url, data=like_request)
+            if response and response.status_code in [200, 201]:
+                like = PostLike.objects.create(
+                    object_id=like_uuid,
+                    liker=current_author,
+                    owner=liked_post,
+                    created_at=django.utils.timezone.now(),
+                )
+                like.save()
+                print(f"redirecting to /node/posts/{id}/")
+                return redirect(f'/node/posts/{id}/')
         else:
             # Save the like locally using the `Like` model
             like = PostLike.objects.create(
@@ -1102,6 +1177,31 @@ def local_api_like(request, id):
                 created_at=django.utils.timezone.now(),
             )
             like.save()
+
+        # Redirect to the post after liking
+        return redirect(f'/node/posts/{id}/')
+        # Handle remote and local likes
+        # if current_author.host[:-4] != node:
+        #     # Call the asynchronous function using async_to_sync
+        #     async_to_sync(post_request_to_node_async)(node, inbox_url, method='POST', data=like_request)
+
+        #     # Save the like locally
+        #     like = PostLike.objects.create(
+        #         object_id=like_uuid,
+        #         liker=current_author,
+        #         owner=liked_post,
+        #         created_at=django.utils.timezone.now(),
+        #     )
+        #     like.save()
+        # else:
+        #     # Save the like locally using the `Like` model
+        #     like = PostLike.objects.create(
+        #         object_id=like_uuid,
+        #         liker=current_author,
+        #         owner=liked_post,
+        #         created_at=django.utils.timezone.now(),
+        #     )
+        #     like.save()
 
     except Exception as e:
         # Handle exceptions and log errors
@@ -2744,52 +2844,52 @@ def add_external_post(request, author_id):
 def inbox(request, author_id):
     print("Inbox function ran")
     
-    try:
-        # Check if the author exists
-        author = Author.objects.filter(id=author_id).first()
-        if not author:
-            # Log the missing author
-            print(f"Inbox request for non-existent author with ID {author_id}. Ignoring.")
-            return JsonResponse({"message": "Author does not exist. Request ignored."}, status=200)
+    # try:
+    #     # Check if the author exists
+    #     author = Author.objects.filter(id=author_id).first()
+    #     if not author:
+    #         # Log the missing author
+    #         print(f"Inbox request for non-existent author with ID {author_id}. Ignoring.")
+    #         return JsonResponse({"message": "Author does not exist. Request ignored."}, status=200)
 
-        # Process the request (assuming it's a post or notification)
-        if request.method == 'POST':
-            try:
-                print("Inbox POST request received")
-                # Parse the request body
-                body = json.loads(request.body)
-                print("Request body:", body)
-                print("Body type:", body['type'])
-                if body['type'] == 'follow':
-                    # Extract relevant information and call follow_author
-                    follower = body['actor']
-                    following = body['object']
-                    print("Follow request type detected")
-                    return follow_author(follower, following)
-                if body['type'] == 'like':
-                    post_or_comment = body['object']
-                    if '/posts/' in post_or_comment:
-                        return post_like(request, author_id)
-                    else:   # Comment like
-                        return comment_like(request, author_id)
-                # Add additional handling for other types (e.g., post, like, comment) as needed
-                if body['type'] == 'post':
-                    return add_external_post(request, author_id)
-                if body['type'] == 'comment' or body['type'] == 'comments':
-                    return add_external_comment(request, author_id)
-            except (json.JSONDecodeError, KeyError) as e:
-                print(f"Failed to parse request body: {str(e)}")
-                return JsonResponse({'error': str(e)}, status=400)
+    # Process the request (assuming it's a post or notification)
+    if request.method == 'POST':
+        try:
+            print("Inbox POST request received")
+            # Parse the request body
+            body = json.loads(request.body)
+            print("Request body:", body)
+            print("Body type:", body['type'])
+            if body['type'] == 'follow':
+                # Extract relevant information and call follow_author
+                follower = body['actor']
+                following = body['object']
+                print("Follow request type detected")
+                return follow_author(follower, following)
+            if body['type'] == 'like':
+                post_or_comment = body['object']
+                if '/posts/' in post_or_comment:
+                    return post_like(request, author_id)
+                else:   # Comment like
+                    return comment_like(request, author_id)
+            # Add additional handling for other types (e.g., post, like, comment) as needed
+            if body['type'] == 'post':
+                return add_external_post(request, author_id)
+            if body['type'] == 'comment' or body['type'] == 'comments':
+                return add_external_comment(request, author_id)
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Failed to parse request body: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=400)
 
-        # Here, process the received data (e.g., add a post or notification to the inbox)
-        return JsonResponse({'message': 'Method not allowed'}, status=405)
+    # Here, process the received data (e.g., add a post or notification to the inbox)
+    return JsonResponse({'message': 'Method not allowed'}, status=405)
 
         #return JsonResponse({"message": "Request processed successfully."}, status=200)
 
-    except Exception as e:
-        # Log any unexpected errors
-        print(f"Error processing inbox request for author {author_id}: {str(e)}")
-        return JsonResponse({"message": "Error processing request, but request acknowledged."}, status=200)
+    # except Exception as e:
+    #     # Log any unexpected errors
+    #     print(f"Error processing inbox request for author {author_id}: {str(e)}")
+    #     return JsonResponse({"message": "Error processing request, but request acknowledged."}, status=200)
     
     
     
