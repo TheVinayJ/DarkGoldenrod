@@ -233,7 +233,7 @@ class PostSerializer(serializers.ModelSerializer):
             'visibility',
             'author',
             'url',
-            'page'
+            'page',
             'published',
             'comments',
             'likes',
