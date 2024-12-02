@@ -51,7 +51,7 @@
                         </form>
                     {% elif page_type == 'followers' %}
                         <!-- Remove follower button -->
-                        <form method="POST" action="{% url 'remove_follower' user.id %}">
+                        <form method="POST" action="{% url 'remove_follower' current_author.id user.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn small-btn">Remove</button>
                         </form>

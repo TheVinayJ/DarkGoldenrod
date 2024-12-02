@@ -3050,8 +3050,8 @@ def decline_follow(request, author_id, follower_id):
         messages.success(request, f"You have declined {follower.display_name}'s follow request.")
     return redirect('follow_requests', author_id=current_author.id)
 
-def remove_follower(request, follower_id):
-    current_author = get_author(request)
+def remove_follower(request, author_id, follower_id):
+    current_author = get_author_by_id(author_id)
     if request.method == 'POST':
         follower = Author.objects.get(id=follower_id)
         Follow.objects.filter(
