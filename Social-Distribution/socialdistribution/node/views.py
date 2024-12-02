@@ -15,11 +15,12 @@ import asyncio
 from asgiref.sync import sync_to_async
 from django.db import connections
 from urllib.parse import urlparse
-from .utils import get_author_by_id, get_post_by_id, get_comment_by_id, get_repost_by_id, get_post_like_by_id, get_comment_like_by_id, get_post_by_id_and_author, get_like_instance
+from .utils import get_author_by_id, get_post_by_id, get_comment_by_id, get_repost_by_id, get_post_like_by_id, get_comment_like_by_id, get_post_by_id_and_author, get_like_instance, post_request_to_node_async
 from django.views.generic import ListView
 from rest_framework.views import APIView
 from django.utils.timezone import make_aware
 from django.core.files.base import ContentFile
+from asgiref.sync import async_to_sync
 
 # from node.serializers import serializer
 
@@ -1053,20 +1054,45 @@ def local_api_like(request, id):
         print(f"Like request: {like_request}")
         print(f"Current author host: {current_author.host}")
 
+        # # Handle remote and local likes
+        # if current_author.host[:-4] != node:
+        #     # Send the like request to a remote node's inbox
+        #     response = post_request_to_node(node, inbox_url, data=like_request)
+        #     if response and response.status_code in [200, 201]:
+        #         like = PostLike.objects.create(
+        #             object_id=like_uuid,
+        #             liker=current_author,
+        #             owner=liked_post,
+        #             created_at=django.utils.timezone.now(),
+        #         )
+        #         like.save()
+        #         print(f"redirecting to /node/posts/{id}/")
+        #         return redirect(f'/node/posts/{id}/')
+        # else:
+        #     # Save the like locally using the `Like` model
+        #     like = PostLike.objects.create(
+        #         object_id=like_uuid,
+        #         liker=current_author,
+        #         owner=liked_post,
+        #         created_at=django.utils.timezone.now(),
+        #     )
+        #     like.save()
+
+        # # Redirect to the post after liking
+        # return redirect(f'/node/posts/{id}/')
         # Handle remote and local likes
         if current_author.host[:-4] != node:
-            # Send the like request to a remote node's inbox
-            response = post_request_to_node(node, inbox_url, data=like_request)
-            if response and response.status_code in [200, 201]:
-                like = PostLike.objects.create(
-                    object_id=like_uuid,
-                    liker=current_author,
-                    owner=liked_post,
-                    created_at=django.utils.timezone.now(),
-                )
-                like.save()
-                return redirect(f'/node/posts/{id}/')
-            return JsonResponse({"error": "Failed to send like"}, status=400)
+            # Call the asynchronous function using async_to_sync
+            async_to_sync(post_request_to_node_async)(node, inbox_url, method='POST', data=like_request)
+
+            # Save the like locally
+            like = PostLike.objects.create(
+                object_id=like_uuid,
+                liker=current_author,
+                owner=liked_post,
+                created_at=django.utils.timezone.now(),
+            )
+            like.save()
         else:
             # Save the like locally using the `Like` model
             like = PostLike.objects.create(
@@ -1077,8 +1103,6 @@ def local_api_like(request, id):
             )
             like.save()
 
-        # Redirect to the post after liking
-        return redirect(f'/node/posts/{id}/')
     except Exception as e:
         # Handle exceptions and log errors
         print(f"Failed to send post like request: {str(e)}")
@@ -2719,35 +2743,88 @@ def add_external_post(request, author_id):
 @permission_classes([IsAuthenticated])
 def inbox(request, author_id):
     print("Inbox function ran")
-    if request.method == 'POST':
-        try:
-            print("Inbox POST request received")
-            # Parse the request body
-            body = json.loads(request.body)
-            print("Request body:", body)
-            print("Body type:", body['type'])
-            if body['type'] == 'follow':
-                # Extract relevant information and call follow_author
-                follower = body['actor']
-                following = body['object']
-                print("Follow request type detected")
-                return follow_author(follower, following)
-            if body['type'] == 'like':
-                post_or_comment = body['object']
-                if '/posts/' in post_or_comment:
-                    return post_like(request, author_id)
-                else:   # Comment like
-                    return comment_like(request, author_id)
-            # Add additional handling for other types (e.g., post, like, comment) as needed
-            if body['type'] == 'post':
-                return add_external_post(request, author_id)
-            if body['type'] == 'comment' or body['type'] == 'comments':
-                return add_external_comment(request, author_id)
-        except (json.JSONDecodeError, KeyError) as e:
-            print(f"Failed to parse request body: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=400)
     
-    return JsonResponse({'message': 'Method not allowed'}, status=405)
+    try:
+        # Check if the author exists
+        author = Author.objects.filter(id=author_id).first()
+        if not author:
+            # Log the missing author
+            print(f"Inbox request for non-existent author with ID {author_id}. Ignoring.")
+            return JsonResponse({"message": "Author does not exist. Request ignored."}, status=200)
+
+        # Process the request (assuming it's a post or notification)
+        if request.method == 'POST':
+            try:
+                print("Inbox POST request received")
+                # Parse the request body
+                body = json.loads(request.body)
+                print("Request body:", body)
+                print("Body type:", body['type'])
+                if body['type'] == 'follow':
+                    # Extract relevant information and call follow_author
+                    follower = body['actor']
+                    following = body['object']
+                    print("Follow request type detected")
+                    return follow_author(follower, following)
+                if body['type'] == 'like':
+                    post_or_comment = body['object']
+                    if '/posts/' in post_or_comment:
+                        return post_like(request, author_id)
+                    else:   # Comment like
+                        return comment_like(request, author_id)
+                # Add additional handling for other types (e.g., post, like, comment) as needed
+                if body['type'] == 'post':
+                    return add_external_post(request, author_id)
+                if body['type'] == 'comment' or body['type'] == 'comments':
+                    return add_external_comment(request, author_id)
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Failed to parse request body: {str(e)}")
+                return JsonResponse({'error': str(e)}, status=400)
+
+        # Here, process the received data (e.g., add a post or notification to the inbox)
+        return JsonResponse({'message': 'Method not allowed'}, status=405)
+
+        #return JsonResponse({"message": "Request processed successfully."}, status=200)
+
+    except Exception as e:
+        # Log any unexpected errors
+        print(f"Error processing inbox request for author {author_id}: {str(e)}")
+        return JsonResponse({"message": "Error processing request, but request acknowledged."}, status=200)
+    
+    
+    
+    
+    
+    
+    # if request.method == 'POST':
+    #     try:
+    #         print("Inbox POST request received")
+    #         # Parse the request body
+    #         body = json.loads(request.body)
+    #         print("Request body:", body)
+    #         print("Body type:", body['type'])
+    #         if body['type'] == 'follow':
+    #             # Extract relevant information and call follow_author
+    #             follower = body['actor']
+    #             following = body['object']
+    #             print("Follow request type detected")
+    #             return follow_author(follower, following)
+    #         if body['type'] == 'like':
+    #             post_or_comment = body['object']
+    #             if '/posts/' in post_or_comment:
+    #                 return post_like(request, author_id)
+    #             else:   # Comment like
+    #                 return comment_like(request, author_id)
+    #         # Add additional handling for other types (e.g., post, like, comment) as needed
+    #         if body['type'] == 'post':
+    #             return add_external_post(request, author_id)
+    #         if body['type'] == 'comment' or body['type'] == 'comments':
+    #             return add_external_comment(request, author_id)
+    #     except (json.JSONDecodeError, KeyError) as e:
+    #         print(f"Failed to parse request body: {str(e)}")
+    #         return JsonResponse({'error': str(e)}, status=400)
+    
+    # return JsonResponse({'message': 'Method not allowed'}, status=405)
 
 
 ### Is called by def inbox()
