@@ -3901,12 +3901,12 @@ def get_post_image_by_id(request, author_id, post_id):
             return HttpResponse("Not an image post", status=404)
 
         # Ensure text_content is not None
-        if not post.text_content:
+        if not post.image_content:
             return HttpResponse("No image data found", status=404)
 
         # Decode base64 image content
         try:
-            decoded_image = base64.b64decode(post.text_content)
+            decoded_image = base64.b64decode(post.image_content)
         except Exception as e:
             return HttpResponse(f"Invalid image data: {str(e)}", status=400)
 
