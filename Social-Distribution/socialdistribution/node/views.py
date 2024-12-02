@@ -2909,7 +2909,7 @@ def follow_requests(request, author_id):
 
     context = {
         'page_title': 'Follow Requests',
-        'users': follow_author,
+        'users': follower_authors,
         'page_type': 'follow_requests',
     }
 
