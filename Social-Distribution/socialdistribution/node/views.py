@@ -38,7 +38,7 @@ from .forms import ImageUploadForm
 import http.client
 import json
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import AccessToken
@@ -3008,6 +3008,13 @@ def add_external_post(request, author_id):
 
     # Get post data
     post_url = body.get('id')
+    
+    # Mark any existing posts with the same URL as deleted
+    existing_posts_with_id = Post.objects.filter(url=post_url)
+    for post in existing_posts_with_id:
+        post.visibility = 'DELETED'
+        post.save()
+    
     contentType = body.get('contentType', 'text/plain')
     title = body.get('title', 'Untitled Post')
     description = body.get('description', '')
@@ -3049,6 +3056,7 @@ def add_external_post(request, author_id):
     serialized_post = PostSerializer(post)
 
     return JsonResponse(serialized_post.data, status=201)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -3847,7 +3855,7 @@ def get_post_image(request, author_id, post_id):
     
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_post_image_by_id(request, post_fqid):
     """
     GET [local, remote] get the public post converted to binary as an image using FQID.
