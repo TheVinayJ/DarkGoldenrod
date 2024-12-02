@@ -2903,7 +2903,7 @@ def follow_requests(request, author_id):
             'display_name': follower.display_name,
             'host': follower.host,
             'github': follower.github,
-            'profile_image_base64': follower.profile_image_base64,
+            'profile_image_base64': follower.profile_image,
         })
 
     context = {
