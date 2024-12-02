@@ -60,7 +60,7 @@
             const apiURL = baseURL.replace("null", encodedFollowerUrl);
 
             
-            {#apiURL = `api/authors/{{current_author_id}}/followers/<path:follower_id>`#}
+            {apiURL = `api/authors/{{current_author_id}}/followers/<path:follower_id>`}
 
             fetch(apiURL, {
             method: 'DELETE',

@@ -2458,73 +2458,81 @@ def followers_following_friends(request, author_id):
     :param author_id: id of author whose profile is currently being viewed
     :return: html rendition of follower_following.html with the appropriate content
     '''
-    #author = get_object_or_404(Author, id=author_id)
     author = get_author_by_id(author_id)
     current_author = get_author(request)
-    # check if user viewing the follow is viewing their own followings
-    is_own = (author==current_author)
+    is_own = (author == current_author)
 
-    profileUserUrl = author.url  # user of the profile
-    users = []
+    profile_user_url = author.url
 
     see_follower = request.GET.get('see_follower')
 
-    # see friends
     if see_follower is None:
-        follow_objects = Follow.objects.filter(follower=profileUserUrl, approved=True)
-        friends = [person.following for person in follow_objects if person.is_friend()]
-        for friend_url in friends:
-            users.append(get_object_or_404(Author, url=friend_url))
-        title = "Friends"
+        page_type = 'friends'
+        page_title = 'Friends'
+
+        # Get mutual follow relationships (friends)
+        following = Follow.objects.filter(follower=profile_user_url, approved=True)
+        friends_urls = []
+        for follow in following:
+            reciprocal = Follow.objects.filter(
+                follower=follow.following,
+                following=profile_user_url,
+                approved=True
+            ).exists()
+            if reciprocal:
+                friends_urls.append(follow.following)
+
+        # Get Author instances for friends
+        users = Author.objects.filter(url__in=friends_urls)
+
+    elif see_follower == 'true':
+        # Display followers
+        page_type = 'followers'
+        page_title = 'Followers'
+
+        follower_urls = Follow.objects.filter(
+            following=profile_user_url,
+            approved=True
+        ).values_list('follower', flat=True)
+
+        # Get Author instances for followers
+        users = Author.objects.filter(url__in=follower_urls)
+
+    elif see_follower == 'false':
+        # Display following
+        page_type = 'following'
+        page_title = 'Following'
+
+        following_urls = Follow.objects.filter(
+            follower=profile_user_url,
+            approved=True
+        ).values_list('following', flat=True)
+
+        # Get Author instances for following
+        users = Author.objects.filter(url__in=following_urls)
     else:
-        # see followers
-        if see_follower == "true":
-            # use the api to get followers
+        # Invalid value for 'see_follower'
+        return HttpResponseForbidden('Invalid value for see_follower.')
 
-            # access_token = AccessToken.for_user(author)
-            # headers = {
-            #     'Authorization': f'Bearer {access_token}'
-            # }
-            #
-            # responses = []
-            # api_url = request.build_absolute_uri(reverse('list_all_followers', kwargs={'author_id': author_id}))
-            # response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
-            # print(response.json())
-            # responses.append(response)
-            #
-            # for response in responses:
-            #     users += response.json().get('followers', []) if response.status_code == 200 else []
-
-            follow_objects= Follow.objects.filter(following=profileUserUrl, approved=True).values_list('follower', flat=True)
-            for url in follow_objects:
-                users.append(get_object_or_404(Author, url=url))
-            title = "Followers"
-        elif see_follower == 'false':
-            users = Follow.objects.filter(follower=profileUserUrl, approved=True).values_list('following', flat=True)
-            title = "Followings"
-
-    user_authors = Author.objects.filter(url__in=users)
-
-    # serialize
-    # author_data = [{'id': author.id, 'display_name': author.display_name} for author in user_authors]
-
-    # if request.accepted_renderer.format == 'json':
-    #     author_data = [{'id': author.id, 'display_name': author.display_name} for author in user_authors]
-    #     return Response({
-    #         'title': title,
-    #         'authors': author_data
-    #     })
-
-    print("these are the users")
-    print(users)
+    users_list = []
     for user in users:
-        print(user.display_name)
-    return render(request, 'follower_following.html', {
-        'authors': users,
-        'DisplayTitle': title,
+        users_list.append({
+            'id': user.id,
+            'display_name': user.display_name,
+            'host': user.host,
+            'github': user.github,
+            'profile_image_base64': user.profile_image_base64,
+        })
+
+    context = {
+        'page_title': page_title,
+        'users': users_list,
+        'page_type': page_type,
+        'current_author': current_author,
         'is_own': is_own,
-        'current_author_id': str(current_author.id),
-    })
+    }
+
+    return render(request, 'user_list.html', context)
 
 def get_author(request):
     """
@@ -2602,7 +2610,7 @@ def local_api_follow(request, author_id):
             # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
         # create follow object after successful post
 
-        Follow.objects.create(following=author_to_follow.url, follower=current_author.url, approved=True)
+        Follow.objects.create(following=author_to_follow.url, follower=current_author.url, approved=False)
 
         # if response.status_code in [200, 201]:
         print("Sent Follow request")
