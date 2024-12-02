@@ -1284,7 +1284,7 @@ def post_like(request, author_id):
         # if serializer.is_valid():
         #     serializer.save()
         #     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-        return JsonResponse(data=PostLikeSerializer(post_like).data, status=200)
+        return JsonResponse(data=PostLikeSerializer(post_like).data, status=200, safe=False)
     else:
         return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
         
@@ -1301,7 +1301,7 @@ def comment_like(request, author_id):
     if not comment_like_exists:
         print('creating comment like object')
         comment_like = CommentLike.objects.create(liker=liker, owner=comment)
-        return JsonResponse(data=CommentLikeSerializer(comment_like).data, status=200)
+        return JsonResponse(data=CommentLikeSerializer(comment_like).data, status=200, safe=False)
     else:
         return JsonResponse({'message': 'comment like already exists, unlike instead'}, status=400)
 
@@ -2667,7 +2667,7 @@ def add_external_comment(request, author_id):
         comment.save()
 
         serializer = CommentSerializer(comment)
-        return JsonResponse(data=serializer.data, status=201)
+        return JsonResponse(serializer.data, status=201, safe=False)
 
     if body['type'] == 'comments':
         for comment in body['src']:
