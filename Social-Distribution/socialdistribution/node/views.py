@@ -15,7 +15,7 @@ import asyncio
 from asgiref.sync import sync_to_async
 from django.db import connections
 from urllib.parse import urlparse
-from .utils import get_author_by_id, get_post_by_id, get_comment_by_id, get_repost_by_id, get_post_like_by_id, get_comment_like_by_id, get_post_by_id_and_author, get_like_instance
+from .utils import get_author_by_id, get_post_by_id, get_comment_by_id, get_repost_by_id, get_post_like_by_id, get_comment_like_by_id, get_post_by_id_and_author, get_like_instance, post_request_to_node_async
 from django.views.generic import ListView
 from rest_framework.views import APIView
 from django.utils.timezone import make_aware
@@ -1067,13 +1067,34 @@ def local_api_like(request, id):
             #     like.save()
             #     print(f"redirecting to /node/posts/{id}/")
             #     return redirect(f'/node/posts/{id}/')
-            try:
-                # Attempt to send the like request
-                post_request_to_node(node, inbox_url, data=like_request)
-            except Exception as e:
-                # Log the error and continue execution
-                print(f"Error sending like to {inbox_url}: {str(e)}")
             
+            
+            # try:
+            #     # Attempt to send the like request
+            #     post_request_to_node(node, inbox_url, data=like_request)
+            # except Exception as e:
+            #     # Log the error and continue execution
+            #     print(f"Error sending like to {inbox_url}: {str(e)}")
+            
+            # like = PostLike.objects.create(
+            #     object_id=like_uuid,
+            #     liker=current_author,
+            #     owner=liked_post,
+            #     created_at=django.utils.timezone.now(),
+            # )
+            # like.save()
+            # return redirect(f'/node/posts/{id}/')
+            
+            async def send_like_request():
+                try:
+                    await post_request_to_node_async(node, inbox_url, method='POST', data=like_request)
+                except Exception as e:
+                    print(f"Error sending like to {inbox_url}: {str(e)}")
+            
+            # Schedule the asynchronous task
+            asyncio.run(sync_to_async(send_like_request)())
+
+            # Save the like locally
             like = PostLike.objects.create(
                 object_id=like_uuid,
                 liker=current_author,
@@ -1081,7 +1102,6 @@ def local_api_like(request, id):
                 created_at=django.utils.timezone.now(),
             )
             like.save()
-            return redirect(f'/node/posts/{id}/')
             
             #return JsonResponse({"error": "Failed to send like"}, status=400)
         else:

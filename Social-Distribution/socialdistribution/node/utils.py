@@ -13,6 +13,8 @@ from django.db import connections
 from uuid import UUID
 from django.shortcuts import get_object_or_404
 from django.http import Http404
+from aiohttp import BasicAuth
+from django.db.models import Q
 from .models import Author, Post, Comment, Repost, PostLike, CommentLike
 
 def get_tokens_for_user(user):
@@ -200,6 +202,42 @@ async def send_request_to_node(node_name, endpoint, method='GET', data=None):
 #                 raise Exception(f"Unsupported HTTP method: {method}")
 #         except aiohttp.ClientError as e:
 #             raise Exception(f"HTTP request to node at '{url}' failed: {str(e)}")
+
+async def post_request_to_node_async(host, url, method='POST', data=None):
+    """
+    Send an asynchronous HTTP request to a remote node without waiting for a response.
+
+    Parameters:
+        host (str): The host of the remote node.
+        url (str): The endpoint to send the request to.
+        method (str): {POST, PUT}
+        data (dict): Data for POST or PUT requests.
+
+    Returns:
+        None
+    """
+    # Fetch the remote node
+    node = RemoteNode.objects.filter(Q(url=host) & Q(is_active=True)).first()
+    if not node:
+        print(f"Couldn't find remote node with host {host}")
+        return
+
+    try:
+        auth = BasicAuth(node.username, node.password)
+    except AttributeError:
+        print(f"Couldn't find username and password for remote node with host {host}")
+        return
+
+    # Fire-and-forget asynchronous HTTP request
+    async with aiohttp.ClientSession(auth=auth) as session:
+        try:
+            if method.upper() in ['POST', 'PUT']:
+                await session.request(method, url, json=data)  # Don't wait for response
+            else:
+                print(f"Unsupported HTTP method for fire-and-forget: {method}")
+        except aiohttp.ClientError as e:
+            print(f"Error occurred while sending {method} request to {url}: {e}")
+
 
 def get_model_instance_by_id(model, id_value):
     """
