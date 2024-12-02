@@ -2915,38 +2915,44 @@ def follow_requests(request, author_id):
 
     return render(request, 'user_list.html', context)
 
-def approve_follow(request, author_id, follower_id):
-    '''
-    Approve a submitted follow request, updating it's approved status
-    :param request:
-    :param author_id: id of author asking to be followed
-    :param follower_id: id of author who submitted follow request
-    :return: redirection to follow_requests view
-    '''
-    #follower_author = get_object_or_404(Author, id=follower_id)
-    follower_author = get_author_by_id(follower_id)
-    #current_author = get_object_or_404(Author, id=author_id)
-    current_author = get_author_by_id(author_id)
-    follow_request = get_object_or_404(Follow, follower=follower_author.url, following=current_author.url)
-    follow_request.approved = True
-    follow_request.save()
-    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
+def approve_follow(request, follower_id):
+    current_author = get_author(request)
+    if request.method == 'POST':
+        follower = Author.objects.get(id=follower_id)
+        follow_request = Follow.objects.get(
+            follower=follower.url,
+            following=current_author.url,
+            approved=False
+        )
+        follow_request.approved = True
+        follow_request.save()
+        messages.success(request, f"You have approved {follower.display_name}'s follow request.")
+    return redirect('follow_requests', author_id=current_author.id)
 
-def decline_follow(request, author_id, follower_id):
-    '''
-    Decline a submitted follow request and delete it from database
-    :param request:
-    :param author_id: id of author asking to be followed
-    :param follower_id: id of author who submitted follow request
-    :return: redirection to follow_requests view
-    '''
-    #follower_author = get_object_or_404(Author, id=follower_id)
-    follower_author = get_author_by_id(follower_id)
-    #current_author = get_object_or_404(Author, id=author_id)
-    current_author = get_author_by_id(author_id)
-    follow_request = get_object_or_404(Follow, follower=follower_author.url, following=current_author.url)
-    follow_request.delete()
-    return redirect('follow_requests', author_id=author_id)  # Redirect to the profile view after saving
+def decline_follow(request, follower_id):
+    current_author = get_author(request)
+    if request.method == 'POST':
+        follower = Author.objects.get(id=follower_id)
+        Follow.objects.filter(
+            follower=follower.url,
+            following=current_author.url,
+            approved=False
+        ).delete()
+        messages.success(request, f"You have declined {follower.display_name}'s follow request.")
+    return redirect('follow_requests', author_id=current_author.id)
+
+def remove_follower(request, follower_id):
+    current_author = get_author(request)
+    if request.method == 'POST':
+        follower = Author.objects.get(id=follower_id)
+        Follow.objects.filter(
+            follower=follower.url,
+            following=current_author.url,
+            approved=True
+        ).delete()
+        messages.success(request, f"You have removed {follower.display_name} from your followers.")
+    return redirect('followers_list', author_id=current_author.id)
+
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
 ### WARNING: Only works for posts from authors of the same node right now
