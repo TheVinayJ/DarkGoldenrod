@@ -1,66 +1,79 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Profile</title>
-</head>
-<body>
-    <a href="{% url 'profile' user.id %}">&lt; Go Back</a>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/edit_profile.css' %}">
+{% endblock %}
+
+{% block content %}
+    <a href="{% url 'profile' user.id %}" class="back-link">&lt; Go Back</a>
     <h1>Edit Profile</h1>
 
     <form id="editProfileForm">
         {% csrf_token %}
-        <label for="display_name">Display Name:</label>
-        <input type="text" name="display_name" id="display_name" value="{{ user.display_name }}"><br>
+        <div class="form-group">
+            <label for="display_name">Display Name:</label>
+            <input type="text" name="display_name" id="display_name" value="{{ user.display_name }}">
+        </div>
 
-        <label for="description">Description:</label>
-        <input type="text" name="description" id="description" value="{{ user.description }}"><br>
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea name="description" id="description">{{ user.description }}</textarea>
+        </div>
 
-        <label for="profile_image">Profile Image:</label>
-        <input type="file" name="profile_image" id="profile_image"><br>
-<!--         {% if user.profile_image %}-->
-<!--            <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">-->
-<!--         {% endif %}-->
+        <div class="form-group">
+            <label for="profile_image">Profile Image:</label>
+            <input type="file" name="profile_image" id="profile_image">
+            {% if user.profile_image %}
+                <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image-preview">
+            {% endif %}
+        </div>
 
-        <label for="github">GitHub Username:</label>
-        <input type="text" name="github" id="github" value="{{ user.github }}"><br>
+        <div class="form-group">
+            <label for="github">GitHub Username:</label>
+            <input type="text" name="github" id="github" value="{{ user.github }}">
+        </div>
 
-        <button type="button" id="saveButton">Save</button>
-    
+        <button type="button" id="saveButton" class="btn save-btn">Save</button>
     </form>
+{% endblock %}
+
+{% block scripts %}
     <script>
-    document.getElementById('saveButton').addEventListener('click', function() {
-        formData = new FormData(document.getElementById('editProfileForm'));;
-        const userId = "{{ user.id }}";
-        const userHost = "{{ user.host }}"
-        const userPage = "{{ user.page }}"
+        document.getElementById('saveButton').addEventListener('click', function() {
+            const formData = new FormData(document.getElementById('editProfileForm'));
+            const userId = "{{ user.id }}";
+            const userHost = "{{ user.host }}";
+            const userPage = "{{ user.page }}";
 
-        formData.append('type', 'author');
-        formData.append('id', userId);
-        formData.append('host', userHost);
-        formData.append('page', userPage);
+            formData.append('type', 'author');
+            formData.append('id', userId);
+            formData.append('host', userHost);
+            formData.append('page', userPage);
 
-        fetch("{% url 'single_author' user.id %}", {
-            method: 'PUT',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-            },
-            body: formData
-        })
-        .then(response => {
-            if (response.ok) {
-                // Redirect to the profile page after successful PUT request
-                window.location.href = "{% url 'profile' user.id %}";
-            } else {
-                return response.json().then(errorData => {
-                    console.error('Error:', errorData);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Request failed', error);
+            fetch("{% url 'single_author' user.id %}", {
+                method: 'PUT',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Redirect to the profile page after successful PUT request
+                    window.location.href = "{% url 'profile' user.id %}";
+                } else {
+                    return response.json().then(errorData => {
+                        console.error('Error:', errorData);
+                        alert('An error occurred while saving your profile.');
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Request failed', error);
+                alert('An error occurred while saving your profile.');
+            });
         });
-    });
-</script>
-</body>
-</html>
+    </script>
+{% endblock %}
