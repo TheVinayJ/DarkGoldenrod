@@ -1068,9 +1068,6 @@ def local_api_like(request, id):
             #     print(f"redirecting to /node/posts/{id}/")
             #     return redirect(f'/node/posts/{id}/')
             try:
-                # Determine the node for the post's author
-                node = post_author.host.rstrip('/').replace('http://', 'https://')
-
                 # Attempt to send the like request
                 post_request_to_node(node, inbox_url, data=like_request)
             except Exception as e:
