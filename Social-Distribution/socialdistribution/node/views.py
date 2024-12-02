@@ -528,6 +528,8 @@ def authors_list(request):
     size = request.GET.get('size', None)
     user = get_author(request)
 
+    filter_type = request.GET.get('filter', 'all')
+
     # Get local authors directly
     local_authors = Author.objects.all()
     if query:
@@ -605,16 +607,31 @@ def authors_list(request):
         author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
         author_from_db = Author.objects.filter(url=author['id']).first()
         author['id_num'] = author_from_db.id if author_from_db else None
+
         author['is_following'] = Follow.objects.filter(
             follower=f"https://{request.get_host()}/api/authors/{user.id}",
             following=author['id'],
             approved=True
         ).exists()
 
+        author['is_followed_by'] = Follow.objects.filter(
+            follower=author['id'],
+            following=f"https://{request.get_host()}/api/authors/{user.id}",
+            approved=True
+        ).exists()
+
+    if filter_type == 'following':
+        authors = [author for author in authors if author['is_following']]
+    elif filter_type == 'friends':
+        authors = [author for author in authors if author['is_following'] and author['is_followed_by']]
+    elif filter_type == 'all':
+        pass
+
     context = {
         'authors': authors,
         'query': query,
         'total_pages': 1,  # Adjust as needed
+        'active_tab': filter_type,
     }
 
     return render(request, 'authors.html', context)
