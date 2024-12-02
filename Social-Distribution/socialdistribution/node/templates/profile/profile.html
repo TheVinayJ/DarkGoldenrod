@@ -9,8 +9,8 @@
 
 {% block content %}
     <div class="profileNameAndPhoto">
-        {% if user.profile_image %}
-            <img src="{{ user.profile_image.url }}" alt="Profile Picture" class="profile-image">
+        {% if current_user.profile_image %}
+            <img src="{{ current_user.profile_image.url }}" alt="Profile Picture" class="profile-image">
         {% else %}
             <!-- Default Profile Picture -->
             <div class="profile-image">
@@ -23,25 +23,25 @@
                 </svg>
             </div>
         {% endif %}
-        <h1>{{ user.display_name }}</h1>
+        <h1>{{ current_user.display_name }}</h1>
     </div>
 
     <div class="profile-stats">
         <div class="stat-item">
-            <a href="{% url 'followers' user.id %}?see_follower=true">
+            <a href="{% url 'followers' current_user.id %}?see_follower=true">
                 <span class="stat-count">{{ followers_count }}</span>
                 <span class="stat-label">Followers</span>
             </a>
         </div>
         
         <div class="stat-item">
-            <a href="{% url 'followings' user.id %}?see_follower=false">
+            <a href="{% url 'followings' current_user.id %}?see_follower=false">
                 <span class="stat-count">{{ following_count }}</span>
                 <span class="stat-label">Following</span>
             </a>
         </div>
         <div class="stat-item">
-            <a href="{% url 'friends' user.id %}">
+            <a href="{% url 'friends' current_user.id %}">
                 <span class="stat-count">{{ friends_count }}</span>
                 <span class="stat-label">Friends</span>
             </a>
@@ -50,11 +50,11 @@
 
     {% if ownProfile %}
         <div class="button-container">
-        <form action="{% url 'profile_edit' user.id %}" method="get">
+        <form action="{% url 'profile_edit' current_user.id %}" method="get">
             <button type="submit" class="edit-button">Edit Profile</button>
         </form>
 
-        <form method="GET" action="{% url 'follow_requests' user.id %}">
+        <form method="GET" action="{% url 'follow_requests' current_user.id %}">
             <button type="submit">Follow Requests</button>
         </form>
 
@@ -63,21 +63,21 @@
     {% else %}
         <div class="button-container">
         {% if is_following %}
-        <form method="POST" action="{% url 'unfollow_author' user.id %}">
+        <form method="POST" action="{% url 'unfollow_author' current_user.id %}">
             {% csrf_token %}
             <button type="submit">
                 Unfollow
             </button>
         </form>
         {% elif is_pending %}
-        <form method="POST" action="{% url 'unfollow_author' user.id %}">
+        <form method="POST" action="{% url 'unfollow_author' current_user.id %}">
             {% csrf_token %}
             <button type="submit">
                 Pending
             </button>
         </form>
         {% else %}
-        <form method="POST" action="{% url 'follow_author' user.id %}">
+        <form method="POST" action="{% url 'follow_author' current_user.id %}">
             {% csrf_token %}
             <button type="submit">
                 Follow
@@ -88,8 +88,8 @@
         
     {% endif %}
     
-    {% if user.description != "None" %}
-        <h2 class="desc">{{ user.description }}</h2>
+    {% if current_user.description != "None" %}
+        <h2 class="desc">{{ current_user.description }}</h2>
     {% endif %}
 
     <div class="section-nav">

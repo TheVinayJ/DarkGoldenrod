@@ -2173,7 +2173,7 @@ def profile(request, author_id):
     ).count()
 
     return render(request, "profile/profile.html", {
-        'user': user,
+        'current_user': user,
         'posts': authors_posts,
         'ownProfile': own_profile,
         'is_following': is_following,
