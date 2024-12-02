@@ -14,12 +14,12 @@
 
     <ul class="user-list">
         {% if users %}
-            {% for user in users %}
+            {% for author in users %}
             <li class="user-item">
                 <div class="user-info">
                     <!-- Profile Picture -->
-                    {% if user.profile_image_base64 %}
-                        <img src="data:image/png;base64,{{ user.profile_image_base64 }}" alt="{{ user.display_name }}'s Profile Picture" class="profile-picture">
+                    {% if author.profile_image_base64 %}
+                        <img src="data:image/png;base64,{{ author.profile_image_base64 }}" alt="{{ author.display_name }}'s Profile Picture" class="profile-picture">
                     {% else %}
                         <div class="profile-picture default-picture">
                             <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 90 90">
@@ -33,7 +33,7 @@
                     {% endif %}
 
                     <!-- Display Name -->
-                    <a href="{% url 'profile' user.id %}" class="user-name">{{ user.display_name }}</a>
+                    <a href="{% url 'profile' author.id %}" class="user-name">{{ author.display_name }}</a>
 
                 </div>
 
@@ -41,23 +41,23 @@
                 <div class="action-buttons">
                     {% if page_type == 'follow_requests' %}
                         <!-- Approve and Decline buttons for follow requests -->
-                        <form method="POST" action="{% url 'approve_follow' current_author.id user.id %}">
+                        <form method="POST" action="{% url 'approve_follow' current_author.id author.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn small-btn">Approve</button>
                         </form>
-                        <form method="POST" action="{% url 'decline_follow' current_author.id user.id %}">
+                        <form method="POST" action="{% url 'decline_follow' current_author.id author.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn small-btn">Decline</button>
                         </form>
                     {% elif page_type == 'followers' %}
                         <!-- Remove follower button -->
-                        <form method="POST" action="{% url 'remove_follower' current_author.id user.id %}">
+                        <form method="POST" action="{% url 'remove_follower' current_author.id author.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn small-btn">Remove</button>
                         </form>
                     {% elif page_type == 'following' %}
                         <!-- Unfollow button -->
-                        <form method="POST" action="{% url 'unfollow_author' user.id %}">
+                        <form method="POST" action="{% url 'unfollow_author' author.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn small-btn">Unfollow</button>
                         </form>
