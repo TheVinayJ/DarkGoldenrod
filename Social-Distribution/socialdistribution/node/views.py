@@ -3861,33 +3861,61 @@ def get_post_image_by_id(request, author_id, post_id):
     GET [local, remote] get the public post converted to binary as an image using FQID.
     Returns 404 if not an image.
     """
-    post = get_post_by_id(post_id)
+    # post = get_post_by_id(post_id)
         
-    # Check if this is an image post
-    if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
-        return HttpResponse("Not an image post", status=404)
+    # # Check if this is an image post
+    # if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
+    #     return HttpResponse("Not an image post", status=404)
         
-    try:
-        #post_data = PostSerializer(post).data
-        #decoded_image = base64.b64decode(post.text_content)
+    # try:
+    #     #post_data = PostSerializer(post).data
+    #     #decoded_image = base64.b64decode(post.text_content)
         
-        # json_content = {
-        #     "contentType": post.contentType,
-        #     "content": decoded_image.decode('utf-8', errors='ignore')
-        # }
-        #post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
+    #     # json_content = {
+    #     #     "contentType": post.contentType,
+    #     #     "content": decoded_image.decode('utf-8', errors='ignore')
+    #     # }
+    #     #post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
         
-        # response = HttpResponse(decoded_image, contentType=post.contentType)
-        # response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
-        # return JsonResponse(response)
+    #     # response = HttpResponse(decoded_image, contentType=post.contentType)
+    #     # response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
+    #     # return JsonResponse(response)
     
-        decoded_image = base64.b64decode(post.text_content)
+    #     decoded_image = base64.b64decode(post.text_content)
+
+    #     # Set the correct content type for the image
+    #     response = HttpResponse(decoded_image, content_type=post.contentType)
+    #     response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
+
+    #     return response
+            
+    # except Exception as e:
+    #     return HttpResponse(f"Invalid image data: {e}", status=400)
+    
+    try:
+        # Fetch the post by ID
+        post = get_post_by_id(post_id)
+
+        # Check if the post is an image
+        if not post.contentType.startswith('image/'):
+            return HttpResponse("Not an image post", status=404)
+
+        # Ensure text_content is not None
+        if not post.text_content:
+            return HttpResponse("No image data found", status=404)
+
+        # Decode base64 image content
+        try:
+            decoded_image = base64.b64decode(post.text_content)
+        except Exception as e:
+            return HttpResponse(f"Invalid image data: {str(e)}", status=400)
 
         # Set the correct content type for the image
         response = HttpResponse(decoded_image, content_type=post.contentType)
         response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
 
         return response
-            
+    except Post.DoesNotExist:
+        return HttpResponse("Post not found", status=404)
     except Exception as e:
-        return HttpResponse(f"Invalid image data: {e}", status=400)
+        return HttpResponse(f"An unexpected error occurred: {str(e)}", status=500)
