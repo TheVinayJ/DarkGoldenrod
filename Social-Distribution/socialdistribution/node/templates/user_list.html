@@ -47,11 +47,11 @@
                 <div class="action-buttons">
                     {% if page_type == 'follow_requests' %}
                         <!-- Approve and Decline buttons for follow requests -->
-                        <form method="POST" action="{% url 'approve_follow' user.id %}">
+                        <form method="POST" action="{% url 'approve_follow' current_author.id user.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn small-btn">Approve</button>
                         </form>
-                        <form method="POST" action="{% url 'decline_follow' user.id %}">
+                        <form method="POST" action="{% url 'decline_follow' current_author.id user.id %}">
                             {% csrf_token %}
                             <button type="submit" class="btn small-btn">Decline</button>
                         </form>

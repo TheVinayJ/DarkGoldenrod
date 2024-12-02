@@ -3011,11 +3011,12 @@ def follow_requests(request, author_id):
         'page_title': 'Follow Requests',
         'users': follower_authors,
         'page_type': 'follow_requests',
+        'current_author': current_author,
     }
 
     return render(request, 'user_list.html', context)
 
-def approve_follow(request, follower_id):
+def approve_follow(request, author_id, follower_id):
     current_author = get_author(request)
     if request.method == 'POST':
         follower = Author.objects.get(id=follower_id)
@@ -3029,7 +3030,7 @@ def approve_follow(request, follower_id):
         messages.success(request, f"You have approved {follower.display_name}'s follow request.")
     return redirect('follow_requests', author_id=current_author.id)
 
-def decline_follow(request, follower_id):
+def decline_follow(request, author_id, follower_id):
     current_author = get_author(request)
     if request.method == 'POST':
         follower = Author.objects.get(id=follower_id)
