@@ -359,16 +359,6 @@ def authors_list(request):
     else:
         local_authors = local_authors[:50]  # Limit to 50 authors
 
-    # authors = [{
-    #     "type": "author",
-    #     "id": f"{author.url}",
-    #     "host": author.host,
-    #     "displayName": author.display_name,
-    #     "github": author.github,
-    #     "profileImage": author.profile_image.url if author.profile_image else '',
-    #     "page": author.page
-    # } for author in local_authors]
-    
     NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
 
     # Fetch authors from external nodes asynchronously
@@ -485,6 +475,12 @@ def authors_list(request):
             follower=f"https://{request.get_host()}/api/authors/{user.id}",
             following=author_data['id'],
             approved=True
+        ).exists()
+
+        author_data['is_pending'] = Follow.objects.filter(
+            follower=f"https://{request.get_host()}/api/authors/{user.id}",
+            following=author_data['id'],
+            approved=False
         ).exists()
 
         # Determine if the author is linkable

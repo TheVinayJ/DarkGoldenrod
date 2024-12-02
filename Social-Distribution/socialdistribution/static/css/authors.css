@@ -86,7 +86,7 @@
     background-color: #fff;
     border: 1px solid #dbdbdb;
     border-radius: 10px;
-    overflow: hidden; /* Ensure content stays within the tile */
+    overflow: hidden;
     position: relative;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     min-height: 80px;
@@ -103,6 +103,7 @@
     padding: 15px;
     text-decoration: none;
     color: inherit;
+    z-index: 1;
 }
 
 .profile-picture {
@@ -141,30 +142,11 @@
     text-decoration: underline;
 }
 
-.author-github {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    color: #555;
-}
-
-.author-github svg {
-    margin-right: 5px;
-    fill: #333;
-}
-
-.author-github a {
-    color: #555;
-}
-
-.author-github a:hover {
-    color: darkgoldenrod;
-}
-
 .follow-button {
     position: absolute;
     top: 15px;
     right: 15px;
+    z-index: 2;
 }
 
 .follow-button .btn {
@@ -206,15 +188,14 @@
 }
 
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .authors-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    }
+.author-tile .follow-button {
+    pointer-events: auto;
 }
 
-@media (max-width: 480px) {
-    .authors-grid {
-        grid-template-columns: 1fr;
-    }
+.tile-link {
+    pointer-events: auto;
+}
+
+.author-tile {
+    pointer-events: auto;
 }
