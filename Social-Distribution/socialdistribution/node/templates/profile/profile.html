@@ -9,8 +9,8 @@
 
 {% block content %}
     <div class="profileNameAndPhoto">
-        {% if current_user.profile_image %}
-            <img src="{{ current_user.profile_image.url }}" alt="Profile Picture" class="profile-image">
+        {% if current_user.profile_image and current_user.profile_image != '' %}
+            <img src="{{ current_user.profile_image }}" alt="Profile Picture" class="profile-image">
         {% else %}
             <!-- Default Profile Picture -->
             <div class="profile-image">
