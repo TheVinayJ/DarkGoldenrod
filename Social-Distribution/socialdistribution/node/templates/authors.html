@@ -33,8 +33,8 @@
         <div class="author-tile">
             <a href="{% url 'profile' author.id_num %}" class="tile-link">
                 <!-- Profile Picture -->
-                {% if author.profile_image_base64 %}
-                    <img src="data:image/png;base64,{{ author.profile_image_base64 }}" alt="{{ author.displayName }}'s Profile Picture" class="profile-picture">
+                {% if author.profileImage %}
+                    <img src="{{ author.profileImage }}" alt="{{ author.displayName }}'s Profile Picture" class="profile-picture">
                 {% else %}
                     <div class="profile-picture default-picture">
                         <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 90 90">
