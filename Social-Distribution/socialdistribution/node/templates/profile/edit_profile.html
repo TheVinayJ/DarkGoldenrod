@@ -3,8 +3,14 @@
 
 {% block styles %}
     {{ block.super }}
-
     <link rel="stylesheet" href="{% static 'css/editor.css' %}">
+    <style>
+    .container{
+        max-width: 600px;
+        margin: 60px auto;
+        padding: 20px;
+    }
+    </style>
 {% endblock %}
 
 {% block content %}
