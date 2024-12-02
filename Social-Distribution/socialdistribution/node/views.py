@@ -1091,8 +1091,8 @@ def local_api_like(request, id):
                 except Exception as e:
                     print(f"Error sending like to {inbox_url}: {str(e)}")
             
-            # Schedule the asynchronous task
-            asyncio.run(sync_to_async(send_like_request)())
+            # Launch the asynchronous task using asyncio.run()
+            asyncio.run(send_like_request())
 
             # Save the like locally
             like = PostLike.objects.create(
@@ -1102,8 +1102,6 @@ def local_api_like(request, id):
                 created_at=django.utils.timezone.now(),
             )
             like.save()
-            
-            #return JsonResponse({"error": "Failed to send like"}, status=400)
         else:
             # Save the like locally using the `Like` model
             like = PostLike.objects.create(
