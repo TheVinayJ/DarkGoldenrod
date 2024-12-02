@@ -1054,45 +1054,20 @@ def local_api_like(request, id):
         print(f"Like request: {like_request}")
         print(f"Current author host: {current_author.host}")
 
-        # # Handle remote and local likes
-        # if current_author.host[:-4] != node:
-        #     # Send the like request to a remote node's inbox
-        #     response = post_request_to_node(node, inbox_url, data=like_request)
-        #     if response and response.status_code in [200, 201]:
-        #         like = PostLike.objects.create(
-        #             object_id=like_uuid,
-        #             liker=current_author,
-        #             owner=liked_post,
-        #             created_at=django.utils.timezone.now(),
-        #         )
-        #         like.save()
-        #         print(f"redirecting to /node/posts/{id}/")
-        #         return redirect(f'/node/posts/{id}/')
-        # else:
-        #     # Save the like locally using the `Like` model
-        #     like = PostLike.objects.create(
-        #         object_id=like_uuid,
-        #         liker=current_author,
-        #         owner=liked_post,
-        #         created_at=django.utils.timezone.now(),
-        #     )
-        #     like.save()
-
-        # # Redirect to the post after liking
-        # return redirect(f'/node/posts/{id}/')
         # Handle remote and local likes
         if current_author.host[:-4] != node:
-            # Call the asynchronous function using async_to_sync
-            async_to_sync(post_request_to_node_async)(node, inbox_url, method='POST', data=like_request)
-
-            # Save the like locally
-            like = PostLike.objects.create(
-                object_id=like_uuid,
-                liker=current_author,
-                owner=liked_post,
-                created_at=django.utils.timezone.now(),
-            )
-            like.save()
+            # Send the like request to a remote node's inbox
+            response = post_request_to_node(node, inbox_url, data=like_request)
+            if response and response.status_code in [200, 201]:
+                like = PostLike.objects.create(
+                    object_id=like_uuid,
+                    liker=current_author,
+                    owner=liked_post,
+                    created_at=django.utils.timezone.now(),
+                )
+                like.save()
+                print(f"redirecting to /node/posts/{id}/")
+                return redirect(f'/node/posts/{id}/')
         else:
             # Save the like locally using the `Like` model
             like = PostLike.objects.create(
@@ -1102,6 +1077,31 @@ def local_api_like(request, id):
                 created_at=django.utils.timezone.now(),
             )
             like.save()
+
+        # Redirect to the post after liking
+        return redirect(f'/node/posts/{id}/')
+        # Handle remote and local likes
+        # if current_author.host[:-4] != node:
+        #     # Call the asynchronous function using async_to_sync
+        #     async_to_sync(post_request_to_node_async)(node, inbox_url, method='POST', data=like_request)
+
+        #     # Save the like locally
+        #     like = PostLike.objects.create(
+        #         object_id=like_uuid,
+        #         liker=current_author,
+        #         owner=liked_post,
+        #         created_at=django.utils.timezone.now(),
+        #     )
+        #     like.save()
+        # else:
+        #     # Save the like locally using the `Like` model
+        #     like = PostLike.objects.create(
+        #         object_id=like_uuid,
+        #         liker=current_author,
+        #         owner=liked_post,
+        #         created_at=django.utils.timezone.now(),
+        #     )
+        #     like.save()
 
     except Exception as e:
         # Handle exceptions and log errors
