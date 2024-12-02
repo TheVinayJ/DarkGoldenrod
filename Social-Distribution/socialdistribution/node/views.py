@@ -2995,7 +2995,7 @@ def unfollow_author(request, author_id):
         messages.warning(request, "You are not following this author.")
 
     # Redirect back to the authors list or a success page
-    return redirect('profile')
+    return redirect('profile', author_id=current_author.id)
 
 def follow_requests(request, author_id):
     #current_author = get_object_or_404(Author, id=author_id)  # logged in author
