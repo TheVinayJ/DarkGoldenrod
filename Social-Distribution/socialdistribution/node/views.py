@@ -587,7 +587,7 @@ def authors_list(request):
             if response and 'authors' in response:
                 for author in response['authors']:
                     author_id = author['id'].split('/')[-1]  # Extract author ID
-                    node_name = [n for n in NODES if n in author['id']][0] if NODES else None
+                    node_name = next((n for n in NODES if n in author['id']), None)
                     
                     if node_name:
                         # Construct the endpoint for fetching author's posts
