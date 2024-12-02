@@ -35,10 +35,10 @@
         </div>
         
         <div class="stat-item">
-            <form method="GET" action="{% url 'followings' user.id %}?see_follower=false">
+            <a href="{% url 'followings' user.id %}?see_follower=false">
                 <span class="stat-count">{{ following_count }}</span>
                 <span class="stat-label">Following</span>
-            </form>
+            </a>
         </div>
         <div class="stat-item">
             <a href="{% url 'friends' user.id %}">

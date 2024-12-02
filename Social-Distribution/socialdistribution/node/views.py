@@ -2815,21 +2815,27 @@ def unfollow_author(request, author_id):
 def follow_requests(request, author_id):
     #current_author = get_object_or_404(Author, id=author_id)  # logged in author
     current_author = get_author_by_id(author_id)
-    print(current_author.url)
     current_follow_requests = Follow.objects.filter(following=current_author.url, approved=False)
-    print(current_follow_requests)
+
     follower_authors = []
     for a_request in current_follow_requests:
         # follower_id = a_request.follower.replace("https://darkgoldenrod/api/authors/", "")
-        follower_author = get_object_or_404(Author, url=a_request.follower)
-        follower_authors.append(follower_author)
+        follower = get_object_or_404(Author, url=a_request.follower)
+        follower_authors.append({
+            'id': follower.id,
+            'display_name': follower.display_name,
+            'host': follower.host,
+            'github': follower.github,
+            'profile_image_base64': follower.profile_image_base64,
+        })
 
-    return render(request, 'follow_requests.html', {
-        'follow_authors': follower_authors,
-        'author': current_author,
-        'cookies': request.COOKIES,
-        'access_token': AccessToken.for_user(current_author),
-    })
+    context = {
+        'page_title': 'Follow Requests',
+        'users': follow_author,
+        'page_type': 'follow_requests',
+    }
+
+    return render(request, 'user_list.html', context)
 
 def approve_follow(request, author_id, follower_id):
     '''

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block styles %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/user_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="user-list-container">
+    <h1 class="page-title">{{ page_title }}</h1>
+
+    <ul class="user-list">
+        {% if users %}
+            {% for user in users %}
+            <li class="user-item">
+                <div class="user-info">
+                    <!-- Profile Picture -->
+                    {% if user.profile_image_base64 %}
+                        <img src="data:image/png;base64,{{ user.profile_image_base64 }}" alt="{{ user.display_name }}'s Profile Picture" class="profile-picture">
+                    {% else %}
+                        <div class="profile-picture default-picture">
+                            <!-- Default SVG or Icon -->
+                            <!-- Include your default profile picture SVG here -->
+                        </div>
+                    {% endif %}
+
+                    <!-- Display Name -->
+                    <a href="{% url 'profile' user.id %}" class="user-name">{{ user.display_name }}</a>
+
+                    <!-- Host (shown on hover) -->
+                    <span class="user-host" title="{{ user.host }}">(Host)</span>
+
+                    <!-- GitHub -->
+                    {% if user.github %}
+                    <div class="user-github">
+                        <!-- GitHub Icon -->
+                        <!-- Include your GitHub SVG icon here -->
+                        <a href="https://github.com/{{ user.github }}" target="_blank">{{ user.github }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    {% if page_type == 'follow_requests' %}
+                        <!-- Approve and Decline buttons for follow requests -->
+                        <form method="POST" action="{% url 'approve_follow' user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn small-btn">Approve</button>
+                        </form>
+                        <form method="POST" action="{% url 'decline_follow' user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn small-btn">Decline</button>
+                        </form>
+                    {% elif page_type == 'followers' %}
+                        <!-- Remove follower button -->
+                        <form method="POST" action="{% url 'remove_follower' user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn small-btn">Remove</button>
+                        </form>
+                    {% elif page_type == 'following' %}
+                        <!-- Unfollow button -->
+                        <form method="POST" action="{% url 'unfollow_author' user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn small-btn">Unfollow</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        {% else %}
+            <li>No users found.</li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}
