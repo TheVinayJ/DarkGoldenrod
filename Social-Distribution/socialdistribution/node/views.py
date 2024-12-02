@@ -3869,7 +3869,7 @@ def get_post_image_by_id(request, author_id, post_id):
         
     try:
         #post_data = PostSerializer(post).data
-        decoded_image = base64.b64decode(post.text_content)
+        #decoded_image = base64.b64decode(post.text_content)
         
         # json_content = {
         #     "contentType": post.contentType,
@@ -3877,8 +3877,17 @@ def get_post_image_by_id(request, author_id, post_id):
         # }
         #post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
         
-        response = HttpResponse(decoded_image, contentType=post.contentType)
-        return JsonResponse(response)
+        # response = HttpResponse(decoded_image, contentType=post.contentType)
+        # response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
+        # return JsonResponse(response)
+    
+        decoded_image = base64.b64decode(post.text_content)
+
+        # Set the correct content type for the image
+        response = HttpResponse(decoded_image, content_type=post.contentType)
+        response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
+
+        return response
             
     except Exception as e:
         return HttpResponse(f"Invalid image data: {e}", status=400)
