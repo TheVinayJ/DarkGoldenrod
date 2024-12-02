@@ -22,25 +22,19 @@
                         <img src="data:image/png;base64,{{ user.profile_image_base64 }}" alt="{{ user.display_name }}'s Profile Picture" class="profile-picture">
                     {% else %}
                         <div class="profile-picture default-picture">
-                            <!-- Default SVG or Icon -->
-                            <!-- Include your default profile picture SVG here -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 90 90">
+                                <g fill="none" fill-rule="evenodd">
+                                    <path fill="#D6D6D6" d="M45 88c-11.049 0-21.18-2.003-29.021-8.634C6.212 71.105 0 58.764 0 45 0 20.187 20.187 0 45 0s45 20.187 45 45c0 13.765-6.212 26.105-15.979 34.366C66.181 85.998 56.049 88 45 88z"/>
+                                    <path fill="#A5A4A4" d="M45 60.71c-11.479 0-20.818-9.339-20.818-20.817S33.521 19.075 45 19.075 65.817 28.414 65.817 39.893 56.479 60.71 45 60.71z"/>
+                                    <path fill="#A5A4A4" d="M45 90c-10.613 0-20.922-3.773-29.028-10.625a1.5 1.5 0 01-.579-2.237C20.034 64.919 31.933 56.71 45 56.71s24.966 8.209 29.607 20.428a1.5 1.5 0 01-.579 2.237C65.922 86.227 55.613 90 45 90z"/>
+                                </g>
+                            </svg>
                         </div>
                     {% endif %}
 
                     <!-- Display Name -->
                     <a href="{% url 'profile' user.id %}" class="user-name">{{ user.display_name }}</a>
 
-                    <!-- Host (shown on hover) -->
-                    <span class="user-host" title="{{ user.host }}">(Host)</span>
-
-                    <!-- GitHub -->
-                    {% if user.github %}
-                    <div class="user-github">
-                        <!-- GitHub Icon -->
-                        <!-- Include your GitHub SVG icon here -->
-                        <a href="https://github.com/{{ user.github }}" target="_blank">{{ user.github }}</a>
-                    </div>
-                    {% endif %}
                 </div>
 
                 <!-- Action Buttons -->

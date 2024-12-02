@@ -3017,7 +3017,7 @@ def follow_requests(request, author_id):
     return render(request, 'user_list.html', context)
 
 def approve_follow(request, author_id, follower_id):
-    current_author = get_author(request)
+    current_author = get_author_by_id(author_id)
     if request.method == 'POST':
         follower = Author.objects.get(id=follower_id)
         follow_request = Follow.objects.get(
@@ -3031,7 +3031,7 @@ def approve_follow(request, author_id, follower_id):
     return redirect('follow_requests', author_id=current_author.id)
 
 def decline_follow(request, author_id, follower_id):
-    current_author = get_author(request)
+    current_author = get_author_by_id(author_id)
     if request.method == 'POST':
         follower = Author.objects.get(id=follower_id)
         Follow.objects.filter(
