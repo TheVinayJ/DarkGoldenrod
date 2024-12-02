@@ -3881,4 +3881,4 @@ def get_post_image_by_id(request, author_id, post_id):
         return JsonResponse(response)
             
     except Exception as e:
-        return HttpResponse("Invalid image data", status=400)
+        return HttpResponse(f"Invalid image data: {e}", status=400)
