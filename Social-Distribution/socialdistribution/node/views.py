@@ -2239,9 +2239,17 @@ def view_post(request, post_id):
     if PostLike.objects.filter(owner=post, liker=author).exists():
         liked = True
 
+    post.likes_count = PostLike.objects.filter(owner=post).count()
+    post.comments_count = Comment.objects.filter(post=post).count()
+    post.user_has_liked = liked
+
     # user_likes strategy obtained from Microsoft Copilot, Oct. 2024
     # Find likes from current user matching the queried comment
     user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
+    comments = Comment.objects.filter(post=post).annotate(
+        likes=Count('commentlike'),
+        liked=Exists(user_likes)
+    )
 
     return render(request, "post.html", {
         "post": post,
@@ -2250,10 +2258,7 @@ def view_post(request, post_id):
         'author': author,
         'liked' : liked,
         'author_id': author.id,
-        'comments': Comment.objects.filter(post=post)
-                  .annotate(likes=Count('commentlike'),
-                            liked=Exists(user_likes)
-                            ),
+        'comments': comments,
     })
 
 # @api_view(['GET'])

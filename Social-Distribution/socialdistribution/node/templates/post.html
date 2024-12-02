@@ -57,27 +57,27 @@
             {% csrf_token %}
             {% if post.user_has_liked %}
                 <button type="submit" class="action-button">
-                    <span class="material-symbols-outlined">favorite</span>{{ post.likes }}
+                    <span class="material-symbols-outlined">favorite</span>{{ post.likes_count }}
                 </button>
             {% else %}
                 <button type="submit" class="action-button">
-                    <span class="material-symbols-outlined">favorite</span>{{ post.likes }}
+                    <span class="material-symbols-outlined">favorite</span>{{ post.likes_count }}
                 </button>
             {% endif %}
         </form>
     
         <!-- Comment Button -->
         <a href="{% url 'view_post' post.id %}#comments" class="action-link">
-            <span class="material-symbols-outlined">tooltip</span> {{ post.comments }}
+            <span class="material-symbols-outlined">tooltip</span> {{ post.comments_count }}
         </a>
     
         <!-- Repost Button -->
-        <form action="{% url 'repost' post.id %}" method="POST" style="display:inline;">
+        <!-- <form action="{% url 'repost' post.id %}" method="POST" style="display:inline;">
             {% csrf_token %}
             <button type="submit" class="action-button">
                 <span class="material-symbols-outlined">repeat</span>
             </button>
-        </form>
+        </form> -->
     </div>
 
     </div>
