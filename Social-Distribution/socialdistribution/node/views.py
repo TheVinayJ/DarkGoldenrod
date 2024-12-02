@@ -2521,7 +2521,7 @@ def followers_following_friends(request, author_id):
             'display_name': user.display_name,
             'host': user.host,
             'github': user.github,
-            'profile_image_base64': user.profile_image_base64,
+            'profile_image_base64': user.profile_image,
         })
 
     context = {
