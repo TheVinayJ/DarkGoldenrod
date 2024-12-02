@@ -2995,7 +2995,7 @@ def unfollow_author(request, author_id):
         messages.warning(request, "You are not following this author.")
 
     # Redirect back to the authors list or a success page
-    return redirect('authors')
+    return redirect('profile')
 
 def follow_requests(request, author_id):
     #current_author = get_object_or_404(Author, id=author_id)  # logged in author
@@ -3060,7 +3060,7 @@ def remove_follower(request, author_id, follower_id):
             approved=True
         ).delete()
         messages.success(request, f"You have removed {follower.display_name} from your followers.")
-    return redirect('followers_list', author_id=current_author.id)
+    return redirect('followers', author_id=current_author.id)
 
 
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
