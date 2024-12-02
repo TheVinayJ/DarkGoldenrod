@@ -3856,25 +3856,29 @@ def get_post_image(request, author_id, post_id):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def get_post_image_by_id(request, post_fqid):
+def get_post_image_by_id(request, author_id, post_id):
     """
     GET [local, remote] get the public post converted to binary as an image using FQID.
     Returns 404 if not an image.
     """
-    post_id = post_fqid.split('/')[-1]
     post = get_post_by_id(post_id)
         
-        # Check if this is an image post
+    # Check if this is an image post
     if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
         return HttpResponse("Not an image post", status=404)
         
     try:
-        post_data = PostSerializer(post).data
+        #post_data = PostSerializer(post).data
         decoded_image = base64.b64decode(post.text_content)
-            
-        post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
-            
-        return JsonResponse(post_data)
+        
+        # json_content = {
+        #     "contentType": post.contentType,
+        #     "content": decoded_image.decode('utf-8', errors='ignore')
+        # }
+        #post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
+        
+        response = HttpResponse(decoded_image, contentType=post.contentType)
+        return JsonResponse(response)
             
     except Exception as e:
         return HttpResponse("Invalid image data", status=400)
