@@ -2897,7 +2897,8 @@ def follow_requests(request, author_id):
     follower_authors = []
     for a_request in current_follow_requests:
         # follower_id = a_request.follower.replace("https://darkgoldenrod/api/authors/", "")
-        follower = get_object_or_404(Author, url=a_request.follower)
+        # follower = get_object_or_404(Author, url=a_request.follower)
+        follower = Author.objects.get(url=a_request.follower)
         follower_authors.append({
             'id': follower.id,
             'display_name': follower.display_name,
