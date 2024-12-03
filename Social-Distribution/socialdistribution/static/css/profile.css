@@ -232,3 +232,10 @@
     object-fit: cover;
     margin: 10px;
 }
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
