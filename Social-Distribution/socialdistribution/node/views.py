@@ -1427,7 +1427,7 @@ def local_api_like(request, id):
         print(f"Current author host: {current_author.host}")
 
         # Handle remote and local likes
-        if not PostLike.objects.filter(object_id=like_uuid, liker=current_author, owner=liked_post).exists():
+        if not PostLike.objects.filter(liker=current_author, owner=liked_post).exists():
             if current_author.host[:-4] != node:
                 # Send the like request to a remote node's inbox
                 response = post_request_to_node(node, inbox_url, data=like_request)
@@ -1449,8 +1449,7 @@ def local_api_like(request, id):
                     owner=liked_post,
                     created_at=django.utils.timezone.now(),
                 )
-                like.save()
-                
+                like.save()     
         else:
             print("post like already exists")
             pass
@@ -1524,7 +1523,7 @@ def local_api_like_comment(request, id):
     try:
         node = comment_author.host.rstrip('/').replace('http://', 'https://')
         node = node[:-3]
-        if not CommentLike.objects.filter(object_id=like_uuid, liker=current_author, owner=liked_comment).exists():
+        if not CommentLike.objects.filter(liker=current_author, owner=liked_comment).exists():
             if current_author.host[:-4] != node:
                 response = post_request_to_node(node, inbox_url, data=like_request)
                 if response and response.status_code in [200, 201]:
