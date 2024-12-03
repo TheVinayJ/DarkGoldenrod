@@ -139,13 +139,14 @@
 }
 
 .section.active {
-    display: block;
+    display: flex;
+    justify-content: center
 }
 
-#posts {
-    display: flex;
-    justify-content: center;
-}
+/*#posts {*/
+/*    display: flex;*/
+/*    justify-content: center;*/
+/*}*/
 
 /* Post list */
 .post-list {
@@ -231,11 +232,4 @@
     border-radius: 50%;
     object-fit: cover;
     margin: 10px;
-}
-.section {
-    display: none;
-}
-
-.section.active {
-    display: block;
 }
