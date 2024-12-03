@@ -1519,6 +1519,7 @@ def local_api_like_comment(request, id):
 
     inbox_url = f"{comment_author.url}/inbox"
     access_token = AccessToken.for_user(current_author)
+    post_id = liked_comment.post.id
 
     try:
         node = comment_author.host.rstrip('/').replace('http://', 'https://')
@@ -1527,7 +1528,7 @@ def local_api_like_comment(request, id):
             if current_author.host[:-4] != node:
                 response = post_request_to_node(node, inbox_url, data=like_request)
                 if response and response.status_code in [200, 201]:
-                    return redirect(f'/node/posts/{id}/')
+                    return redirect(f'/node/posts/{post_id}/')
             else:
                 like = CommentLike.objects.create(
                     object_id=like_uuid,
@@ -1538,7 +1539,7 @@ def local_api_like_comment(request, id):
             print("Comment like already exists")
             pass
 
-        return redirect(f'/node/posts/{id}/')
+        return redirect(f'/node/posts/{post_id}/')
     except Exception as e:
         print(f"Failed to send comment like request: {str(e)}")
         messages.error(request, "Failed to send comment like request. Please try again.")
