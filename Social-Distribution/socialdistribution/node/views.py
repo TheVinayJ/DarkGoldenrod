@@ -1427,10 +1427,22 @@ def local_api_like(request, id):
         print(f"Current author host: {current_author.host}")
 
         # Handle remote and local likes
-        if current_author.host[:-4] != node:
-            # Send the like request to a remote node's inbox
-            response = post_request_to_node(node, inbox_url, data=like_request)
-            if response and response.status_code in [200, 201]:
+        if not PostLike.objects.filter(object_id=like_uuid, liker=current_author, owner=liked_post).exists():
+            if current_author.host[:-4] != node:
+                # Send the like request to a remote node's inbox
+                response = post_request_to_node(node, inbox_url, data=like_request)
+                if response and response.status_code in [200, 201]:
+                    like = PostLike.objects.create(
+                        object_id=like_uuid,
+                        liker=current_author,
+                        owner=liked_post,
+                        created_at=django.utils.timezone.now(),
+                    )
+                    like.save()
+                    print(f"redirecting to /node/posts/{id}/")
+                    return redirect(f'/node/posts/{id}/')
+            else:
+                # Save the like locally using the `Like` mode
                 like = PostLike.objects.create(
                     object_id=like_uuid,
                     liker=current_author,
@@ -1438,17 +1450,11 @@ def local_api_like(request, id):
                     created_at=django.utils.timezone.now(),
                 )
                 like.save()
-                print(f"redirecting to /node/posts/{id}/")
-                return redirect(f'/node/posts/{id}/')
+                
         else:
-            # Save the like locally using the `Like` model
-            like = PostLike.objects.create(
-                object_id=like_uuid,
-                liker=current_author,
-                owner=liked_post,
-                created_at=django.utils.timezone.now(),
-            )
-            like.save()
+            print("post like already exists")
+            pass
+                
 
         # Redirect to the post after liking
         return redirect(f'/node/posts/{id}/')
@@ -1518,16 +1524,20 @@ def local_api_like_comment(request, id):
     try:
         node = comment_author.host.rstrip('/').replace('http://', 'https://')
         node = node[:-3]
-        if current_author.host[:-4] != node:
-            response = post_request_to_node(node, inbox_url, data=like_request)
-            if response and response.status_code in [200, 201]:
-                return redirect(f'/node/posts/{id}/')
+        if not CommentLike.objects.filter(object_id=like_uuid, liker=current_author, owner=liked_comment).exists():
+            if current_author.host[:-4] != node:
+                response = post_request_to_node(node, inbox_url, data=like_request)
+                if response and response.status_code in [200, 201]:
+                    return redirect(f'/node/posts/{id}/')
+            else:
+                like = CommentLike.objects.create(
+                    object_id=like_uuid,
+                    liker=current_author, 
+                    owner=liked_comment)
+                like.save()
         else:
-            like = CommentLike.objects.create(
-                object_id=like_uuid,
-                liker=current_author, 
-                owner=liked_comment)
-            like.save()
+            print("Comment like already exists")
+            pass
 
         return(redirect(f'/node/posts/{id}/'))
     except Exception as e:
@@ -1558,7 +1568,7 @@ def post_like(request, author_id):
         #     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
         return JsonResponse(data=PostLikeSerializer(post_like).data, status=200, safe=False)
     else:
-        return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
+        return JsonResponse({'message' : 'PostLike already exists.'}, status=200)
         
 
 def comment_like(request, author_id):
@@ -1575,7 +1585,7 @@ def comment_like(request, author_id):
         comment_like = CommentLike.objects.create(liker=liker, owner=comment)
         return JsonResponse(data=CommentLikeSerializer(comment_like).data, status=200, safe=False)
     else:
-        return JsonResponse({'message': 'comment like already exists, unlike instead'}, status=400)
+        return JsonResponse({'message': 'comment like already exists'}, status=200)
 
     # serializer = CommentLikeSerializer(comment_like, data=body)
     # if serializer.is_valid():
