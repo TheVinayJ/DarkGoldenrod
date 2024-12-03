@@ -97,7 +97,7 @@
         <a href="#" onclick="showSection('github')" style="margin-right: 15px;">GitHub Activity</a>
     </div>
     
-    <div id="posts" class="section active">
+    <div id="posts" class="section">
         {% if posts %}
                 <ul class="post-list">
                 {% for post in posts %}
@@ -275,7 +275,7 @@
         {% endif %}
     </div>
 
-{%block scripts%}
+
     <script>
         function showSection(sectionId) {
             // Hide all sections
@@ -290,7 +290,7 @@
                 activeSection.classList.add('active');
             }
         }
-        </script>
+</script>
 
     <script src="{% static 'authentication.min.js' %}"></script>
     <script src="{% static 'markdown-editor.min.js' %}"></script>
