@@ -99,7 +99,8 @@ def api_authors_list(request):
             "github": "https://github.com/" + author.github if author.github else '',
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
-        } for author in authors if '@foreignnode.com' not in author.email]
+            # Don't show foreign users or superusers
+        } for author in authors if (('@foreignnode.com' not in author.email) and ('http://darkgoldenrod/' not in author.url))]
 
     response_data = {
         "type": "authors",
