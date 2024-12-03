@@ -3085,11 +3085,11 @@ def add_external_post(request, author_id):
     post_url = body.get('id')
     
     # Mark any existing posts with the same URL as deleted
-    existing_posts_with_id = Post.objects.filter(url=post_url)
+    # existing_posts_with_id = Post.objects.filter(url=post_url)
     
-    for post in existing_posts_with_id:
-        post.visibility = 'DELETED'
-        post.save()
+    # for post in existing_posts_with_id:
+    #     post.visibility = 'DELETED'
+    #     post.save()
     
     contentType = body.get('contentType', 'text/plain')
     title = body.get('title', 'Untitled Post')
