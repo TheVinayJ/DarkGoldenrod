@@ -1538,7 +1538,7 @@ def local_api_like_comment(request, id):
             print("Comment like already exists")
             pass
 
-        return(redirect(f'/node/posts/{id}/'))
+        return redirect(f'/node/posts/{id}/')
     except Exception as e:
         print(f"Failed to send comment like request: {str(e)}")
         messages.error(request, "Failed to send comment like request. Please try again.")
