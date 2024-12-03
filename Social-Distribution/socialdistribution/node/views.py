@@ -3126,7 +3126,20 @@ def add_external_post(request, author_id):
         post_data["text_content"] = content if content else ""
 
     # Create and save the post
-    post = Post.objects.create(**post_data)
+    #post = Post.objects.create(**post_data)
+    
+    # Check if a post with the same URL already exists
+    existing_post = Post.objects.filter(url=post_url).first()
+    if existing_post:
+        # Update the existing post
+        for key, value in post_data.items():
+            if key != "image_content" or value:  # Prevent overwriting images with None
+                setattr(existing_post, key, value)
+        existing_post.save()
+        post = existing_post
+    else:
+        # Create a new post
+        post = Post.objects.create(**post_data)
 
     # Serialize the post
     serialized_post = PostSerializer(post)
