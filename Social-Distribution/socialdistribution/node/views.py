@@ -99,7 +99,8 @@ def api_authors_list(request):
             "github": "https://github.com/" + author.github if author.github else '',
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
-        } for author in authors if '@foreignnode.com' not in author.email]
+            # Don't show foreign users or superusers
+        } for author in authors if (('@foreignnode.com' not in author.email) and ('http://darkgoldenrod/' not in author.url))]
 
     response_data = {
         "type": "authors",
@@ -528,6 +529,8 @@ def authors_list(request):
     size = request.GET.get('size', None)
     user = get_author(request)
 
+    filter_type = request.GET.get('filter', 'all')
+
     # Get local authors directly
     local_authors = Author.objects.all()
     if query:
@@ -539,15 +542,26 @@ def authors_list(request):
     else:
         local_authors = local_authors[:50]  # Limit to 50 authors
 
-    authors = [{
-        "type": "author",
-        "id": f"{author.url}",
-        "host": author.host,
-        "displayName": author.display_name,
-        "github": author.github,
-        "profileImage": author.profile_image.url if author.profile_image else '',
-        "page": author.page
-    } for author in local_authors]
+    authors = []
+
+    for author in local_authors:
+        # Fetch recent posts
+        recent_posts_qs = Post.objects.filter(author=author).order_by('-published')[:3]
+        recent_posts = [
+            {"title": post.title, "published": post.published.strftime("%Y-%m-%d %H:%M:%S")} 
+            for post in recent_posts_qs
+        ]
+
+        authors.append({
+            "type": "author",
+            "id": f"{author.url}",
+            "host": author.host,
+            "displayName": author.display_name,
+            "github": author.github,
+            "profileImage": author.profile_image.url if author.profile_image else '',
+            "page": author.page,
+            "recent_posts": recent_posts
+        })
     
     NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
 
@@ -561,15 +575,48 @@ def authors_list(request):
                 endpoint = 'api/authors/'
             tasks.append(send_request_to_node(node_name, endpoint))
         responses = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        post_tasks = []
         node_authors = []
+
         for response in responses:
             if isinstance(response, Exception):
                 # Handle exceptions
                 print(f"Error fetching from node: {response}")
                 continue
+
             if response and 'authors' in response:
+                for author in response['authors']:
+                    author_id = author['id'].split('/')[-1]  # Extract author ID
+                    node_name = next((n for n in NODES if n in author['id']), None)
+                    
+                    if node_name:
+                        # Construct the endpoint for fetching author's posts
+                        posts_endpoint = f'api/authors/{author_id}/posts/'
+                        post_tasks.append((
+                            send_request_to_node(node_name, posts_endpoint),
+                            author
+                        ))
                 node_authors.extend(response['authors'])
-        print("Node authors: ", node_authors)
+
+        # Fetch posts for each author
+        post_responses = await asyncio.gather(*[task[0] for task in post_tasks])
+        
+        # Match posts with their respective authors
+        for (posts_response, author), task in zip(post_responses, post_tasks):
+            if isinstance(posts_response, Exception):
+                print(f"Error fetching posts: {posts_response}")
+                author['recent_posts'] = []
+            else:
+                recent_posts = posts_response.get('posts', [])[:3]
+                author['recent_posts'] = [
+                    {
+                        "title": post.get('title', ''),
+                        "published": post.get('published', '')
+                    } 
+                    for post in recent_posts
+                ]
+
         return node_authors
 
     loop = asyncio.new_event_loop()
@@ -605,16 +652,38 @@ def authors_list(request):
         author['linkable'] = author['id'].startswith(f"https://{request.get_host()}/api/authors/")
         author_from_db = Author.objects.filter(url=author['id']).first()
         author['id_num'] = author_from_db.id if author_from_db else None
+
         author['is_following'] = Follow.objects.filter(
             follower=f"https://{request.get_host()}/api/authors/{user.id}",
             following=author['id'],
             approved=True
         ).exists()
 
+        # Check if there is a pending follow request to this author
+        author['is_pending'] = Follow.objects.filter(
+            follower=f"https://{request.get_host()}/api/authors/{user.id}",
+            following=author['id'],
+            approved=False
+        ).exists()
+
+        author['is_followed_by'] = Follow.objects.filter(
+            follower=author['id'],
+            following=f"https://{request.get_host()}/api/authors/{user.id}",
+            approved=True
+        ).exists()
+
+    if filter_type == 'following':
+        authors = [author for author in authors if author['is_following']]
+    elif filter_type == 'friends':
+        authors = [author for author in authors if author['is_following'] and author['is_followed_by']]
+    elif filter_type == 'all':
+        pass
+
     context = {
         'authors': authors,
         'query': query,
         'total_pages': 1,  # Adjust as needed
+        'active_tab': filter_type,
     }
 
     return render(request, 'authors.html', context)
@@ -2171,9 +2240,17 @@ def view_post(request, post_id):
     if PostLike.objects.filter(owner=post, liker=author).exists():
         liked = True
 
+    post.likes_count = PostLike.objects.filter(owner=post).count()
+    post.comments_count = Comment.objects.filter(post=post).count()
+    post.user_has_liked = liked
+
     # user_likes strategy obtained from Microsoft Copilot, Oct. 2024
     # Find likes from current user matching the queried comment
     user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
+    comments = Comment.objects.filter(post=post).annotate(
+        likes=Count('commentlike'),
+        liked=Exists(user_likes)
+    )
 
     return render(request, "post.html", {
         "post": post,
@@ -2182,10 +2259,7 @@ def view_post(request, post_id):
         'author': author,
         'liked' : liked,
         'author_id': author.id,
-        'comments': Comment.objects.filter(post=post)
-                  .annotate(likes=Count('commentlike'),
-                            liked=Exists(user_likes)
-                            ),
+        'comments': comments,
     })
 
 # @api_view(['GET'])

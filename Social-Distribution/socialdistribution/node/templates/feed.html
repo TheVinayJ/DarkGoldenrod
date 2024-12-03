@@ -93,12 +93,12 @@
             </a>
         
             <!-- Repost Button -->
-            <form action="{% url 'repost' post.id %}" method="POST" style="display:inline;">
+            <!-- <form action="{% url 'repost' post.id %}" method="POST" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit" class="action-button">
                     <span class="material-symbols-outlined">repeat</span>
                 </button>
-            </form>
+            </form> -->
         </div>
     </li>
     {% endfor %}

@@ -127,6 +127,12 @@
 }
 
 /* Sections */
+.section-nav{
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
 .section {
     display: none;
     padding: 20px;
