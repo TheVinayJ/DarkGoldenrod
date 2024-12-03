@@ -1514,6 +1514,7 @@ def local_api_like_comment(request, id):
 
     inbox_url = f"{comment_author.url}/inbox"
     access_token = AccessToken.for_user(current_author)
+    post_id = liked_comment.post.id
 
     try:
         node = comment_author.host.rstrip('/').replace('http://', 'https://')
