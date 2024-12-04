@@ -43,7 +43,7 @@ urlpatterns = [
     path("node/authors/<uuid:author_id>/followings/", views.followers_following_friends, name='followings'),
     path("node/authors/<uuid:author_id>/friends/", views.followers_following_friends, name='friends'),
 
-    path('node/authors/<str:author_id>/follower_requests/', views.follow_requests, name='follow_requests'),
+    path('node/authors/<uuid:author_id>/follower_requests/', views.follow_requests, name='follow_requests'),
     path('node/authors/<uuid:author_id>/follower_requests/approve/<uuid:follower_id>/', views.approve_follow, name='approve_follow'),
     path('node/authors/<uuid:author_id>/follower_requests/decline/<uuid:follower_id>/', views.decline_follow, name='decline_follow'),
     path('node/authors/<uuid:author_id>/remove_follower/<uuid:follower_id>/', views.remove_follower, name='remove_follower'),

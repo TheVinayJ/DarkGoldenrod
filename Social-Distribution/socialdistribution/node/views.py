@@ -3308,6 +3308,7 @@ def follow_requests(request, author_id):
     follower_authors = []
     for a_request in current_follow_requests:
         # follower_id = a_request.follower.replace("https://darkgoldenrod/api/authors/", "")
+        print(a_request.follower)
         follower = get_object_or_404(Author, url=a_request.follower)
         follower_authors.append({
             'id': follower.id,
@@ -3316,7 +3317,6 @@ def follow_requests(request, author_id):
             'github': follower.github,
             'profile_image_base64': follower.profile_image,
         })
-
     context = {
         'page_title': 'Follow Requests',
         'users': follower_authors,
