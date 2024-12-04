@@ -2880,6 +2880,7 @@ def local_api_follow(request, author_id):
         print(node+"api/")
         # if remote node
         if current_author.host.replace('https://','https://') != (node+"api/"):
+            print("post request sent")
             response = post_request_to_node(node, inbox_url, data=follow_request)
         # else local node
         else:
