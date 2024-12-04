@@ -1406,7 +1406,7 @@ def local_api_like(request, id):
             "host": current_author.host,
             "displayName": current_author.display_name,
             "github": current_author.github or "",
-            "profileImage": current_author.profile_image.url if current_author.profile_image else None,
+            "profileImage": current_author.profile_image.url if current_author.profile_image else "",
         },
         "published": datetime.datetime.now().isoformat(),
         "id": like_id,
