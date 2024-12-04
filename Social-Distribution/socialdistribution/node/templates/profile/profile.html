@@ -188,7 +188,7 @@
 
     <div id="github" class="section">
         {% if activity %}
-                <ul class="post-github">
+                <ul class="post-list">
                 {% for post in activity %}
                 <li class="post-item">
 
@@ -275,7 +275,7 @@
         {% endif %}
     </div>
 
-{%block scripts%}
+
     <script>
         function showSection(sectionId) {
             // Hide all sections
@@ -290,9 +290,8 @@
                 activeSection.classList.add('active');
             }
         }
-        </script>
+</script>
 
     <script src="{% static 'authentication.min.js' %}"></script>
     <script src="{% static 'markdown-editor.min.js' %}"></script>
-{% endblock %}
 {% endblock %}

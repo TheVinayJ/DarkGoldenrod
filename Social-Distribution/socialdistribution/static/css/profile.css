@@ -139,13 +139,14 @@
 }
 
 .section.active {
-    display: block;
+    display: flex;
+    justify-content: center
 }
 
-#posts {
-    display: flex;
-    justify-content: center;
-}
+/*#posts {*/
+/*    display: flex;*/
+/*    justify-content: center;*/
+/*}*/
 
 /* Post list */
 .post-list {
