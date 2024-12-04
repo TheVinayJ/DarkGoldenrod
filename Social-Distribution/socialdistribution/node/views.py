@@ -3323,6 +3323,7 @@ def follow_requests(request, author_id):
         'page_type': 'follow_requests',
         'current_author': current_author,
     }
+    print(context)
 
     return render(request, 'user_list.html', context)
 
