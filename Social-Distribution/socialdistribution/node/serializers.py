@@ -233,7 +233,7 @@ class PostSerializer(serializers.ModelSerializer):
             'content',
             'visibility',
             'author',
-            'url',
+            #'url',
             'page',
             'published',
             'comments',
@@ -246,11 +246,11 @@ class PostSerializer(serializers.ModelSerializer):
             return obj.url
         return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
-    def get_url(self, obj):
-        # If the URL exists in the model, use it; otherwise, generate it dynamically
-        if obj.url:
-            return obj.url
-        return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
+    # def get_url(self, obj):
+    #     # If the URL exists in the model, use it; otherwise, generate it dynamically
+    #     if obj.url:
+    #         return obj.url
+    #     return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_page(self, obj):
         if obj.url:
