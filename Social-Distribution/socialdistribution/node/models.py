@@ -9,7 +9,6 @@ import django
 import datetime
 import uuid
 
-
 class AuthorManager(BaseUserManager):
     def create_user(self, email, display_name, password=None, **extra_fields):
         if not email:
@@ -51,7 +50,7 @@ class Author(AbstractBaseUser, PermissionsMixin):
     friends = models.ManyToManyField('self', blank=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
-    is_staff = models.BooleanField(default=False)  # Required for admin interface
+    is_staff = models.BooleanField(default=False)
 
     objects = AuthorManager()
 
@@ -60,22 +59,19 @@ class Author(AbstractBaseUser, PermissionsMixin):
         
     def save(self, *args, **kwargs):
         if not self.email and self._state.adding:
-            super().save(*args, **kwargs)  # Save to generate 'id'
+            super().save(*args, **kwargs)
             self.email = f"{self.id}@foreignnode.com"
-            # Now save only the 'url' field
             super().save(update_fields=['email'])
         elif not self.url and self._state.adding:
-            super().save(*args, **kwargs)  # Save to generate 'id'
+            super().save(*args, **kwargs)
             self.url = f"{self.host}authors/{self.id}"
             self.page = f"{self.host[:-4]}author/{self.id}"
-            # Now save only the 'url' field
             super().save(update_fields=['url'])
         elif not self.url and not self.email and self._state.adding:
-            super().save(*args, **kwargs)  # Save to generate 'id'
+            super().save(*args, **kwargs)
             self.url = f"{self.host}authors/{self.id}"
             self.email = f"{self.id}@foreignnode.com"
             self.page = f"{self.host[:-4]}author/{self.id}"
-            # Now save only the 'url' field
             super().save(update_fields=['url', 'email'])
         else:
             super().save(*args, **kwargs)
@@ -104,9 +100,9 @@ class Post(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100)
-    description = models.TextField()  # Posts need a short description
+    description = models.TextField()
     contentType = models.CharField(max_length=50, default="text/plain")
-    text_content = models.TextField(blank=True, null=True)  # Text post content (optional)
+    text_content = models.TextField(blank=True, null=True)
     image_content = models.ImageField(upload_to='images/postImages', default=None, blank=True, null=True)
     published = models.DateTimeField()
     visibility = models.CharField(
@@ -142,22 +138,21 @@ class Image(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
 class Follow(models.Model):
-    follower = models.CharField(max_length=200)  # Full URL of the follower author
-    following = models.CharField(max_length=200)  # Full URL of the author being followed
-    approved = models.BooleanField(default=False, db_index=True)  # To track if the follow request is approved
+    follower = models.CharField(max_length=200)
+    following = models.CharField(max_length=200)
+    approved = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('follower', 'following')  # Prevent duplicate follow entries
+        unique_together = ('follower', 'following')
 
     def is_friend(self):
-        # Check if the following author follows back the follower
         return Follow.objects.filter(follower=self.following, following=self.follower, approved=True).exists()
 
 class AllowedNode(models.Model):
     url = models.URLField(unique=True)
     username = models.CharField(max_length=150)
-    password = models.CharField(max_length=128)  # Now stored as plain text
+    password = models.CharField(max_length=128)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
