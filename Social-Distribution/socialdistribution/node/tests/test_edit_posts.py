@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from node.models import Author, Post
 import hashlib
@@ -45,18 +45,19 @@ class EditPostTest(TestCase):
 
     # login function follows Duy Bui's login_user test
     def login(self, author):
-        login_data = {
-            'email': author.email,
-            'password': hashlib.sha256("password123".encode()).hexdigest(),
-            'next': '/node/'  # Optional, based on your frontend
-        }
-        response = self.client.post(
-            reverse('api_login'),
-            data=json.dumps(login_data),
-            content_type='application/json'
-        )
-        self.assertEqual(response.status_code, 200)
-        return response
+        with override_settings(SECURE_SSL_REDIRECT=False):
+            login_data = {
+                'email': author.email,
+                'password': hashlib.sha256("password123".encode()).hexdigest(),
+                'next': '/node/'  # Optional, based on your frontend
+            }
+            response = self.client.post(
+                reverse('api_login'),
+                data=json.dumps(login_data),
+                content_type='application/json'
+            )
+            self.assertEqual(response.status_code, 200)
+            return response
 
     def test_edit_own_post(self):
         # Log in as author1

@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from rest_framework.test import APIClient
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -34,18 +34,19 @@ class AuthorListViewTest(TestCase):
 
     # login function follows Duy Bui's test_login_success test
     def login(self, author):
-        login_data = {
-            'email': author.email,
-            'password': "pass",
-            'next': '/node/'  # Optional, based on your frontend
-        }
-        response = self.client.post(
-            reverse('api_login'),
-            data=json.dumps(login_data),
-            content_type='application/json'
-        )
-        self.assertEqual(response.status_code, 200)
-        return response
+        with override_settings(SECURE_SSL_REDIRECT=False):
+            login_data = {
+                'email': author.email,
+                'password': "pass",
+                'next': '/node/'  # Optional, based on your frontend
+            }
+            response = self.client.post(
+                reverse('api_login'),
+                data=json.dumps(login_data),
+                content_type='application/json'
+            )
+            self.assertEqual(response.status_code, 200)
+            return response
 
     def test_view_url_exists_at_desired_location(self):
 

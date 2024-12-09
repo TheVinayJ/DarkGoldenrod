@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from node.models import Post, Repost, Author, Follow
 from django.urls import reverse
 import hashlib
@@ -30,17 +30,18 @@ class RepostTests(TestCase):
 
     # login function follows Duy Bui's login_user test
     def login(self, author):
-        login_data = {
-            'email': author.email,
-            'password': hashlib.sha256("password123".encode()).hexdigest(),
-            'next': '/node/'  # Optional, based on your frontend
-        }
-        response = self.client.post(
-            reverse('api_login'),
-            data=json.dumps(login_data),
-            content_type='application/json'
-        )
-        return response
+        with override_settings(SECURE_SSL_REDIRECT=False):
+            login_data = {
+                'email': author.email,
+                'password': hashlib.sha256("password123".encode()).hexdigest(),
+                'next': '/node/'  # Optional, based on your frontend
+            }
+            response = self.client.post(
+                reverse('api_login'),
+                data=json.dumps(login_data),
+                content_type='application/json'
+            )
+            return response
 
     def test_create_repost(self):
         login = self.login(self.author1)

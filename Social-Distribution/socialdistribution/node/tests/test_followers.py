@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from node.models import Author, Follow
 import hashlib
@@ -53,17 +53,18 @@ class AuthorFollowerTest(TestCase):
 
     # login function follows Duy Bui's login_user test
     def login(self, author):
-        login_data = {
-            'email': author.email,
-            'password': author.password,
-            'next': '/node/'  # Optional, based on your frontend
-        }
-        response = self.client.post(
-            reverse('api_login'),
-            data=login_data,  # Pass as dict; APIClient handles serialization
-            format='json'  # Automatically serializes to JSON
-        )
-        return response
+        with override_settings(SECURE_SSL_REDIRECT=False):
+            login_data = {
+                'email': author.email,
+                'password': author.password,
+                'next': '/node/'  # Optional, based on your frontend
+            }
+            response = self.client.post(
+                reverse('api_login'),
+                data=login_data,  # Pass as dict; APIClient handles serialization
+                format='json'  # Automatically serializes to JSON
+            )
+            return response
 
     def test_list_follower(self):
         login = self.login(self.author1)
