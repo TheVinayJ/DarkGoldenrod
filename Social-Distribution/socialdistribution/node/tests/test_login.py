@@ -5,6 +5,8 @@ from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.tokens import AccessToken
 import json
 
+from node.urls import UUIDOrIntConverter
+
 # The tests in this file and the helper function was written and debugged with OpenAI, ChatGPT o1-mini
 
 User = get_user_model()
@@ -47,7 +49,7 @@ class LoginViewTest(TestCase):
         self.assertIn('next', response_data)
         self.assertEqual(response_data['next'], '/node/')
         self.assertIn('user_id', response_data)
-        self.assertEqual(response_data['user_id'], self.test_user.id)
+        self.assertEqual(response_data['user_id'], str(self.test_user.id))
 
         # Verify that the appropriate cookies are set
         self.assertIn('access_token', response.cookies)

@@ -95,7 +95,6 @@ urlpatterns = [
     path('api/authors/<str:author_id>/commented/', views.author_commented, name='author_commented'),
     path('api/commented/<path:comment_fqid>', views.get_comment_by_fqid, name='get_comment_by_fqid'),
     path('api/authors/<str:author_id>/followers', views.followers_view, name='list_all_followers'),
-    path('api/authors/<str:author_id>/followers/', views.followers_view, name='list_all_followers'),
     path('api/authors/<str:author_id>/followers/<path:follower_id>', views.followers_view, name='list_follower'),
     path('api/authors/<str:author_id>/followers/approve', views.followers_view, name='approve_follow'),
     # path("api/authors/<str:author_id>/", views.api_single_author, name='single_author'),

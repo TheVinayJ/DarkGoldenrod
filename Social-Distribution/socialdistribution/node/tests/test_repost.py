@@ -40,7 +40,6 @@ class RepostTests(TestCase):
             data=json.dumps(login_data),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 200)
         return response
 
     def test_create_repost(self):

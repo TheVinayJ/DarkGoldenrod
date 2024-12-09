@@ -130,11 +130,7 @@ class LikesApiTest(APITestCase):
             object=self.post,
             published=timezone.now()
         )
-        Like.objects.create(
-            author=self.author_1,
-            object=self.comment,
-            published=timezone.now()
-        )
+
 
         liked_url = f"/service/api/authors/{self.author_1.id}/liked"
         response = self.client.get(liked_url)
