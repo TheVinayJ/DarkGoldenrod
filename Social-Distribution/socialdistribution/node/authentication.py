@@ -5,6 +5,7 @@ from django.contrib.auth.hashers import check_password
 from .models import AllowedNode
 from rest_framework import exceptions
 
+# With help from Chat-GPT 4o, OpenAI, 2024-11-02
 class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
         # Retrieve token from cookies
@@ -19,7 +20,8 @@ class CookieJWTAuthentication(JWTAuthentication):
         except exceptions.AuthenticationFailed:
             return None
         
-    
+
+# With help from Chat-GPT 4o, OpenAI, 2024-11-02
 class NodeBasicAuthentication(BasicAuthentication):
     """
     Custom Basic Authentication class to authenticate against the AllowedNode model.
