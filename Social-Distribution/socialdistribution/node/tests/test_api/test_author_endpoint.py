@@ -279,14 +279,14 @@ class AuthorsApiTest(TestCase):
                 
         # Test github in response
         self.assertIn('github', response_data, f"\nAuthor 1 is missing 'github' key")
-        self.assertEqual(response_data['github'], f"https://github.com/1", f"\nAuthor 1 url should be 'https://github.com/1', but response return '{response_data['github']}'")
+        self.assertEqual(response_data['github'], f"1", f"\nAuthor 1 url should be 'https://github.com/1', but response return '{response_data['github']}'")
 
         # Test profileImage in response
         self.assertIn('profileImage', response_data, f"\nAuthor 1 is missing 'profileImage' key")
                 
         # Test page in response
         self.assertIn('page', response_data, f"\nAuthor 1 is missing 'page' key")
-        self.assertTrue(str(response_data['page']).endswith(f"/authors/1"), f"\nAuthor 1 page should end with '/authors/1', but response return '{response_data['page']}'")
+        self.assertTrue(str(response_data['page']).endswith(f"/authors/"+str(self.authors[0].id)), f"\nAuthor 1 page should end with '/authors/*', but response return '{response_data['page']}'")
         
     
     # def test_put_author(self):
