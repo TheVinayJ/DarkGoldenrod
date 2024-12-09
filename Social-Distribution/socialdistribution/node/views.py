@@ -21,9 +21,6 @@ from rest_framework.views import APIView
 from django.utils.timezone import make_aware
 from django.core.files.base import ContentFile
 from asgiref.sync import async_to_sync
-
-# from node.serializers import serializer
-
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike, RemoteNode
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
@@ -96,7 +93,6 @@ def api_authors_list(request):
             "github": "https://github.com/" + author.github if author.github else '',
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
-            # Don't show foreign users or superusers
         } for author in authors if (('@foreignnode.com' not in author.email) and ('http://darkgoldenrod/' not in author.url))]
 
     response_data = {
@@ -510,11 +506,6 @@ def author_posts(request, author_id):
         followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
         print("Sending to the following followers: " + str(followers))
         
-        # for follower in followers:
-        #     json_content = PostSerializer(post).data
-        #     print("sending POST to: " + follower.follower)
-        #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
-            
         for follower in followers:
             json_content = PostSerializer(post).data
             follower_url = follower.follower
@@ -541,7 +532,6 @@ def author_posts(request, author_id):
 
 def get_posts_from_author(request, author_id):
     requester = get_author(request)
-    #author = get_object_or_404(Author, id=author_id)
     author = get_author_by_id(author_id)
     
     if requester == author:
@@ -734,10 +724,6 @@ def post_like(request, author_id):
     if not like_exists:
         print('Creating post like object')
         post_like = PostLike.objects.create(liker=liker, owner=post)
-        # serializer = PostLikeSerializer(post_like, data=body)
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
         return JsonResponse(data=PostLikeSerializer(post_like).data, status=200, safe=False)
     else:
         return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
@@ -750,7 +736,6 @@ def comment_like(request, author_id):
 
     comment_like_exists = PostLike.objects.filter(liker=liker, owner=comment)
     
-
     if not comment_like_exists:
         print('creating comment like object')
         comment_like = CommentLike.objects.create(liker=liker, owner=comment)
@@ -766,7 +751,6 @@ def get_post_likes(request, author_id, post_id):
     post_id = post_id.split('/')[-1]
     post = get_post_by_id_and_author(post_id, author_id)
     author = get_author_by_id(author_id)
-    
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
