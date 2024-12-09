@@ -57,14 +57,6 @@ class Author(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['display_name']
-
-    # def save(self, *args, **kwargs):
-    #     # Ensure the url is set when the instance is first created
-    #     if not self.url and self._state.adding:
-    #         super().save(*args, **kwargs)  # Save first to generate the auto-increment id
-    #         self.url = f"{self.host}authors/{self.id}"
-    #         kwargs['update_fields'] = ['url']
-    #     super().save(*args, **kwargs)  # Save again to store the URL
         
     def save(self, *args, **kwargs):
         if not self.email and self._state.adding:
