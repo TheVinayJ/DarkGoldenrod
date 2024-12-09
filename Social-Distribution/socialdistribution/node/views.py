@@ -2271,13 +2271,6 @@ def get_serialized_post(post):
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
-    # Since your local authors have integer IDs, convert author_id to integer
-    # try:
-    #     author_id_int = int(author_id)
-    # except ValueError:
-    #     return JsonResponse({"error": "Invalid author ID"}, status=400)
-    # author = get_object_or_404(Author, id=author_id_int)
-    
     author = get_author_by_id(author_id)
 
     if request.method == 'GET':
@@ -2403,6 +2396,7 @@ def followers_view(request, author_id, follower_id=None):
                 return JsonResponse({"error": "Follow relationship not found"}, status=404)
         else:
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
+        
         
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
