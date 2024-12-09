@@ -27,6 +27,7 @@ def login(request):
 def signout(request):
     return render(request, 'login/login.html')
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 class SignupView(generics.CreateAPIView):
     serializer_class = SignupSerializer
     permission_classes = [AllowAny]
@@ -44,7 +45,6 @@ class SignupView(generics.CreateAPIView):
         except SiteSetting.DoesNotExist:
             # If SiteSetting doesn't exist, create one with default values
             site_setting = SiteSetting.objects.create(user_approval_required=True)
-
 
         try:
             #author = serializer.save(commit=False)
@@ -94,6 +94,7 @@ class SignupView(generics.CreateAPIView):
             return JsonResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
@@ -137,6 +138,8 @@ class LoginView(generics.GenericAPIView):
 
         return response
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -146,6 +149,8 @@ class LogoutView(APIView):
         response.delete_cookie('user_id')
         return response
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 class UserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 

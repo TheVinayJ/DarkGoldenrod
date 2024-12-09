@@ -37,6 +37,7 @@ class AuthorSerializer(serializers.ModelSerializer):
             return obj.github
         return ""
 
+
 class CommentLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
     author = AuthorSerializer()
@@ -91,16 +92,15 @@ class PostLikesSerializer(serializers.Serializer):
         query_likes = likes[start:end]
         return PostLikeSerializer(query_likes, many=True).data
 
+
 class PostLikeSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='like')
     author = AuthorSerializer(source='liker')
     object = serializers.SerializerMethodField()
-    #created_at = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
     id = serializers.SerializerMethodField()
 
     class Meta:
         model = PostLike
-        #fields = ['type', 'author', 'object', 'created_at', 'id']
         fields = ['type', 'author', 'object', 'id']
     
     def get_id(self, obj):
@@ -146,6 +146,7 @@ class CommentLikesSerializer(serializers.Serializer):
         query_likes = likes[start:end]
         return CommentLikeSerializer(query_likes, many=True).data
 
+
 class CommentSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default="comment")
     author = AuthorSerializer()
@@ -168,25 +169,26 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_likes(self, obj):
         """Fetch likes for the comment."""
-        likes = CommentLike.objects.filter(owner=obj)  # Assuming CommentLike is your model for comment likes
+        likes = CommentLike.objects.filter(owner=obj)
         return {
             "type": "likes",
             "id": f"{obj.post.author.host}authors/{obj.author.id}/commented/{obj.id}/likes",
             "page": f"{obj.post.author.host}authors/{obj.author.id}/commented/{obj.id}/likes",
             "page_number": 1,
-            "size": 50,  # Default size of likes per page
+            "size": 50,
             "count": likes.count(),
             "src": [
                 {
                     "type": "like",
-                    "author": AuthorSerializer(like.liker).data,  # Serialize author of the like
-                    "published": like.created_at.isoformat(),  # Ensure ISO 8601 format
+                    "author": AuthorSerializer(like.liker).data,
+                    "published": like.created_at.isoformat(),
                     "id": f"{obj.post.author.host}authors/{like.liker.id}/liked/{obj.id}",
                     "object": f"{obj.post.author.host}authors/{obj.post.author.id}/posts/{obj.post.id}"
                 }
                 for like in likes
             ]
         }
+
 
 class CommentsSerializer(serializers.Serializer):
     # Microsoft Copilot, 2024. Aggregate of Comment serializer
@@ -211,16 +213,15 @@ class CommentsSerializer(serializers.Serializer):
         comments = Comment.objects.filter(post=obj).order_by('-published')
         return CommentSerializer(comments, many=True).data
 
+
 class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     id = serializers.SerializerMethodField()
-    #author = serializers.SerializerMethodField()
     page = serializers.SerializerMethodField()
     author = AuthorSerializer()
     comments = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
-    #image_content = serializers.ImageField()
 
     class Meta:
         model = Post
@@ -233,7 +234,6 @@ class PostSerializer(serializers.ModelSerializer):
             'content',
             'visibility',
             'author',
-            #'url',
             'page',
             'published',
             'comments',
@@ -241,16 +241,9 @@ class PostSerializer(serializers.ModelSerializer):
         ]
         
     def get_id(self, obj):
-        # Use the post's URL if it's from a remote node; otherwise, generate it dynamically
         if obj.url:
             return obj.url
         return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
-
-    # def get_url(self, obj):
-    #     # If the URL exists in the model, use it; otherwise, generate it dynamically
-    #     if obj.url:
-    #         return obj.url
-    #     return f"{obj.author.host}authors/{obj.author.id}/posts/{obj.id}"
 
     def get_page(self, obj):
         if obj.url:
@@ -281,6 +274,8 @@ class PostSerializer(serializers.ModelSerializer):
                 obj.contentType = obj.contentType + ";base64"
         return obj.contentType
 
+
+# With help from Chat-GPT 4o, OpenAI, 2024-11-02
 class SignupSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
 
@@ -310,17 +305,15 @@ class SignupSerializer(serializers.ModelSerializer):
         host = kwargs.pop('host', 'None')
         validated_data.pop('confirm_password')
         password = validated_data.pop('password')
-
-        # Add host to validated_data
         validated_data['host'] = host
-
         author = Author(**validated_data)
         author.is_active = is_active
-        #author.host = host
         author.set_password(password)
         author.save()
         return author
 
+
+# With help from Chat-GPT 4o, OpenAI, 2024-11-02
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
@@ -338,6 +331,7 @@ class LoginSerializer(serializers.Serializer):
         
         attrs['user'] = user
         return attrs
+
 
 class AuthorProfileSerializer(serializers.ModelSerializer):
     description = serializers.CharField(default="", allow_blank=True)

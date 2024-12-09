@@ -21,9 +21,6 @@ from rest_framework.views import APIView
 from django.utils.timezone import make_aware
 from django.core.files.base import ContentFile
 from asgiref.sync import async_to_sync
-
-# from node.serializers import serializer
-
 from .models import Post, Author, PostLike, Comment, Like, Follow, Repost, CommentLike, RemoteNode
 from django.contrib import messages
 from django.db.models import Q, Count, Exists, OuterRef, Subquery
@@ -51,8 +48,7 @@ from rest_framework.parsers import JSONParser
 import base64
 
 
-#NODES = RemoteNode.objects.filter(is_active=True).values_list('name', flat=True)
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_authors_list(request):
@@ -99,7 +95,6 @@ def api_authors_list(request):
             "github": "https://github.com/" + author.github if author.github else '',
             "profileImage": author.profile_image.url if author.profile_image else '',
             "page": author.page
-            # Don't show foreign users or superusers
         } for author in authors if (('@foreignnode.com' not in author.email) and ('http://darkgoldenrod/' not in author.url))]
 
     response_data = {
@@ -109,417 +104,8 @@ def api_authors_list(request):
 
     return JsonResponse(response_data, status=200)
 
-# @api_view(['GET'])
-# def authors_list(request):
-#     print("Host: ", request.get_host())
-    
-#     filter_type = request.GET.get('filter', 'all')
-#     query = request.GET.get('q', None)
-#     page = request.GET.get('page', None)
-#     size = request.GET.get('size', None)
-#     user = get_author(request)
 
-#     # Get local authors directly
-#     local_authors = Author.objects.all()
-
-#     # Apply filtering based on the active tab
-#     if filter_type == 'new':
-#         thirty_days_ago = timezone.now() - timedelta(days=30)
-#         local_authors = local_authors.filter(created_at__gte=thirty_days_ago)
-#     elif filter_type == 'following':
-#         following_urls = Follow.objects.filter(
-#             follower=f"https://{request.get_host()}/api/authors/{user.id}",
-#             approved=True
-#         ).values_list('following', flat=True)
-#         local_authors = local_authors.filter(url__in=following_urls)
-#     elif filter_type == 'friends':
-#         user_url = f"https://{request.get_host()}/api/authors/{user.id}"
-#         friends_urls = Follow.objects.filter(
-#             following=user_url,
-#             follower__in=Follow.objects.filter(
-#                 following=user_url,
-#                 approved=True
-#             ).values_list('follower', flat=True)
-#         ).values_list('follower', flat=True)
-#         local_authors = local_authors.filter(url__in=friends_urls)
-
-#     if query:
-#         local_authors = local_authors.filter(display_name__icontains=query)
-
-#     if page and size:
-#         paginator = Paginator(local_authors, size)
-#         local_authors = paginator.get_page(page)
-#     else:
-#         local_authors = local_authors[:50]  # Limit to 50 authors
-
-#     # authors = [{
-#     #     "type": "author",
-#     #     "id": f"{author.url}",
-#     #     "host": author.host,
-#     #     "displayName": author.display_name,
-#     #     "github": author.github,
-#     #     "profileImage": author.profile_image.url if author.profile_image else '',
-#     #     "page": author.page
-#     # } for author in local_authors]
-    
-#     NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
-
-#     # Fetch authors from external nodes asynchronously
-#     async def fetch_authors():
-#         tasks = []
-#         for node_name in NODES:
-#             if page and size:
-#                 endpoint = f'api/authors?page={page}&size={size}'
-#             else:
-#                 endpoint = 'api/authors/'
-#             tasks.append(send_request_to_node(node_name, endpoint))
-#         responses = await asyncio.gather(*tasks, return_exceptions=True)
-        
-#         post_tasks = []
-#         node_authors = []
-
-#         for response in responses:
-#             if isinstance(response, Exception):
-#                 print(f"Error fetching from node: {response}")
-#                 continue
-            
-#             if response and 'authors' in response:
-#                 for author in response['authors']:
-#                     # Fetch posts for this author
-#                     author_id = author['id'].split('/')[-1]  # Extract author ID
-#                     node_name = [n for n in NODES if n in author['id']][0] if NODES else None
-                    
-#                     if node_name:
-#                         # Construct the endpoint for fetching author's posts
-#                         posts_endpoint = f'api/authors/{author_id}/posts/'
-#                         post_tasks.append((
-#                             send_request_to_node(node_name, posts_endpoint),
-#                             author
-#                         ))
-                
-#                 node_authors.extend(response['authors'])
-        
-#         # Fetch posts for each author
-#         post_responses = await asyncio.gather(*[task[0] for task in post_tasks])
-        
-#         # Match posts with their respective authors
-#         for (posts_response, author), task in zip(post_responses, post_tasks):
-#             if isinstance(posts_response, Exception):
-#                 print(f"Error fetching posts: {posts_response}")
-#                 author['recent_posts'] = []
-#             else:
-#                 recent_posts = posts_response.get('posts', [])[:3]
-#                 author['recent_posts'] = [
-#                     {"title": post.get('title', ''), "published": post.get('published', '')} 
-#                     for post in recent_posts
-#                 ]
-        
-#         return node_authors
-
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     external_authors = loop.run_until_complete(fetch_authors())
-
-#     all_authors = list(local_authors) + external_authors
-
-#     # Prepare authors list with additional information
-#     authors = []
-#     for author in all_authors:
-#         is_local = isinstance(author, Author)
-        
-#         # Fetch recent posts
-#         if is_local:
-#             recent_posts = Post.objects.filter(author=author).order_by('-published')[:3]
-#             recent_posts = [
-#                 {"title": post.title, "published": post.published} 
-#                 for post in recent_posts
-#             ]
-#         else:
-#             # For external authors, use the recently fetched posts
-#             recent_posts = author.get('recent_posts', [])
-
-#         # Convert profile image to base64 for local authors
-#         profile_image_base64 = None
-#         if is_local and author.profile_image:
-#             try:
-#                 with open(author.profile_image.path, 'rb') as img_file:
-#                     profile_image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
-#             except Exception as e:
-#                 print(f"Error converting profile image: {e}")
-
-#         # Prepare author data
-#         if is_local:
-#             author_data = {
-#                 "type": "author",
-#                 "id": f"{author.url}",
-#                 "host": author.host,
-#                 "displayName": author.display_name,
-#                 "github": author.github,
-#                 "profileImage": author.profile_image.url if author.profile_image else '',
-#                 "page": author.page,
-#                 "id_num": author.id,
-#                 "profile_image_base64": profile_image_base64,
-#                 "recent_posts": recent_posts
-#             }
-#         else:
-#             author_data = {
-#                 "type": "author",
-#                 "id": author['id'],
-#                 "host": author.get('host', ''),
-#                 "displayName": author.get('displayName', ''),
-#                 "github": author.get('github', ''),
-#                 "profileImage": author.get('profileImage', ''),
-#                 "page": author.get('page', ''),
-#                 "recent_posts": recent_posts
-#             }
-
-#         # Check if current user is following this author
-#         author_data['is_following'] = Follow.objects.filter(
-#             follower=f"https://{request.get_host()}/api/authors/{user.id}",
-#             following=author_data['id'],
-#             approved=True
-#         ).exists()
-
-#         # Determine if the author is linkable
-#         author_data['linkable'] = author_data['id'].startswith(f"https://{request.get_host()}/api/authors/")
-
-#         authors.append(author_data)
-
-#     # Update or create authors in bulk
-#     author_urls = [author['id'] for author in authors]
-#     existing_authors = set(Author.objects.filter(url__in=author_urls).values_list('url', flat=True))
-#     authors_to_create = []
-#     for author in authors:
-#         if author['id'] not in existing_authors:
-#             print(author)
-#             try:
-#                 authors_to_create.append(Author(
-#                     url=author['id'],
-#                     host=author['host'],
-#                     display_name=author['displayName'],
-#                     github=author['github'],
-#                     page=author['page'],
-#                     profile_image=author['profileImage'],
-#                     email=f"{author['id']}@foreignnode.com",
-#                 ))
-#             except Exception as e:
-#                 print("Author has issue with: ", e)
-#                 authors.remove(author)
-#     Author.objects.bulk_create(authors_to_create)
-
-#     context = {
-#         'authors': authors,
-#         'query': query,
-#         'active_tab': filter_type,
-#         'total_pages': 1,  # Adjust as needed
-#     }
-
-#     return render(request, 'authors.html', context)
-
-
-# @api_view(['GET'])
-# def authors_list(request):
-#     print("Host: ", request.get_host())
-    
-#     filter_type = request.GET.get('filter', 'all')
-#     query = request.GET.get('q', None)
-#     page = request.GET.get('page', None)
-#     size = request.GET.get('size', None)
-#     user = get_author(request)
-
-#     # Get local authors directly
-#     local_authors = Author.objects.all()
-
-#     # Apply filtering based on the active tab
-#     if filter_type == 'new':
-#         thirty_days_ago = timezone.now() - timedelta(days=30)
-#         local_authors = local_authors.filter(created_at__gte=thirty_days_ago)
-#     elif filter_type == 'following':
-#         following_urls = Follow.objects.filter(
-#             follower=f"https://{request.get_host()}/api/authors/{user.id}",
-#             approved=True
-#         ).values_list('following', flat=True)
-#         local_authors = local_authors.filter(url__in=following_urls)
-#     elif filter_type == 'friends':
-#         user_url = f"https://{request.get_host()}/api/authors/{user.id}"
-#         friends_urls = Follow.objects.filter(
-#             following=user_url,
-#             follower__in=Follow.objects.filter(
-#                 following=user_url,
-#                 approved=True
-#             ).values_list('follower', flat=True)
-#         ).values_list('follower', flat=True)
-#         local_authors = local_authors.filter(url__in=friends_urls)
-
-#     if query:
-#         local_authors = local_authors.filter(display_name__icontains=query)
-
-#     if page and size:
-#         paginator = Paginator(local_authors, size)
-#         local_authors = paginator.get_page(page)
-#     else:
-#         local_authors = local_authors[:50]  # Limit to 50 authors
-
-#     NODES = list(RemoteNode.objects.filter(is_active=True).values_list('name', flat=True))
-
-#     # Fetch authors from external nodes asynchronously
-#     async def fetch_authors():
-#         tasks = []
-#         for node_name in NODES:
-#             if page and size:
-#                 endpoint = f'api/authors?page={page}&size={size}'
-#             else:
-#                 endpoint = 'api/authors/'
-#             tasks.append(send_request_to_node(node_name, endpoint))
-#         responses = await asyncio.gather(*tasks, return_exceptions=True)
-        
-#         post_tasks = []
-#         node_authors = []
-
-#         for response in responses:
-#             if isinstance(response, Exception):
-#                 print(f"Error fetching from node: {response}")
-#                 continue
-            
-#             if response and 'authors' in response:
-#                 for author in response['authors']:
-#                     # Fetch posts for this author
-#                     author_id = author['id'].split('/')[-1]  # Extract author ID
-#                     node_name = [n for n in NODES if n in author['id']][0] if NODES else None
-                    
-#                     if node_name:
-#                         # Construct the endpoint for fetching author's posts
-#                         posts_endpoint = f'api/authors/{author_id}/posts/'
-#                         post_tasks.append((
-#                             send_request_to_node(node_name, posts_endpoint),
-#                             author
-#                         ))
-                
-#                 node_authors.extend(response['authors'])
-        
-#         # Fetch posts for each author
-#         post_responses = await asyncio.gather(*[task[0] for task in post_tasks])
-        
-#         # Match posts with their respective authors
-#         for (posts_response, author), task in zip(post_responses, post_tasks):
-#             if isinstance(posts_response, Exception):
-#                 print(f"Error fetching posts: {posts_response}")
-#                 author['recent_posts'] = []
-#             else:
-#                 recent_posts = posts_response.get('posts', [])[:3]
-#                 author['recent_posts'] = [
-#                     {"title": post.get('title', ''), "published": post.get('published', '')} 
-#                     for post in recent_posts
-#                 ]
-        
-#         return node_authors
-
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     external_authors = loop.run_until_complete(fetch_authors())
-
-#     all_authors = list(local_authors) + external_authors
-
-#     # Prepare authors list with additional information
-#     authors = []
-#     for author in all_authors:
-#         is_local = isinstance(author, Author)
-        
-#         # Fetch recent posts
-#         if is_local:
-#             recent_posts = Post.objects.filter(author=author).order_by('-published')[:3]
-#             recent_posts = [
-#                 {"title": post.title, "published": post.published} 
-#                 for post in recent_posts
-#             ]
-#         else:
-#             # For external authors, use the recently fetched posts
-#             recent_posts = author.get('recent_posts', [])
-
-#         # Convert profile image to base64 for local authors
-#         profile_image_base64 = None
-#         if is_local and author.profile_image:
-#             try:
-#                 with open(author.profile_image.path, 'rb') as img_file:
-#                     profile_image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
-#             except Exception as e:
-#                 print(f"Error converting profile image: {e}")
-
-#         # Prepare author data
-#         if is_local:
-#             author_data = {
-#                 "type": "author",
-#                 "id": f"{author.url}",
-#                 "host": author.host,
-#                 "displayName": author.display_name,
-#                 "github": author.github,
-#                 "profileImage": author.profile_image.url if author.profile_image else '',
-#                 "page": author.page,
-#                 "id_num": author.id,
-#                 "profile_image_base64": profile_image_base64,
-#                 "recent_posts": recent_posts
-#             }
-#         else:
-#             author_data = {
-#                 "type": "author",
-#                 "id": author['id'],
-#                 "host": author.get('host', ''),
-#                 "displayName": author.get('displayName', ''),
-#                 "github": author.get('github', ''),
-#                 "profileImage": author.get('profileImage', ''),
-#                 "page": author.get('page', ''),
-#                 "recent_posts": recent_posts
-#             }
-
-#         # Check if current user is following this author
-#         author_data['is_following'] = Follow.objects.filter(
-#             follower=f"https://{request.get_host()}/api/authors/{user.id}",
-#             following=author_data['id'],
-#             approved=True
-#         ).exists()
-
-#         author_data['is_pending'] = Follow.objects.filter(
-#             follower=f"https://{request.get_host()}/api/authors/{user.id}",
-#             following=author_data['id'],
-#             approved=False
-#         ).exists()
-
-#         # Determine if the author is linkable
-#         author_data['linkable'] = author_data['id'].startswith(f"https://{request.get_host()}/api/authors/")
-
-#         authors.append(author_data)
-
-#     # Update or create authors in bulk
-#     author_urls = [author['id'] for author in authors]
-#     existing_authors = set(Author.objects.filter(url__in=author_urls).values_list('url', flat=True))
-#     authors_to_create = []
-#     for author in authors:
-#         if author['id'] not in existing_authors:
-#             print(author)
-#             try:
-#                 authors_to_create.append(Author(
-#                     url=author['id'],
-#                     host=author['host'],
-#                     display_name=author['displayName'],
-#                     github=author['github'],
-#                     page=author['page'],
-#                     profile_image=author['profileImage'],
-#                     email=f"{author['id']}@foreignnode.com",
-#                 ))
-#             except Exception as e:
-#                 print("Author has issue with: ", e)
-#                 authors.remove(author)
-#     Author.objects.bulk_create(authors_to_create)
-
-#     context = {
-#         'authors': authors,
-#         'query': query,
-#         'active_tab': filter_type,
-#         'total_pages': 1,  # Adjust as needed
-#     }
-
-#     return render(request, 'authors.html', context)
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 def authors_list(request):
     print("Host: ", request.get_host())
@@ -695,115 +281,8 @@ def editor(request):
     """
     return render(request, "editor.html")
 
-# @api_view(['GET', 'POST', 'PUT'])
-# @permission_classes([IsAuthenticated])
-# def edit_post(request, post_id):
-#     author = get_author(request)
-#     #post = get_object_or_404(Post, id=post_id)
-#     post = get_post_by_id(post_id)
 
-#     if author is None:
-#         return HttpResponseForbidden("You must be logged in to edit posts.")
-
-#     if post.author != author:
-#         return HttpResponseForbidden("You are not allowed to edit this post.")
-
-#     if request.method == 'POST':
-
-#         title = request.POST.get('title')
-#         description = request.POST.get('description')
-#         contentType = request.POST.get('contentType')
-#         visibility = request.POST.get('visibility')
-
-#         if not title or not description:
-#             messages.error(request, "Title and description cannot be empty.")
-#             return render(request, 'edit_post.html', {
-#                 'post': post,
-#                 'author_id': author.id,
-#             })
-
-#         post.title = title
-#         post.description = description
-#         post.visibility = visibility
-#         post.published = timezone.now()
-
-#         if contentType == 'plain':
-#             content = request.POST.get('plain-content')
-#             if not content:
-#                 messages.error(request, "Content cannot be empty for Plaintext.")
-#                 return render(request, 'edit_post.html', {'post': post})
-#             post.contentType = 'text/plain'
-#             post.text_content = content
-#             post.image_content = None  # Remove image if switching from image to text
-
-#         elif contentType == 'markdown':
-#             content = request.POST.get('markdown-content')
-#             if not content:
-#                 messages.error(request, "Content cannot be empty for Markdown.")
-#                 return render(request, 'edit_post.html', {'post': post})
-#             post.contentType = 'text/markdown'
-#             post.text_content = content
-#             post.image_content = None  # Remove image if switching from image to text
-
-#         elif contentType == 'image':
-#             image = request.FILES.get('image-content')
-#             if image:
-#                 file_suffix = os.path.splitext(image.name)[1][1:]  # Get file extension without dot
-#                 post.contentType = f'image/{file_suffix.lower()}'
-#                 post.image_content = image
-#                 post.text_content = None  # Remove text if switching from text to image
-#             else:
-#                 # If no new image is uploaded, keep the existing image_content
-#                 if not post.image_content:
-#                     messages.error(request, "No image uploaded and no existing image to retain.")
-#                     return render(request, 'edit_post.html', {'post': post})
-#                 # Else, keep the existing image and contentType
-#         else:
-#             messages.error(request, "Invalid content type.")
-#             return render(request, 'edit_post.html', {'post': post})
-
-#         post.save()
-        
-#         print("contentType:", contentType)
-#         print("plain_content:", request.POST.get('plain_content'))
-#         print("markdown_content:", request.POST.get('markdown_content'))
-#         print("image_content:", request.FILES.get('image_content'))
-
-#         print(f"Searching for followers following: https://{request.get_host()}/api/authors/{post.author.id}")
-#         followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{post.author.id}")
-#         print("Sending to the following followers: " + str(followers))
-
-#         # for follower in followers:
-#         #     json_content = PostSerializer(post).data
-#         #     print("sending POST to: " + follower.follower)
-#         #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
-
-#         for follower in followers:
-#             json_content = PostSerializer(post).data
-#             follower_url = follower.follower
-#             print("sending POST to: " + follower_url)
-
-#             # Extract base URL from follower's URL
-#             parsed_url = urlparse(follower_url)
-#             base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-
-#             # Send the POST request to the follower's inbox
-#             inbox_url = follower_url.rstrip('/') + '/inbox'
-
-#             print("base_url: ", base_url)
-#             print("inbox_url: ", inbox_url)
-#             print("json_content: ", json_content)
-#             # Now call post_request_to_node with base_url
-#             post_request_to_node(base_url, inbox_url, 'POST', json_content)
-
-#         return redirect('view_post', post_id=post.id)
-
-#     else:
-#         return render(request, 'edit_post.html', {
-#             'post': post,
-#             'author_id': author.id,
-#         })
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST', 'PUT'])
 @permission_classes([IsAuthenticated])
 def edit_post(request, post_id):
@@ -891,223 +370,8 @@ def edit_post(request, post_id):
 
     return render(request, 'edit_post.html', {'post': post, 'author_id': author.id})
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def add_post(request, author_id):
-#     author = get_author(request)
-#     contentType = request.POST["contentType"]
-#     print(request.POST)
-#     if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
-#         # Check whether content is from AJAX or an external API call
-#         # For AJAX formatting:
-#         if contentType != "image":
-#             contentType = 'text/' + contentType
-#             content = request.POST.getlist("content")
-#             if contentType == 'text/plain':
-#                 content = content[0]
-#             else:
-#                 content = content[1]
-#             post = Post(title=request.POST["title"],
-#                         description=request.POST["description"],
-#                         text_content=content,
-#                         contentType=contentType,
-#                         visibility=request.POST["visibility"],
-#                         published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                         author=author,
-#                         )
-#             post.save()
-#         else:
-#             # image = request.FILES["content"]
-#             # file_suffix = os.path.splitext(image.name)[1]
-#             # contentType = request.POST["contentType"]
-#             # contentType += '/' + file_suffix[1:]
-#             # post = Post(title=request.POST["title"],
-#             #             description=request.POST["description"],
-#             #             image_content=image,
-#             #             contentType=contentType,
-#             #             visibility=request.POST["visibility"],
-#             #             published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#             #             author=author,
-#             #             )
-#             # post.save()
-#             image = request.FILES["content"]
-#             file_suffix = os.path.splitext(image.name)[1]
-#             contentType = request.POST["contentType"] + '/' + file_suffix[1:]
-#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
-#             post = Post(
-#                 title=request.POST["title"],
-#                 description=request.POST["description"],
-#                 image_content=image_content,  # Store base64 string
-#                 contentType=contentType,
-#                 visibility=request.POST["visibility"],
-#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                 author=author,
-#             )
-#             post.save()
-#     else:   # Post creation for API spec
-#         if 'image' in contentType:
-#             # Handle standard image types (image/png, image/jpeg)
-#             image = request.FILES["image"]
-#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
-#             post = Post(
-#                 title=request.POST["title"],
-#                 description=request.POST["description"],
-#                 image_content=image_content,  # Store base64 string
-#                 contentType=contentType,
-#                 visibility=request.POST["visibility"],
-#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                 author=author,
-#             )
-#             post.save()
-#         else:
-#             post = Post(title=request.POST["title"],
-#                         description=request.POST["description"],
-#                         text_content=request.POST["content"],
-#                         contentType=contentType,
-#                         visibility=request.POST["visibility"],
-#                         published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                         author=author,
-#                         )
-#             post.save()
-            
-#     post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
-#     post.url = post_url
-#     post.save()  
-    
-#     print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
-#     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
-#     print("Sending to the following followers: " + str(followers))
-    
-#     # for follower in followers:
-#     #     json_content = PostSerializer(post).data
-#     #     print("sending POST to: " + follower.follower)
-#     #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
-        
-#     for follower in followers:
-#         json_content = PostSerializer(post).data
-#         if "image_content" in json_content and json_content["image_content"]:
-#             json_content["content"] = post.image_content  # Include base64 image string
-#         else:
-#             json_content["content"] = post.text_content
-        
-#         follower_url = follower.follower
-#         print("sending POST to: " + follower_url)
 
-#         # Extract base URL from follower's URL
-#         parsed_url = urlparse(follower_url)
-#         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-
-#         # Send the POST request to the follower's inbox
-#         inbox_url = follower_url.rstrip('/') + '/inbox'
-
-#         print("base_url: ", base_url)
-#         print("inbox_url: ", inbox_url)
-#         print("json_content: ", json_content)
-#         # Now call post_request_to_node with base_url
-#         post_request_to_node(base_url, inbox_url, 'POST', json_content)
-#     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
-
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def add_post(request, author_id):
-#     author = get_author(request)
-#     contentType = request.POST["contentType"]
-#     print(request.POST)
-
-#     if contentType not in ['text/plain', 'text/markdown', 'image/png', 'image/jpeg']:
-#         if contentType != "image":
-#             contentType = 'text/' + contentType
-#             content = request.POST.getlist("content")
-#             content = content[0] if contentType == 'text/plain' else content[1]
-#             post = Post(
-#                 title=request.POST["title"],
-#                 description=request.POST["description"],
-#                 text_content=content,
-#                 contentType=contentType,
-#                 visibility=request.POST["visibility"],
-#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                 author=author,
-#             )
-#             post.save()
-#         else:
-#             image = request.FILES["content"]
-#             file_suffix = os.path.splitext(image.name)[1]
-#             contentType = request.POST["contentType"] + '/' + file_suffix[1:]
-#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
-#             post = Post(
-#                 title=request.POST["title"],
-#                 description=request.POST["description"],
-#                 image_content=image_content,  # Store base64 string
-#                 contentType=contentType,
-#                 visibility=request.POST["visibility"],
-#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                 author=author,
-#             )
-#             post.save()
-#     else:
-#         if 'image' in contentType:
-#             image = request.FILES["image"]
-#             image_content = base64.b64encode(image.read()).decode("utf-8")  # Encode image as base64
-#             post = Post(
-#                 title=request.POST["title"],
-#                 description=request.POST["description"],
-#                 image_content=image_content,  # Store base64 string
-#                 contentType=contentType,
-#                 visibility=request.POST["visibility"],
-#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                 author=author,
-#             )
-#             post.save()
-#         else:
-#             post = Post(
-#                 title=request.POST["title"],
-#                 description=request.POST["description"],
-#                 text_content=request.POST["content"],
-#                 contentType=contentType,
-#                 visibility=request.POST["visibility"],
-#                 published=timezone.make_aware(datetime.datetime.now(), datetime.timezone.utc),
-#                 author=author,
-#             )
-#             post.save()
-
-#     post_url = f"https://{request.get_host()}/api/authors/{author.id}/posts/{post.id}"
-#     post.url = post_url
-#     post.save()
-
-#     print(f"Searching for followers following: https://{request.get_host()}/api/authors/{author_id}")
-#     followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
-#     print("Sending to the following followers: " + str(followers))
-
-#     for follower in followers:
-#         json_content = PostSerializer(post).data
-
-#         # Explicitly update the content field with the base64-encoded image string
-#         if post.contentType.startswith('image'):
-#             if not isinstance(post.image_content, str) or not post.image_content.startswith("data:image"):
-#                 image_base64 = base64.b64encode(post.image_content.encode('utf-8')).decode('utf-8')
-#                 json_content["content"] = image_base64
-#             else:
-#                 json_content["content"] = post.image_content  # Already base64-encoded string
-#         else:
-#             json_content["content"] = post.text_content  # Plain or markdown text
-
-#         follower_url = follower.follower
-#         print("sending POST to: " + follower_url)
-
-#         # Extract base URL from follower's URL
-#         parsed_url = urlparse(follower_url)
-#         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-#         inbox_url = follower_url.rstrip('/') + '/inbox'
-
-#         print("base_url: ", base_url)
-#         print("inbox_url: ", inbox_url)
-#         print("json_content: ", json_content)
-
-#         # Send the POST request to the follower's inbox
-#         post_request_to_node(base_url, inbox_url, 'POST', json_content)
-
-#     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=303)
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_post(request, author_id):
@@ -1174,6 +438,8 @@ def add_post(request, author_id):
 
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_posts(request, author_id):
@@ -1247,11 +513,6 @@ def author_posts(request, author_id):
         followers = Follow.objects.filter(following=f"https://{request.get_host()}/api/authors/{author_id}")
         print("Sending to the following followers: " + str(followers))
         
-        # for follower in followers:
-        #     json_content = PostSerializer(post).data
-        #     print("sending POST to: " + follower.follower)
-        #     post_request_to_node(follower.follower, follower.follower +'/inbox', 'POST', json_content)
-            
         for follower in followers:
             json_content = PostSerializer(post).data
             follower_url = follower.follower
@@ -1278,7 +539,6 @@ def author_posts(request, author_id):
 
 def get_posts_from_author(request, author_id):
     requester = get_author(request)
-    #author = get_object_or_404(Author, id=author_id)
     author = get_author_by_id(author_id)
     
     if requester == author:
@@ -1289,6 +549,8 @@ def get_posts_from_author(request, author_id):
     serializer = PostSerializer(posts, many=True)
     return Response(serializer.data)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def delete_post(request, post_id):
@@ -1331,59 +593,7 @@ def delete_post(request, post_id):
         return redirect('index')
 
 
-# @api_view(['GET', 'POST'])
-# @permission_classes([IsAuthenticated])
-# def local_api_like(request, id):
-#     #liked_post = get_object_or_404(Post, id=id)
-#     liked_post = get_post_by_id(id)
-#     comment_author = liked_post.author
-#     current_author = get_author(request)
-
-#     post_owner = liked_post.author
-#     print(current_author)
-#     print(post_owner)
-
-#     like_id = f"{current_author.url}/liked/{PostLike.objects.count()+1}"
-#     object_id = f"{post_author.url}/posts/{liked_post.id}"
-#     like_request = {
-#         "type" : "like",
-#         "author" : {
-#             "type" : "author",
-#             "id": current_author.url,
-#             "host": current_author.host,
-#             "displayName": current_author.display_name,
-#             "github": current_author.github,
-#             "profileImage": current_author.profile_image.url if current_author.profile_image else None,
-#             "page": current_author.url,
-#         },
-#         "published" : datetime.datetime.now().isoformat(),
-#         "id" : like_id,
-#         "object" : object_id
-#     }
-
-#     inbox_url = post_author.url + '/inbox'
-#     # access_token = AccessToken.for_user(current_author)
-
-#     try:
-#         node = post_author.host[:-4].replace('http://', 'https://')
-#         print(f"Node: {node}")
-#         print(f"Sent to inbox: {inbox_url}")
-#         print(f"Like request: {like_request}")
-
-#         if current_author.host.replace('http://', 'https://') != (node+"api/"):
-#             response = post_request_to_node(node, inbox_url, data=like_request)
-#             if response and response.status_code in [200, 201]:
-#                 return JsonResponse({"message": "Like sent successfully"}, status=201)
-#             return JsonResponse({"error": "Failed to send like"}, status=400)
-#         else:
-#             PostLike.objects.create(liker=current_author, owner=liked_post)
-
-#         return(redirect(f'/node/posts/{id}/'))
-#     except Exception as e:
-#         print(f"Failed to send post like request: {str(e)}")
-#         messages.error(request, "Failed to send post like request. Please try again.")
-
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like(request, id):
@@ -1452,28 +662,6 @@ def local_api_like(request, id):
 
         # Redirect to the post after liking
         return redirect(f'/node/posts/{id}/')
-        # Handle remote and local likes
-        # if current_author.host[:-4] != node:
-        #     # Call the asynchronous function using async_to_sync
-        #     async_to_sync(post_request_to_node_async)(node, inbox_url, method='POST', data=like_request)
-
-        #     # Save the like locally
-        #     like = PostLike.objects.create(
-        #         object_id=like_uuid,
-        #         liker=current_author,
-        #         owner=liked_post,
-        #         created_at=django.utils.timezone.now(),
-        #     )
-        #     like.save()
-        # else:
-        #     # Save the like locally using the `Like` model
-        #     like = PostLike.objects.create(
-        #         object_id=like_uuid,
-        #         liker=current_author,
-        #         owner=liked_post,
-        #         created_at=django.utils.timezone.now(),
-        #     )
-        #     like.save()
 
     except Exception as e:
         # Handle exceptions and log errors
@@ -1482,11 +670,10 @@ def local_api_like(request, id):
         return JsonResponse({"error": "An error occurred while processing the like"}, status=500)
     
     
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like_comment(request, id):
-    #liked_comment = get_object_or_404(Comment, id=id)
     liked_comment = get_comment_by_id(id)
     comment_author = liked_comment.author
     current_author = get_author(request)
@@ -1537,40 +724,29 @@ def local_api_like_comment(request, id):
         return JsonResponse({"error": "An error occurred while processing the like"}, status=500)
    
 
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def post_like(request, author_id):
     body = json.loads(request.body)
-
-    #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     post = get_post_by_id(body['object'].split('/')[-1])
-    #liker = get_author_by_id(body['id'].split('/')[-3])
     liker = get_author_by_id(author_id)
-    print(liker)
-    print(post)
-    # liker = get_object_or_404(id=author_id)
     like_exists = PostLike.objects.filter(liker=liker, owner=post)
 
     if not like_exists:
         print('Creating post like object')
         post_like = PostLike.objects.create(liker=liker, owner=post)
-        # serializer = PostLikeSerializer(post_like, data=body)
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
         return JsonResponse(data=PostLikeSerializer(post_like).data, status=200, safe=False)
     else:
         return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
         
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def comment_like(request, author_id):
     body = json.loads(request.body)
-    #post = get_object_or_404(Post, id=body['object'].split('/')[-1])
     comment = get_comment_by_id(body['object'].split('/')[-1])
     liker = get_author_by_id(body['id'].split('/')[-3])
 
     comment_like_exists = PostLike.objects.filter(liker=liker, owner=comment)
     
-
     if not comment_like_exists:
         print('creating comment like object')
         comment_like = CommentLike.objects.create(liker=liker, owner=comment)
@@ -1578,22 +754,15 @@ def comment_like(request, author_id):
     else:
         return JsonResponse({'message': 'comment like already exists, unlike instead'}, status=400)
 
-    # serializer = CommentLikeSerializer(comment_like, data=body)
-    # if serializer.is_valid():
-    #     serializer.save()
-    #     return JsonResponse(serializer.data, statis=status.HTTP_201_CREATED)
-    # return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_likes(request, author_id, post_id):
-    #post = get_object_or_404(Post, pk=post_id, author_id=author_id)
-    
     author_id = author_id.split('/')[-1]
     post_id = post_id.split('/')[-1]
     post = get_post_by_id_and_author(post_id, author_id)
     author = get_author_by_id(author_id)
-    
     
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
@@ -1619,15 +788,14 @@ def get_post_likes(request, author_id, post_id):
     
     return Response(response_data)
     
+    
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_likes_by_id(request, post_url):
     post_id = post_url.split('/')[-1]
     author_id = post_url.split('/authors/')[-1].split('/')[0]
-    
-    #post = get_object_or_404(Post, pk=post_id, author_id=author_id)
     post = get_post_by_id_and_author(post_id, author_id)
-    #author = get_object_or_404(Author, pk=author_id)
     author = get_author_by_id(author_id)
     
     page_number = int(request.GET.get('page', 1))
@@ -1654,6 +822,8 @@ def get_post_likes_by_id(request, post_url):
     
     return Response(response_data)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment_likes(request, author_id, post_id, comment_fqid):
@@ -1668,9 +838,6 @@ def get_comment_likes(request, author_id, post_id, comment_fqid):
     except (ValueError, Author.DoesNotExist) as e:
         author = None
         print(f"Comments not found: ")
-
-    # if not author:
-    #     author = Author.objects.filter()
 
     page_number = int(request.GET.get('page', 1))
     size = int(request.GET.get('size', 50))
@@ -1696,12 +863,12 @@ def get_comment_likes(request, author_id, post_id, comment_fqid):
     
     return Response(response_data)
     
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def likes_by_author(request, author_id):
-    #author = get_object_or_404(Author, id=author_id)
     author = get_author_by_id(author_id)
-
     post_likes = PostLike.objects.filter(liker=author)
     comment_likes = CommentLike.objects.filter(liker=author)
     all_likes = list(post_likes) + list(comment_likes)
@@ -1723,14 +890,14 @@ def likes_by_author(request, author_id):
         for like in current_page:
             if isinstance(like, PostLike):
                 likes_list.append(PostLikeSerializer(like).data)
-            else:  # CommentLike
+            else:
                 likes_list.append(CommentLikeSerializer(like).data)
     else:
         likes_list = []
         for like in all_likes:
             if isinstance(like, PostLike):
                 likes_list.append(PostLikeSerializer(like).data)
-            else:  # CommentLike
+            else:
                 likes_list.append(CommentLikeSerializer(like).data)
     
     response_data = {
@@ -1744,6 +911,8 @@ def likes_by_author(request, author_id):
     }
     return JsonResponse(response_data)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_like(request, author_id, like_id):
@@ -1769,11 +938,12 @@ def get_like(request, author_id, like_id):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
+
+# With help from Chat-GPT 4o, OpenAI, November 2024   
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_author_likes_by_id(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
-    #author = get_object_or_404(Author, id=author_id)
     author = get_author_by_id(author_id)
 
     post_likes = PostLike.objects.filter(liker=author)
@@ -1809,6 +979,8 @@ def get_author_likes_by_id(request, author_fqid):
     
     return JsonResponse(response_data)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_like_by_id(request, like_fqid):
@@ -1816,20 +988,16 @@ def get_like_by_id(request, like_fqid):
     like_id = like_id.rstrip('/').split('/')
 
     try:
-        # split_like = like_fqid.split('/')
         id = like_id[-1]
         author_id = like_id[-2] 
         
         like = None
-        #author = get_object_or_404(Author, id=author_id)
         author = get_author_by_id(author_id)
         
         if PostLike.objects.filter(object_id=id, liker=author).exists():
-            #like = get_object_or_404(PostLike, object_id=id, liker=author)
             like = get_like_instance(PostLike, id, author)
             serializer = PostLikeSerializer(like)
         elif CommentLike.objects.filter(object_id=id, liker=author).exists():
-            #like = get_object_or_404(CommentLike, object_id=id, liker=author)
             like = get_like_instance(CommentLike, id, author)
             serializer = CommentLikeSerializer(like)
         else:
@@ -1840,6 +1008,8 @@ def get_like_by_id(request, like_fqid):
     except (IndexError, ValueError):
         return Response({"error": "Invalid like ID format"}, status=status.HTTP_400_BAD_REQUEST)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser])
@@ -1902,6 +1072,8 @@ def post_comments(request, author_id, post_id):
 
         return Response(comment_data, status=201)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_comment(request, id):
@@ -1912,7 +1084,6 @@ def add_comment(request, id):
     """
     if request.method != "POST":
         return HttpResponse(status=400)
-    #post = get_object_or_404(Post, pk=id)
     post = get_post_by_id(id)
 
     # Get request contents
@@ -1957,9 +1128,6 @@ def add_comment(request, id):
     }
 
     if request.method == 'POST':
-        # Serialize the comment
-        #comment_data = CommentSerializer(new_comment).data
-
         # Forward the comment to the post's author inbox if the post is from a remote author
         if post.author.host != f'https://{request.get_host()}/api/':
             inbox_url = f"{post.author.url}/inbox"
@@ -1973,149 +1141,8 @@ def add_comment(request, id):
                 
     return(redirect(f'/node/posts/{id}/'))
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def add_comment(request, id):
-#     """
-#     Add a comment to a post, with a response matching the specified format.
-#     """
-#     if request.method != "POST":
-#         return HttpResponse(status=400)
 
-#     # Retrieve the post
-#     post = get_post_by_id(id)
-#     if not post:
-#         return JsonResponse({"error": "Post not found."}, status=404)
-
-#     # Get the authenticated author
-#     author = get_author(request)
-#     if not author:
-#         return HttpResponseForbidden("You must be logged in to post a comment.")
-
-#     # Get the comment text and content type
-#     text = request.data.get("comment", "")
-#     content_type = request.data.get("contentType", "text/plain")
-#     if not text:
-#         return JsonResponse({"error": "Comment content cannot be empty."}, status=400)
-
-#     # Create the comment
-#     new_comment = Comment(
-#         post=post,
-#         text=text,
-#         author=author,
-#         content_type=content_type,
-#         published=timezone.now(),
-#     )
-#     new_comment.save()
-
-#     # Generate comment URL
-#     comment_url = f"https://{request.get_host()}/api/authors/{author.id}/commented/{new_comment.id}"
-
-#     # Construct the response payload
-#     comment_data = {
-#         "type": "comment",
-#         "author": {
-#             "type": "author",
-#             "id": author.url,
-#             "host": author.host,
-#             "displayName": author.display_name,
-#             "github": author.github,
-#             "profileImage": author.profile_image.url if author.profile_image else None,
-#             "page": author.url,
-#         },
-#         "comment": new_comment.text,
-#         "contentType": new_comment.content_type,
-#         "published": new_comment.published.isoformat(),
-#         "id": comment_url,
-#         "post": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}",
-#         "likes": {
-#             "type": "likes",
-#             "page": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}",
-#             "id": f"https://{request.get_host()}/api/authors/{post.author.id}/posts/{post.id}/comments/{new_comment.id}/likes",
-#             "page_number": 1,
-#             "size": 50,
-#             "count": 0,
-#             "src": [],
-#         },
-#     }
-
-#     # Forward the comment to the post's author's inbox if they are on a remote node
-#     if post.author.host != f'https://{request.get_host()}/api/':
-#         inbox_url = f"{post.author.url}/inbox"
-#         try:
-#             print("Sending comment to:", inbox_url)
-#             post_request_to_node(post.author.host.rstrip('/'), inbox_url, 'POST', comment_data)
-#         except Exception as e:
-#             print(f"Failed to send comment to inbox: {str(e)}")
-
-#     return JsonResponse(comment_data, status=201)
-
-
-        # inbox_url = f"{post.author.url}/inbox"
-        # try:
-        #     print("Sending comment to: ", inbox_url)
-        #     print("Host: ", post.author.host)
-        #     post_request_to_node(post.author.host, inbox_url, 'POST', comment_data)
-        # except Exception as e:
-        #     print(f"Failed to send comment to inbox: {str(e)}")
-
-        #return Response(comment_data, status=201)
-
-    # json_content = CommentSerializer(new_comment).data
-
-    # # Iterate through each follower
-    # for follower in followers:
-    #     try:
-    #         # Extract the follower's URL and prepare the inbox URL
-    #         url = follower.follower.url  # Assuming `follower.follower.url` is the follower's URL
-    #         print("Sending POST to: " + url)
-
-    #         # Extract base URL from the follower's URL
-    #         parsed_url = urlparse(url)
-    #         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-
-    #         # Construct the follower's inbox URL
-    #         inbox_url = url.rstrip('/') + '/inbox'
-
-    #         print("base_url: ", base_url)
-    #         print("inbox_url: ", inbox_url)
-    #         print("json_content: ", json_content)
-
-    #         # Send the POST request to the follower's inbox
-    #         post_request_to_node(base_url, inbox_url, 'POST', json_content)
-    #     except Exception as e:
-    #         print(f"Failed to send comment to {url}: {e}")
-            
-            
-            
-            
-    
-    
-    # followers = Follow.objects.filter(following=f"{post.author.host}authors/{post.author.id}")
-    # print("Sending comment to people following: ", f"{post.author.host}authors/{post.author.id}")
-    # print("Sending comment to: ", followers)
-    # try:
-    #     json_content = CommentSerializer(new_comment).data
-    #     url = post.author.url
-    #     print("sending POST to: " + url)
-
-    #     # Extract base URL from follower's URL
-    #     parsed_url = urlparse(url)
-    #     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-
-    #     # Send the POST request to the follower's inbox
-    #     inbox_url = url.rstrip('/') + '/inbox'
-
-    #     print("base_url: ", base_url)
-    #     print("inbox_url: ", inbox_url)
-    #     print("json_content: ", json_content)
-    #     # Now call post_request_to_node with base_url
-    #     post_request_to_node(base_url, inbox_url, 'POST', json_content)
-    # except Exception as e:
-    #     print(e)
-    # # Return to question
-    #return(redirect(f'/node/posts/{id}/'))
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_commented(request, author_id):
@@ -2190,6 +1217,8 @@ def author_commented(request, author_id):
 
         return Response(comment_data, status=201)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment_by_fqid(request, comment_fqid):
@@ -2210,6 +1239,7 @@ def get_comment_by_fqid(request, comment_fqid):
     return Response(serializer.data)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def view_post(request, post_id):
@@ -2219,8 +1249,6 @@ def view_post(request, post_id):
     Returns 403 for visibility conflicts
     Otherwise, render the post
     """
-
-    #post = get_object_or_404(Post, id=post_id)
     post = get_post_by_id(post_id)
     author = get_author(request)
     liked = False
@@ -2263,104 +1291,8 @@ def view_post(request, post_id):
         'comments': comments,
     })
 
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def profile(request, author_id):
-#     '''
-#     Render the contents of profile of desired author
-#     including author's posts, author's GitHub activity, and author's profile details
-#     :param request:
-#     :param author_id: id of author whose profile is currently being viewed
-#     :return: html rendition of profile.html with the appropriate content
-#     '''
-#     viewing_author = get_object_or_404(Author, id=author_id)
-#     current_author = get_author(request) # logged in author
-#     ownProfile = (viewing_author == current_author)
 
-#     access_token = AccessToken.for_user(current_author)
-#     headers = {
-#         'Authorization': f'Bearer {access_token}'
-#     }
-#     api_url = request.build_absolute_uri(reverse('single_author', kwargs={'author_id': viewing_author.id}))
-#     response = requests.get(api_url, headers=headers, cookies=request.COOKIES)
-#     author_data = response.json()
-
-#     user = {
-#             'id': author_data['id'],
-#             'host': author_data['host'],
-#             'display_name': author_data['displayName'],
-#             'github': author_data['github'],
-#             'page': author_data['page'],
-#             'profile_image': author_data['profileImage'],
-#             'description':author_data['description'],
-#         }
-
-#     is_following = Follow.objects.filter( # if logged in author following the user
-#         follower=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
-#         following=f"https://{request.get_host()}/api/authors/" + str(author_id),
-#         approved=True,
-#     ).exists()
-#     if is_following:
-#         is_followback = Follow.objects.filter(  # ... see if user is following back
-#             follower=f"https://{request.get_host()}/api/authors/" + str(author_id),
-#             following=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
-#             approved=True,
-#         ).exists()
-#         is_pending = False
-#     else:
-#         is_followback = False
-#         is_pending = Follow.objects.filter( # if logged in author following the user
-#             follower=f"https://{request.get_host()}/api/authors/" + str(current_author.id),
-#             following=f"https://{request.get_host()}/api/authors/" + str(author_id),
-#             approved=False,
-#         ).exists()
-
-#     visible_tags = ['PUBLIC']
-#     if is_followback or user==current_author: # if logged in user is friends with user or if logged in user viewing own profile
-#         visible_tags.append('FRIENDS') # show friend visibility posts
-#         if user==current_author: # if logged in user viewing own profile, show unlisted posts too
-#             visible_tags.append('UNLISTED')
-
-#     authors_posts = Post.objects.filter(author=viewing_author, visibility__in= visible_tags).exclude(description="Public Github Activity").order_by('-published') # most recent on top
-#     retrieve_github(viewing_author)
-#     github_posts = Post.objects.filter(author=viewing_author, visibility__in=visible_tags, description="Public Github Activity").order_by('-published')
-
-#     # Followers: people who follow the user
-#     followers_count = Follow.objects.filter(
-#         following=f"https://{request.get_host()}/api/authors/{author_id}",
-#         approved=True
-#     ).count()
-
-#     # Following: people the user follows
-#     # This returns a list of users that `author_id` is following
-#     followed_users = Follow.objects.filter(
-#         follower=f"https://{request.get_host()}/api/authors/{author_id}",
-#         approved=True).values_list('following', flat=True)
-#     following_count = followed_users.count()
-#     print(followed_users)
-
-#     author_url = f"https://{request.get_host()}/api/authors/{author_id}"
-
-#     # Friends: mutual follows
-#     friends_count = Follow.objects.filter(
-#         follower__in=followed_users,  # Users that are followed by `author_id`
-#         following=author_url,  # `author_id` is the `following`
-#         approved=True
-#     ).count()  # Count mutual follow relationships
-
-
-#     return render(request, "profile/profile.html", {
-#         'user': user,
-#         'posts': authors_posts,
-#         'ownProfile': ownProfile,
-#         'is_following': is_following,
-#         'is_pending': is_pending,
-#         'activity': github_posts,
-#         'followers_count': followers_count,
-#         'following_count': following_count,
-#         'friends_count': friends_count,
-#     })
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request, author_id):
@@ -2368,7 +1300,6 @@ def profile(request, author_id):
     Render the contents of the profile of the desired author,
     including the author's posts, GitHub activity, and profile details.
     '''
-    #viewing_author = get_object_or_404(Author, id=author_id)
     viewing_author = get_author_by_id(author_id)
     current_author = get_author(request)  # Logged-in author
     own_profile = (viewing_author == current_author)
@@ -2462,6 +1393,8 @@ def profile(request, author_id):
         'friends_count': friends_count,
     })
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def retrieve_github(user):
     '''
     Retrieve GitHub public activity of author and create Post objects if there is any
@@ -2483,10 +1416,8 @@ def retrieve_github(user):
     activity = json.loads(data.decode("utf-8")) if res.status == 200 else []
     # Ends here
 
-
     followers = Follow.objects.filter(following=user.url, approved = True)
     print(followers)
-
 
     # 10/28/2024
     # Me: Retrieve the different event types, the repo, the date in each event in the json and create them into post if they do not yet exist in the database
@@ -2549,13 +1480,11 @@ def retrieve_github(user):
                 post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
     author_id = author_fqid.split('/')[-1]
-    # print(author_id)
-    # return api_single_author(request, author_id)
-    #user = get_object_or_404(Author, id=author_id)
     print("uuid????????")
     print(author_fqid)
     author_id = unquote(author_id)
@@ -2565,7 +1494,6 @@ def api_single_author_fqid(request, author_fqid):
 
     # First, try to get by primary key (integer ID)
     try:
-        #user = Author.objects.get(pk=int(author_id))
         user = get_author_by_id(author_id)
     except (ValueError, Author.DoesNotExist):
         pass  # Not an integer ID or author with this ID does not exist
@@ -2585,7 +1513,6 @@ def api_single_author_fqid(request, author_fqid):
         }
         return JsonResponse(nonexistent_author, status=404)
 
-
     if request.method == 'GET':
         if user is None:
             nonexistent_author = {
@@ -2593,16 +1520,6 @@ def api_single_author_fqid(request, author_fqid):
             }
             return JsonResponse(nonexistent_author, status=404)
         else:
-            # author_data = {
-            #     "type": "author",
-            #     "id": user.url,
-            #     "host": user.host,
-            #     "displayName": user.display_name,
-            #     "github": "https://github.com/" + user.github if user.github else "",
-            #     "profileImage": user.profile_image.url if user.profile_image else "",
-            #     "page": user.page if user.page else "",
-            #     "description": user.description,
-            # }
             author_data = AuthorSerializer(user).data
             return JsonResponse(author_data, status=200)
 
@@ -2637,85 +1554,6 @@ def api_single_author_fqid(request, author_fqid):
             }
             return JsonResponse(error_data, status=400)
 
-# @api_view(['GET', 'PUT'])
-# @permission_classes([IsAuthenticated])
-# def api_single_author(request, author_id):
-#     #user = get_object_or_404(Author, id=author_id)
-#
-#     author_id = unquote(author_id)
-#     print(author_id)
-#     # Initialize user to None
-#     user = None
-#
-#     # First, try to get by primary key (integer ID)
-#     try:
-#         #user = Author.objects.get(pk=int(author_id))
-#         user = get_author_by_id(author_id)
-#     except (ValueError, Author.DoesNotExist):
-#         pass  # Not an integer ID or author with this ID does not exist
-#
-#     if not user:
-#         # Try to get by URL equals author_id (in case it's a full URL)
-#         user = Author.objects.filter(url=author_id).first()
-#
-#     if not user:
-#         # Try to get by URL ending with /authors/{author_id}
-#         user = Author.objects.filter(url__endswith=f"/authors/{author_id}").first()
-#
-#     if not user:
-#         # Author not found
-#         nonexistent_author = {
-#             "message": "This user does not exist",
-#         }
-#         return JsonResponse(nonexistent_author, status=404)
-#
-#
-#     if request.method == 'GET':
-#         if user is None:
-#             nonexistent_author = {
-#                 "message": "This user does not exist",
-#             }
-#             return JsonResponse(nonexistent_author, status=404)
-#         else:
-#             author_data = {
-#                 "type": "author",
-#                 "id": user.id,
-#                 "host": user.host,
-#                 "displayName": user.display_name,
-#                 "github": "https://github.com/" + user.github if user.github else "",
-#                 "profileImage": user.profile_image.url if user.profile_image else None,
-#                 "page": user.page,
-#                 "description": user.description,
-#             }
-#             return JsonResponse(author_data, status=200)
-#
-#     if request.method == 'PUT':
-#         serializer = AuthorProfileSerializer(user, data=request.data)
-#
-#         original_github = user.github
-#
-#         if serializer.is_valid():
-#             if original_github != serializer.validated_data.get('github'):
-#                 Post.objects.filter(author=user, description="Public Github Activity").delete()
-#
-#             serializer.save()
-#             author_data = {
-#                 "type": "author",
-#                 "id": user.id,
-#                 "host": user.host,
-#                 "displayName": user.display_name,
-#                 "github": "https://github.com/" + user.github if user.github else "",
-#                 "profileImage": user.profile_image.url if user.profile_image else None,
-#                 "page": user.page,
-#                 "description": user.description,
-#             }
-#             return JsonResponse(author_data, status=200)
-#         else:
-#             error_data = {
-#                 "message": "Invalid edit made.",
-#                 'errors': serializer.errors,
-#             }
-#             return JsonResponse(error_data, status=400)
 
 def edit_profile(request,author_id):
     '''
@@ -2724,11 +1562,12 @@ def edit_profile(request,author_id):
     :param author_id: id of logged in author who is attempting to edit their own profile
     :return: html rendition of edit_profile.html with the appropriate content
     '''
-    #user = get_object_or_404(Author, id=author_id)
     user = get_author_by_id(author_id)
     serializer = AuthorProfileSerializer(user)
     return render(request, 'profile/edit_profile.html', {'user': serializer.data})
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 def followers_following_friends(request, author_id):
     '''
@@ -2813,6 +1652,8 @@ def followers_following_friends(request, author_id):
 
     return render(request, 'user_list.html', context)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def get_author(request):
     """
     Retrieves the authenticated Author instance.
@@ -2823,6 +1664,8 @@ def get_author(request):
         return request.user
     return None
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_follow(request, author_id):
@@ -2831,7 +1674,6 @@ def local_api_follow(request, author_id):
     # get current author id and follow author id for POST request body
     # author_id should have the full url (include node and everything) inside.
     current_author = get_author(request)
-    #author_to_follow = get_object_or_404(Author, id=author_id)
     author_to_follow = get_author_by_id(author_id)
 
     actor_profile_image = current_author.profile_image.url if current_author.profile_image else ""
@@ -2861,13 +1703,7 @@ def local_api_follow(request, author_id):
         }
     }
 
-    # access_token = AccessToken.for_user(current_author)
-    # headers = {
-    #     'Authorization': f'Bearer {access_token}'
-    # }
-
     # Send the POST request to the target author's inbox endpoint
-    # inbox_url = request.build_absolute_uri(reverse('inbox', args=[author_id]))
     inbox_url = author_to_follow.url + "/inbox"
     access_token = AccessToken.for_user(current_author)
     try:
@@ -2887,25 +1723,21 @@ def local_api_follow(request, author_id):
             headers = {
                 'Authorization': f'Bearer {access_token}'
             }
-            # response = requests.post(inbox_url, json=follow_request, headers=headers, cookies=request.COOKIES)
-        # create follow object after successful post
-
+            
+        # create follow object after successful post request
         Follow.objects.create(following=author_to_follow.url, follower=current_author.url, approved=True)
 
-        # if response.status_code in [200, 201]:
         print("Sent Follow request")
         print(f"Sent to: {inbox_url}")
-        # print(f"Response URL: {response.url}")
         messages.success(request, "Follow request sent successfully.")
-        # else:
-        #     print("Failed to send Follow request")
-        #     messages.error(request, "Failed to send follow request. Please try again.")
 
         return redirect('authors')
     except Exception as e:
         print(f"Failed to send follow request: {str(e)}")
         messages.error(request, "Failed to send follow request. Please try again.")
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def add_external_comment(request, author_id):
     """
     Adds comment objects from an API according to
@@ -2951,7 +1783,6 @@ def add_external_comment(request, author_id):
 
     if body['type'] == 'comments':
         for comment in body['src']:
-            #new_comment = Comment.objects.create(author_id=author_id, post=get_object_or_404(Post, id=body['post'].split('/')[-1]))
             new_comment = Comment.objects.create(author_id=author_id, post=get_post_by_id(body['post'].split('/')[-1]))
             serializer = CommentSerializer(new_comment, data=comment)
             if serializer.is_valid():
@@ -2961,117 +1792,8 @@ def add_external_comment(request, author_id):
 
     return JsonResponse('Failed to add comment(s)', status=status.HTTP_400_BAD_REQUEST)
 
-
-# def add_external_post(request, author_id):
-#     """
-#     Add a post to the database from an inbox call
-#     """
-#     body = json.loads(request.body)
-    
-#     author_data = body.get('author', {})
-#     author_id_from_body = author_data.get('id')
-#     author = get_object_or_404(Author, url=author_id_from_body)
-#     #body['author'] = author.id
-    
-#     post_url = body.get('id')
-#     existing_posts_with_id = Post.objects.filter(url=post_url)
-#     for post in existing_posts_with_id:
-#         post.visibility = 'DELETED'
-#         post.save()
-    
-#     serializer = PostSerializer(data=body)
-#     if serializer.is_valid():
-#         serializer.save(author=author, url=post_url)
-#         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-#     print(serializer.errors)
-#     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# def add_external_post(request, author_id):
-#     """
-#     Add a post to the database from an inbox call without using serializers
-#     """
-#     # Parse the request body
-#     body = json.loads(request.body)
-    
-#     # Get the author details
-#     author_data = body.get('author', {})
-#     author_id_from_body = author_data.get('id')
-#     author = get_object_or_404(Author, url=author_id_from_body)
-    
-#     # Get post data
-#     post_url = body.get('id')
-    
-#     # Mark any existing posts with the same URL as deleted
-#     existing_posts_with_id = Post.objects.filter(url=post_url)
-#     for post in existing_posts_with_id:
-#         post.visibility = 'DELETED'
-#         post.save()
-
-#     # Determine the content type and prepare the post fields
-#     contentType = body.get('contentType', 'text/plain')
-#     title = body.get('title', 'Untitled Post')
-#     description = body.get('description', '')
-#     content = body.get('content', None)
-#     visibility = body.get('visibility', 'PUBLIC')
-#     published = body.get('published', make_aware(datetime.datetime.now()))
-#     image = None
-    
-#     if 'image' in contentType:
-#         if content.startswith("data:image"):
-#             # Extract base64 data
-#             base64_data = content.split(";base64,")[-1]
-#             file_suffix = contentType.split("/")[-1]  # Extract file type
-#             image_name = f"external_image_{author.id}.{file_suffix}"
-#             image_path = os.path.join("media", "images", image_name)
-            
-#             # Ensure directory exists
-#             os.makedirs(os.path.dirname(image_path), exist_ok=True)
-            
-#             # Decode and save the image
-#             try:
-#                 image_data = base64.b64decode(base64_data)
-#                 with open(image_path, "wb") as f:
-#                     f.write(image_data)
-#                 image = image_path
-#             except Exception as e:
-#                 return JsonResponse({"error": f"Failed to save image: {str(e)}"}, status=400)
-#     else:
-#         # Handle text content
-#         if isinstance(content, list):
-#             content = content[0] if contentType == 'text/plain' else content[1]
-
-#     # Create and save the post
-#     post = Post(
-#         title=title,
-#         description=description,
-#         text_content=content if 'image' not in contentType else None,
-#         image_content=image if 'image' in contentType else None,
-#         contentType=contentType,
-#         visibility=visibility,
-#         published=published,
-#         author=author,
-#         url=post_url,
-#     )
-#     post.save()
-
-#     return JsonResponse({
-#         "id": post.url,
-#         "title": post.title,
-#         "description": post.description,
-#         "contentType": post.contentType,
-#         "content": post.text_content if 'image' not in contentType else None,
-#         "image": post.image_content if 'image' in contentType else None,
-#         "published": post.published.isoformat(),
-#         "visibility": post.visibility,
-#         "author": {
-#             "id": author.url,
-#             "displayName": author.display_name,
-#             "host": author.host,
-#             "github": author.github,
-#             "profileImage": author.profile_image.url if author.profile_image else None,
-#         }
-#     }, status=201)
-    
+ 
+# With help from Chat-GPT 4o, OpenAI, November 2024   
 def add_external_post(request, author_id):
     """
     Add a post to the database from an inbox call.
@@ -3085,13 +1807,6 @@ def add_external_post(request, author_id):
 
     # Get post data
     post_url = body.get('id')
-    
-    # Mark any existing posts with the same URL as deleted
-    # existing_posts_with_id = Post.objects.filter(url=post_url)
-    
-    # for post in existing_posts_with_id:
-    #     post.visibility = 'DELETED'
-    #     post.save()
     
     contentType = body.get('contentType', 'text/plain')
     title = body.get('title', 'Untitled Post')
@@ -3126,9 +1841,6 @@ def add_external_post(request, author_id):
     else:
         # Handle text content
         post_data["text_content"] = content if content else ""
-
-    # Create and save the post
-    #post = Post.objects.create(**post_data)
     
     # Check if a post with the same URL already exists
     existing_post = Post.objects.filter(url=post_url).first()
@@ -3149,18 +1861,11 @@ def add_external_post(request, author_id):
     return JsonResponse(serialized_post.data, status=201)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def inbox(request, author_id):
     print("Inbox function ran")
-    
-    # try:
-    #     # Check if the author exists
-    #     author = Author.objects.filter(id=author_id).first()
-    #     if not author:
-    #         # Log the missing author
-    #         print(f"Inbox request for non-existent author with ID {author_id}. Ignoring.")
-    #         return JsonResponse({"message": "Author does not exist. Request ignored."}, status=200)
 
     # Process the request (assuming it's a post or notification)
     if request.method == 'POST':
@@ -3194,48 +1899,6 @@ def inbox(request, author_id):
     # Here, process the received data (e.g., add a post or notification to the inbox)
     return JsonResponse({'message': 'Method not allowed'}, status=405)
 
-        #return JsonResponse({"message": "Request processed successfully."}, status=200)
-
-    # except Exception as e:
-    #     # Log any unexpected errors
-    #     print(f"Error processing inbox request for author {author_id}: {str(e)}")
-    #     return JsonResponse({"message": "Error processing request, but request acknowledged."}, status=200)
-    
-    
-    
-    
-    
-    
-    # if request.method == 'POST':
-    #     try:
-    #         print("Inbox POST request received")
-    #         # Parse the request body
-    #         body = json.loads(request.body)
-    #         print("Request body:", body)
-    #         print("Body type:", body['type'])
-    #         if body['type'] == 'follow':
-    #             # Extract relevant information and call follow_author
-    #             follower = body['actor']
-    #             following = body['object']
-    #             print("Follow request type detected")
-    #             return follow_author(follower, following)
-    #         if body['type'] == 'like':
-    #             post_or_comment = body['object']
-    #             if '/posts/' in post_or_comment:
-    #                 return post_like(request, author_id)
-    #             else:   # Comment like
-    #                 return comment_like(request, author_id)
-    #         # Add additional handling for other types (e.g., post, like, comment) as needed
-    #         if body['type'] == 'post':
-    #             return add_external_post(request, author_id)
-    #         if body['type'] == 'comment' or body['type'] == 'comments':
-    #             return add_external_comment(request, author_id)
-    #     except (json.JSONDecodeError, KeyError) as e:
-    #         print(f"Failed to parse request body: {str(e)}")
-    #         return JsonResponse({'error': str(e)}, status=400)
-    
-    # return JsonResponse({'message': 'Method not allowed'}, status=405)
-
 
 ### Is called by def inbox()
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
@@ -3261,12 +1924,12 @@ def follow_author(follower, following):
     else:
         return JsonResponse({'message': 'Follow relationship already exists'}, status=400)
 
+
 # With help from Chat-GPT 4o, OpenAI, 2024-10-14
 @api_view(['GET','POST'])
 @permission_classes([IsAuthenticated])
 def unfollow_author(request, author_id):
     # Get the author being followed
-    #author_to_unfollow = get_object_or_404(Author, id=author_id)
     author_to_unfollow = get_author_by_id(author_id)
 
     # Get the logged-in author (assuming you have a user to author mapping)
@@ -3276,17 +1939,8 @@ def unfollow_author(request, author_id):
     follow_exists = Follow.objects.filter(follower=current_author.url, following=author_to_unfollow.url).exists()
 
     if follow_exists:
-        # api_url = request.build_absolute_uri(reverse('list_follower'))
-        # access_token = AccessToken.for_user(current_author)
-        # headers = {
-        #     'Authorization': f'Bearer {access_token}'
-        # }
-        # # Make the GET request to the API endpoint
-        # response = requests.delete(api_url, headers=headers, cookies=request.COOKIES)
-        #
-        # messages.success(request, "You have successfully unfollowed this author.")
-
         follow = get_object_or_404(Follow, follower=current_author.url, following=author_to_unfollow.url)
+        
         # Delete the Follow object to unfollow the author
         follow.delete()
         messages.success(request, "You have successfully unfollowed this author.")
@@ -3299,15 +1953,15 @@ def unfollow_author(request, author_id):
     # Redirect back to the authors list or a success page
     return redirect('profile', author_id=current_author.id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def follow_requests(request, author_id):
-    #current_author = get_object_or_404(Author, id=author_id)  # logged in author
     current_author = get_author_by_id(author_id)
     current_follow_requests = Follow.objects.filter(following=current_author.url, approved=False)
     print(current_follow_requests)
 
     follower_authors = []
     for a_request in current_follow_requests:
-        # follower_id = a_request.follower.replace("https://darkgoldenrod/api/authors/", "")
         print(a_request.follower)
         follower = get_object_or_404(Author, url=a_request.follower)
         follower_authors.append({
@@ -3327,6 +1981,8 @@ def follow_requests(request, author_id):
 
     return render(request, 'user_list.html', context)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def approve_follow(request, author_id, follower_id):
     current_author = get_author_by_id(author_id)
     if request.method == 'POST':
@@ -3341,6 +1997,8 @@ def approve_follow(request, author_id, follower_id):
         messages.success(request, f"You have approved {follower.display_name}'s follow request.")
     return redirect('follow_requests', author_id=current_author.id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def decline_follow(request, author_id, follower_id):
     current_author = get_author_by_id(author_id)
     if request.method == 'POST':
@@ -3353,6 +2011,8 @@ def decline_follow(request, author_id, follower_id):
         messages.success(request, f"You have declined {follower.display_name}'s follow request.")
     return redirect('follow_requests', author_id=current_author.id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def remove_follower(request, author_id, follower_id):
     current_author = get_author_by_id(author_id)
     if request.method == 'POST':
@@ -3385,7 +2045,6 @@ def display_feed(request):
     # Get the authors that the current user is following
     follow_objects = Follow.objects.filter(follower=current_author.url, approved=True)
 
-
     followings = list(follow_objects.values_list('following', flat=True))
     following_authors = Author.objects.filter(url__in=followings)
     cleaned_followings = following_authors.values_list('id', flat=True)
@@ -3393,8 +2052,6 @@ def display_feed(request):
     friends = [follow.following for follow in follow_objects if follow.is_friend()]
     friends_authors = Author.objects.filter(url__in=friends)
     cleaned_friends = friends_authors.values_list('id', flat=True)
-    # cleaned_friends = [int(url.replace('https://darkgoldenrod/api/authors/', '')) for url in friends]
-
 
     public_posts = Post.objects.filter(visibility__in=['PUBLIC'])
 
@@ -3421,15 +2078,6 @@ def display_feed(request):
             "shared_date": repost,
             "image_content_url": post.image_content.url if post.image_content and post.image_content.url else None
         })
-    
-    # print(f"Current Author ID: {current_author}|")  # Debug the current author's ID
-    # follower_url = current_author.url
-    # print(f"Follower URL: {follower_url}|")  # Debug the full follower URL
-    # print(f'Author IDs: {followings}|')
-    # print(f"Cleaned Author IDs: {cleaned_followings}|")
-    # print(f"Public posts: {public_posts}\n")
-
-    # Retrieve posts from authors the user is following
 
     # Filter based on the selected option
     if filter_option == "followings":
@@ -3462,10 +2110,6 @@ def display_feed(request):
     if filter_option == "all":
         cleaned_posts = cleaned_reposts + cleaned_posts
 
-
-
-    # likes = [PostLike.objects.filter(owner=post).count() for post in posts]
-
     # Pagination setup
     paginator = Paginator(cleaned_posts, 10)  # Show 10 posts per page
     page_number = request.GET.get('page')
@@ -3475,8 +2119,8 @@ def display_feed(request):
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def repost_post(request, id):
-    #post = get_object_or_404(Post, pk=id)
     post = get_post_by_id(id)
     # Only public posts can be shared
     if post.visibility != "PUBLIC":
@@ -3489,10 +2133,11 @@ def repost_post(request, id):
 
     return(redirect(f'/node/posts/{id}/'))
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def upload_image(request):
     signed_id = request.COOKIES.get('id')
     id = signing.loads(signed_id)
-    #author = get_object_or_404(Author, id=id)
     author = get_author_by_id(id)
 
     if request.method == 'POST':
@@ -3506,6 +2151,8 @@ def upload_image(request):
         form = ImageUploadForm()
     return render(request, 'node_admin/upload_image.html', {'form': form})
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
@@ -3515,10 +2162,7 @@ def api_get_post_from_author(request, author_id, post_id):
         Returns 403 for visibility conflicts
         Otherwise, render the post
         """
-
-        #post = get_object_or_404(Post, id=post_id)
         post = get_post_by_id(post_id)
-        #author = get_author(request)
         author = get_author_by_id(author_id)
         liked = False
 
@@ -3541,19 +2185,6 @@ def api_get_post_from_author(request, author_id, post_id):
         # user_likes strategy obtained from Microsoft Copilot, Oct. 2024
         # Find likes from current user matching the queried comment
         user_likes = CommentLike.objects.filter(owner=OuterRef('pk'), liker=author)
-
-        # return render(request, "post.html", {
-        #     "post": post,
-        #     "id": post_id,
-        #     'likes': PostLike.objects.filter(owner=post),
-        #     'author': author,
-        #     'liked' : liked,
-        #     'author_id': author.id,
-        #     'comments': Comment.objects.filter(post=post)
-        #             .annotate(likes=Count('commentlike'),
-        #                         liked=Exists(user_likes)
-        #                         ),
-        # })
         
         comments = Comment.objects.filter(post=post).annotate(
             likes=Count('commentlike'),
@@ -3563,24 +2194,21 @@ def api_get_post_from_author(request, author_id, post_id):
         # Serialize the post, likes, and comments
         post_data = PostSerializer(post).data
         post_data['liked'] = liked  # Add liked status
-        #post_data['comments'] = CommentSerializer(comments, many=True).data
         post_data['likes'] = PostLikesSerializer(post).data
         
         print(post_data)
 
         # Return the post as JSON
         return JsonResponse(post_data, safe=False, status=200)
-        
-        
-        #return view_post(request, post_id)
     elif request.method == 'PUT':
         return edit_post_api(request, author_id, post_id)
     elif request.method == 'DELETE':
         return delete_post_api(request, author_id, post_id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def edit_post_api(request, author_id, post_id):
     author = get_author(request)
-    #post = get_object_or_404(Post, id=post_id)
     post = get_post_by_id(post_id)
     if post.author != author:
         return HttpResponseForbidden("Post cannot be edited.", status=403)
@@ -3601,6 +2229,8 @@ def edit_post_api(request, author_id, post_id):
         return JsonResponse(PostSerializer(post).data)
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_post_api(request, author_id, post_id):
@@ -3640,12 +2270,12 @@ def delete_post_api(request, author_id, post_id):
 
     return Response({'message': 'Post successfully deleted.'}, status=200)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post(request, post_id):
-    #post = get_object_or_404(Post, pk=post_id)
     post = get_post_by_id(post_id)
-    #author = get_object_or_404(Author, id=post.author_id)
     author = get_author_by_id(post.author_id)
     if post.visibility == "FRIENDS":
         follow = get_object_or_404(Follow, follower=author, following=post.author)
@@ -3653,12 +2283,8 @@ def get_post(request, post_id):
             return HttpResponse(403, 'Cannot view this post')
     return JsonResponse(get_serialized_post(post), safe=False)
 
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def get_comments_from_post(request, post_url):
-#     post_id = post_url.split('/')[-1]
-#     return get_comments(request, post_id)
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment(request, author_id, comment_id):
@@ -3670,132 +2296,15 @@ def get_comment(request, author_id, comment_id):
     serializer = CommentSerializer(comment)
     return Response(serializer.data)
 
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def get_comments(request, author_id, post_id):
-#     #TO-DO: Pagination/query handling
-#     # page_number = request.GET.get('page', 1)
-#     # size = request.GET.get('size', 5)
-#     #post = get_object_or_404(Post, id=post_id)
-#     post = get_post_by_id(post_id)
-#     # page = ((page_number - 1) * size)
-#     # comments = post.comment_set.all()[page:page + size]
-#     serializer = CommentsSerializer(post)
-#     return JsonResponse(serializer.data, safe=False)
-
 
 def get_serialized_post(post):
     return PostSerializer(post).data
-
-
-# @api_view(['GET', 'PUT', 'DELETE'])
-# @permission_classes([IsAuthenticated])
-# def followers_view(request, author_id, follower_id=None):
-#     author = get_object_or_404(Author, id=author_id)
-#     follower_id = request.GET.get('follower_id')  # Get the follower_id from query params
-#     follower_host = request.GET.get('follower')  # Get the follower_id from query params
-#     print("followers_view ran initial")
-#     print("follower_id", follower_id)
-#     if request.method == 'GET':
-#         if follower_id:
-#             print("followers_view ran")
-#             # Decode the follower_id URL (assuming it's a URL-encoded ID)
-#             decoded_follower_id = unquote(follower_id)
-#             # Attempt to find the follower by their URL field, assuming `url_field` holds the unique URL
-#             id = decoded_follower_id.split('/')[-1]
-#             host = decoded_follower_id.replace(f'authors/{id}', '')
-#             print('id in function: ', id)
-#             print('host in function: ', host)
-#             follower = Author.objects.filter(host=host, id=int(id)).first()
-#             if not follower:
-#                 return JsonResponse({"error": "Not Found Follower"}, status=404)
-#             elif not Follow.objects.filter(following=f"{author.host}authors/{author.id}", follower=f"{follower.host}authors/{follower.id}", approved=True).first():
-#                 return JsonResponse({"error": "Not a Follower of Author"}, status=404)
-
-#             # Construct the JSON response manually
-#             return JsonResponse({
-#                 "type": "author",
-#                 "id": follower.id,
-#                 "url": follower.url,
-#                 "host": follower.host,
-#                 "displayName": follower.display_name,
-#                 "page": follower.page,
-#                 "github": follower.github,
-#                 "profileImage": follower.profile_image.url if follower.profile_image else ''
-#             })
-
-#         else:
-#             # Get all followers and manually construct the response
-#             followers_data = []
-#             print(author.host)
-#             print(author.id)
-#             followers = Follow.objects.filter(following=f"{author.host}authors/{author.id}", approved=True)
-#             followers = list(followers.values_list('follower', flat=True))
-#             print("followers in function", followers)
-#             for follower_url in followers:
-#                 id = follower_url.split('/')[-1]
-#                 host = follower_url.replace(f'authors/{id}', '')
-#                 follower = Author.objects.filter(host=host, id=int(id)).first()
-
-#                 followers_data.append({
-#                     "type": "author",
-#                     "id": follower.id,
-#                     "url": follower.url,
-#                     "host": follower.host,
-#                     "displayName": follower.display_name,
-#                     "page": follower.page,
-#                     "github": follower.github,
-#                     "profileImage": follower.profile_image.url if follower.profile_image else ''
-#                 })
-
-#             return JsonResponse({
-#                 "type": "followers",
-#                 "followers": followers_data
-#             })
-
-#     elif request.method == 'PUT':
-#         if follower_id:
-#             # Decode the follower_id URL (assuming it's a URL-encoded ID)
-#             decoded_follower_id = unquote(follower_id)
-#             print(follower_id)
-#             # print("decoded_follower_id: ", decoded_follower_id)
-#             # print("author_url: ", f"{author.host}authors/{author.id}")
-
-#             follow = Follow.objects.get(follower=follower_host + "authors/" + decoded_follower_id,
-#                                         following=f"{author.host}authors/{author.id}")
-
-#             follow.approved = True
-#             follow.save()
-#             return JsonResponse({"status": "follow request approved"}, status=201)
-#         else:
-#             return JsonResponse({"error": "Missing foreign author ID"}, status=400)
-
-#     elif request.method == 'DELETE':
-#         if follower_id:
-#             # Decode the follower_id URL (assuming it's a URL-encoded ID)
-#             decoded_follower_id = unquote(follower_id)
-#             try:
-#                 print("decode_follower_id: ", decoded_follower_id)
-#                 print("author_url: ", f"{author.host}authors/{author.id}")
-#                 follow_instance = Follow.objects.get(follower=decoded_follower_id, following=f"{author.host}authors/{author.id}")
-#                 follow_instance.delete()
-#                 return JsonResponse({"status": "follow relationship deleted"}, status=204)
-#             except Follow.DoesNotExist:
-#                 return JsonResponse({"error": "Follow relationship not found"}, status=404)
-#         else:
-#             return JsonResponse({"error": "Missing foreign author ID"}, status=400)
         
-        
+
+# With help from Chat-GPT 4o, OpenAI, November 2024      
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
-    # Since your local authors have integer IDs, convert author_id to integer
-    # try:
-    #     author_id_int = int(author_id)
-    # except ValueError:
-    #     return JsonResponse({"error": "Invalid author ID"}, status=400)
-    # author = get_object_or_404(Author, id=author_id_int)
-    
     author = get_author_by_id(author_id)
 
     if request.method == 'GET':
@@ -3922,6 +2431,8 @@ def followers_view(request, author_id, follower_id=None):
         else:
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
         
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_image(request, author_id, post_id):
@@ -3943,73 +2454,9 @@ def get_post_image(request, author_id, post_id):
             
     except Exception as e:
         return HttpResponse("Invalid image data", status=400)    
-            
-    
-
-# @api_view(['GET'])
-# @permission_classes([AllowAny])
-# def get_post_image_by_id(request, author_id, post_id):
-#     """
-#     GET [local, remote] get the public post converted to binary as an image using FQID.
-#     Returns 404 if not an image.
-#     """
-#     # post = get_post_by_id(post_id)
-        
-#     # # Check if this is an image post
-#     # if not post.contentType.endswith(';base64') and post.contentType != 'application/base64':
-#     #     return HttpResponse("Not an image post", status=404)
-        
-#     # try:
-#     #     #post_data = PostSerializer(post).data
-#     #     #decoded_image = base64.b64decode(post.text_content)
-        
-#     #     # json_content = {
-#     #     #     "contentType": post.contentType,
-#     #     #     "content": decoded_image.decode('utf-8', errors='ignore')
-#     #     # }
-#     #     #post_data['content'] = decoded_image.decode('utf-8', errors='ignore')
-        
-#     #     # response = HttpResponse(decoded_image, contentType=post.contentType)
-#     #     # response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
-#     #     # return JsonResponse(response)
-    
-#     #     decoded_image = base64.b64decode(post.text_content)
-
-#     #     # Set the correct content type for the image
-#     #     response = HttpResponse(decoded_image, content_type=post.contentType)
-#     #     response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
-
-#     #     return response
-            
-#     # except Exception as e:
-#     #     return HttpResponse(f"Invalid image data: {e}", status=400)
-    
-#     try:
-#         # Fetch the post by ID
-#         post = get_post_by_id(post_id)
-
-#         # Check if the post is an image
-#         if not post.contentType.startswith('image/'):
-#             return HttpResponse("Not an image post", status=404)
-
-#         # Ensure text_content is not None
-#         if not post.image_content:
-#             return HttpResponse("No image data found", status=404)
-        
-#         with post.image_content.open("rb") as image_file:
-#             decoded_image = base64.b64encode(image_file.read()).decode("utf-8")
-
-#         # Set the correct content type for the image
-#         response = HttpResponse(decoded_image, content_type=post.contentType)
-#         response['Content-Disposition'] = f'inline; filename="{post_id}.png"'
-
-#         return response
-#     except Post.DoesNotExist:
-#         return HttpResponse("Post not found", status=404)
-#     except Exception as e:
-#         return HttpResponse(f"An unexpected error occurred: {str(e)}", status=500)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_post_image_by_id(request, author_id, post_id):
