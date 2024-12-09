@@ -20,6 +20,10 @@ Teams we have a full connection with:
 * Mistyrose
 * Azure
 
+Teams we have a partial connection with:
+* Whitesmoke
+* Cornflowerblue
+
 ## License
 
 * Choose an OSI approved license, name it here, and copy the license text to a file called `LICENSE`.
