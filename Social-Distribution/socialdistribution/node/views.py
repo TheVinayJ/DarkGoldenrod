@@ -47,6 +47,8 @@ from urllib.parse import unquote
 from rest_framework.parsers import JSONParser
 import base64
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_authors_list(request):
@@ -103,6 +105,7 @@ def api_authors_list(request):
     return JsonResponse(response_data, status=200)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 def authors_list(request):
     print("Host: ", request.get_host())
@@ -279,6 +282,7 @@ def editor(request):
     return render(request, "editor.html")
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST', 'PUT'])
 @permission_classes([IsAuthenticated])
 def edit_post(request, post_id):
@@ -367,6 +371,7 @@ def edit_post(request, post_id):
     return render(request, 'edit_post.html', {'post': post, 'author_id': author.id})
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_post(request, author_id):
@@ -433,6 +438,8 @@ def add_post(request, author_id):
 
     return JsonResponse({"message": "Post created successfully", "url": reverse(view_post, args=[post.id])}, status=201)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_posts(request, author_id):
@@ -542,6 +549,8 @@ def get_posts_from_author(request, author_id):
     serializer = PostSerializer(posts, many=True)
     return Response(serializer.data)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def delete_post(request, post_id):
@@ -584,6 +593,7 @@ def delete_post(request, post_id):
         return redirect('index')
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like(request, id):
@@ -660,7 +670,7 @@ def local_api_like(request, id):
         return JsonResponse({"error": "An error occurred while processing the like"}, status=500)
     
     
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_like_comment(request, id):
@@ -714,7 +724,7 @@ def local_api_like_comment(request, id):
         return JsonResponse({"error": "An error occurred while processing the like"}, status=500)
    
 
-
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def post_like(request, author_id):
     body = json.loads(request.body)
     post = get_post_by_id(body['object'].split('/')[-1])
@@ -729,6 +739,7 @@ def post_like(request, author_id):
         return JsonResponse({'message' : 'PostLike already exists, unliking.'}, status=400)
         
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def comment_like(request, author_id):
     body = json.loads(request.body)
     comment = get_comment_by_id(body['object'].split('/')[-1])
@@ -744,6 +755,7 @@ def comment_like(request, author_id):
         return JsonResponse({'message': 'comment like already exists, unlike instead'}, status=400)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_likes(request, author_id, post_id):
@@ -776,6 +788,8 @@ def get_post_likes(request, author_id, post_id):
     
     return Response(response_data)
     
+    
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_likes_by_id(request, post_url):
@@ -809,6 +823,7 @@ def get_post_likes_by_id(request, post_url):
     return Response(response_data)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment_likes(request, author_id, post_id, comment_fqid):
@@ -848,7 +863,8 @@ def get_comment_likes(request, author_id, post_id, comment_fqid):
     
     return Response(response_data)
     
-    
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def likes_by_author(request, author_id):
@@ -896,6 +912,7 @@ def likes_by_author(request, author_id):
     return JsonResponse(response_data)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_like(request, author_id, like_id):
@@ -921,7 +938,8 @@ def get_like(request, author_id, like_id):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
-    
+
+# With help from Chat-GPT 4o, OpenAI, November 2024   
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_author_likes_by_id(request, author_fqid):
@@ -962,6 +980,7 @@ def get_author_likes_by_id(request, author_fqid):
     return JsonResponse(response_data)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_like_by_id(request, like_fqid):
@@ -990,6 +1009,7 @@ def get_like_by_id(request, like_fqid):
         return Response({"error": "Invalid like ID format"}, status=status.HTTP_400_BAD_REQUEST)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser])
@@ -1052,6 +1072,8 @@ def post_comments(request, author_id, post_id):
 
         return Response(comment_data, status=201)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_comment(request, id):
@@ -1120,6 +1142,7 @@ def add_comment(request, id):
     return(redirect(f'/node/posts/{id}/'))
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def author_commented(request, author_id):
@@ -1194,6 +1217,8 @@ def author_commented(request, author_id):
 
         return Response(comment_data, status=201)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment_by_fqid(request, comment_fqid):
@@ -1214,6 +1239,7 @@ def get_comment_by_fqid(request, comment_fqid):
     return Response(serializer.data)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def view_post(request, post_id):
@@ -1266,6 +1292,7 @@ def view_post(request, post_id):
     })
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request, author_id):
@@ -1367,6 +1394,7 @@ def profile(request, author_id):
     })
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def retrieve_github(user):
     '''
     Retrieve GitHub public activity of author and create Post objects if there is any
@@ -1388,10 +1416,8 @@ def retrieve_github(user):
     activity = json.loads(data.decode("utf-8")) if res.status == 200 else []
     # Ends here
 
-
     followers = Follow.objects.filter(following=user.url, approved = True)
     print(followers)
-
 
     # 10/28/2024
     # Me: Retrieve the different event types, the repo, the date in each event in the json and create them into post if they do not yet exist in the database
@@ -1454,6 +1480,7 @@ def retrieve_github(user):
                 post_request_to_node(base_url, inbox_url, 'POST', json_content)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def api_single_author_fqid(request, author_fqid):
@@ -1485,7 +1512,6 @@ def api_single_author_fqid(request, author_fqid):
             "message": "This user does not exist",
         }
         return JsonResponse(nonexistent_author, status=404)
-
 
     if request.method == 'GET':
         if user is None:
@@ -1541,6 +1567,7 @@ def edit_profile(request,author_id):
     return render(request, 'profile/edit_profile.html', {'user': serializer.data})
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 def followers_following_friends(request, author_id):
     '''
@@ -1626,6 +1653,7 @@ def followers_following_friends(request, author_id):
     return render(request, 'user_list.html', context)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def get_author(request):
     """
     Retrieves the authenticated Author instance.
@@ -1637,6 +1665,7 @@ def get_author(request):
     return None
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def local_api_follow(request, author_id):
@@ -1708,6 +1737,7 @@ def local_api_follow(request, author_id):
         messages.error(request, "Failed to send follow request. Please try again.")
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def add_external_comment(request, author_id):
     """
     Adds comment objects from an API according to
@@ -1762,7 +1792,8 @@ def add_external_comment(request, author_id):
 
     return JsonResponse('Failed to add comment(s)', status=status.HTTP_400_BAD_REQUEST)
 
-    
+ 
+# With help from Chat-GPT 4o, OpenAI, November 2024   
 def add_external_post(request, author_id):
     """
     Add a post to the database from an inbox call.
@@ -1830,6 +1861,7 @@ def add_external_post(request, author_id):
     return JsonResponse(serialized_post.data, status=201)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def inbox(request, author_id):
@@ -1921,6 +1953,8 @@ def unfollow_author(request, author_id):
     # Redirect back to the authors list or a success page
     return redirect('profile', author_id=current_author.id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def follow_requests(request, author_id):
     current_author = get_author_by_id(author_id)
     current_follow_requests = Follow.objects.filter(following=current_author.url, approved=False)
@@ -1947,6 +1981,8 @@ def follow_requests(request, author_id):
 
     return render(request, 'user_list.html', context)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def approve_follow(request, author_id, follower_id):
     current_author = get_author_by_id(author_id)
     if request.method == 'POST':
@@ -1961,6 +1997,8 @@ def approve_follow(request, author_id, follower_id):
         messages.success(request, f"You have approved {follower.display_name}'s follow request.")
     return redirect('follow_requests', author_id=current_author.id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def decline_follow(request, author_id, follower_id):
     current_author = get_author_by_id(author_id)
     if request.method == 'POST':
@@ -1973,6 +2011,8 @@ def decline_follow(request, author_id, follower_id):
         messages.success(request, f"You have declined {follower.display_name}'s follow request.")
     return redirect('follow_requests', author_id=current_author.id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def remove_follower(request, author_id, follower_id):
     current_author = get_author_by_id(author_id)
     if request.method == 'POST':
@@ -2079,6 +2119,7 @@ def display_feed(request):
     return render(request, 'feed.html', {'page_obj': page_obj, 'author_id': current_author,})
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def repost_post(request, id):
     post = get_post_by_id(id)
     # Only public posts can be shared
@@ -2093,6 +2134,7 @@ def repost_post(request, id):
     return(redirect(f'/node/posts/{id}/'))
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def upload_image(request):
     signed_id = request.COOKIES.get('id')
     id = signing.loads(signed_id)
@@ -2109,6 +2151,8 @@ def upload_image(request):
         form = ImageUploadForm()
     return render(request, 'node_admin/upload_image.html', {'form': form})
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def api_get_post_from_author(request, author_id, post_id):
@@ -2161,6 +2205,8 @@ def api_get_post_from_author(request, author_id, post_id):
     elif request.method == 'DELETE':
         return delete_post_api(request, author_id, post_id)
 
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 def edit_post_api(request, author_id, post_id):
     author = get_author(request)
     post = get_post_by_id(post_id)
@@ -2184,6 +2230,7 @@ def edit_post_api(request, author_id, post_id):
     return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_post_api(request, author_id, post_id):
@@ -2224,6 +2271,7 @@ def delete_post_api(request, author_id, post_id):
     return Response({'message': 'Post successfully deleted.'}, status=200)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post(request, post_id):
@@ -2236,6 +2284,7 @@ def get_post(request, post_id):
     return JsonResponse(get_serialized_post(post), safe=False)
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_comment(request, author_id, comment_id):
@@ -2251,7 +2300,8 @@ def get_comment(request, author_id, comment_id):
 def get_serialized_post(post):
     return PostSerializer(post).data
         
-        
+
+# With help from Chat-GPT 4o, OpenAI, November 2024      
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def followers_view(request, author_id, follower_id=None):
@@ -2381,7 +2431,8 @@ def followers_view(request, author_id, follower_id=None):
         else:
             return JsonResponse({"error": "Missing follower ID or host"}, status=400)
         
-        
+
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_post_image(request, author_id, post_id):
@@ -2405,6 +2456,7 @@ def get_post_image(request, author_id, post_id):
         return HttpResponse("Invalid image data", status=400)    
 
 
+# With help from Chat-GPT 4o, OpenAI, November 2024
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_post_image_by_id(request, author_id, post_id):
