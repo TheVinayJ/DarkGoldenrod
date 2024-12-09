@@ -159,51 +159,6 @@ async def send_request_to_node(node_name, endpoint, method='GET', data=None):
         except aiohttp.ClientError as e:
             raise Exception(f"HTTP request to node '{node_name}' failed: {str(e)}")
 
-# async def post_request_to_node(host, url, method='POST', data=None):
-#     '''
-#     Send an asynchronous HTTP request to a remote node.
-
-#     Parameters:
-#         host: The base URL of the remote node.
-#         url: The full URL to send the request to.
-#         method: {GET, POST, PUT, DELETE}
-#         data: data for POST or PUT requests
-#     '''
-#     # Close any existing database connections to prevent errors in async context
-#     connections.close_all()
-
-#     try:
-#         node = await sync_to_async(RemoteNode.objects.filter(url=host, is_active=True).first)()
-#         if not node:
-#             raise RemoteNode.DoesNotExist
-#     except RemoteNode.DoesNotExist:
-#         raise Exception(f"Node '{host}' is not active or does not exist.")
-
-#     auth = aiohttp.BasicAuth(node.username, node.password)
-
-#     async with aiohttp.ClientSession(auth=auth) as session:
-#         try:
-#             if method.upper() == 'GET':
-#                 async with session.get(url, timeout=10) as response:
-#                     response.raise_for_status()
-#                     return await response.json()
-#             elif method.upper() == 'POST':
-#                 async with session.post(url, json=data, timeout=10) as response:
-#                     response.raise_for_status()
-#                     return await response.json()
-#             elif method.upper() == 'PUT':
-#                 async with session.put(url, json=data, timeout=10) as response:
-#                     response.raise_for_status()
-#                     return await response.json()
-#             elif method.upper() == 'DELETE':
-#                 async with session.delete(url, timeout=10) as response:
-#                     response.raise_for_status()
-#                     return await response.json()
-#             else:
-#                 raise Exception(f"Unsupported HTTP method: {method}")
-#         except aiohttp.ClientError as e:
-#             raise Exception(f"HTTP request to node at '{url}' failed: {str(e)}")
-
 async def post_request_to_node_async(host, url, method='POST', data=None):
     """
     Send an asynchronous HTTP request to a remote node without waiting for a response.
